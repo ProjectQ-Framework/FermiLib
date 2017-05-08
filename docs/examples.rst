@@ -3,7 +3,8 @@
 Examples
 ========
 
-All of these example codes (and many more!) can be found on `GitHub <https://github.com/ProjectQ-Framework/FermiLib/tree/master/examples/>`_.
+All of these examples (and more!) are explained in detail in the ipython notebook
+fermilib_demo.ipynb located at `GitHub <https://github.com/ProjectQ-Framework/FermiLib/tree/master/examples/>`_.
 
 .. toctree::
    :maxdepth: 2	
@@ -60,7 +61,14 @@ FermionOperator supports a wide range of builtins including str(), repr(), =, , 
 Qubit Operators
 ---------------
 
-The QubitOperator data structure is another essential part of FermiLib. While the QubitOperator was originally developed for FermiLib, it is now part of the core ProjectQ library so that it can be interpreted by the ProjectQ compiler using the TimeEvolution gate. As the name suggests, QubitOperator is used to store qubit operators in almost exactly the same way that FermionOperator is used to store fermion operators. For instance :math:`X_0 Z_3 Y_4` is a QubitOperator. The internal representation of this as a terms tuple would be :math:`((0,"X"),(3,"Z"),(4,"Y"))((0,"X"),(3,"Z"),(4,"Y"))`. Note that one important difference between QubitOperator and FermionOperator is that the terms in QubitOperator are always sorted in order of tensor factor. In some cases, this enables faster manipulation. We initialize some QubitOperators below.
+The QubitOperator data structure is another essential part of FermiLib. While
+the QubitOperator was originally developed for FermiLib, it is now part of the
+core ProjectQ library so that it can be interpreted by the ProjectQ compiler
+using the TimeEvolution gate. As the name suggests, QubitOperator is used to
+store qubit operators in almost exactly the same way that FermionOperator is
+used to store fermion operators. For instance :math:`X_0 Z_3 Y_4` is a
+QubitOperator. The internal representation of this as a terms tuple would be
+:math:`((0, X),(3, Z),(4, Y))`. Note that one important difference between QubitOperator and FermionOperator is that the terms in QubitOperator are always sorted in order of tensor factor. In some cases, this enables faster manipulation. We initialize some QubitOperators below.
 
 .. code-block:: python
 
@@ -72,7 +80,6 @@ The QubitOperator data structure is another essential part of FermiLib. While th
 	
 	operator_2 = QubitOperator('X3 Z4', 3.17)
 	operator_2 -= 77. * my_first_qubit_operator
-	print('')
 	print(operator_2)
 
 Transformations
@@ -93,16 +100,14 @@ FermiLib also provides functions for mapping FermionOperators to QubitOperators,
 		
 	# Transform to qubits under the Jordan-Wigner transformation and print its spectrum.
 	jw_operator = jordan_wigner(fermion_operator)
-	print('')
-	print(jw_operator)
 	jw_spectrum = eigenspectrum(jw_operator)
+	print(jw_operator)
 	print(jw_spectrum)
 	
 	# Transform to qubits under the Bravyi-Kitaev transformation and print its spectrum.
 	bk_operator = bravyi_kitaev(fermion_operator)
-	print('')
-	print(bk_operator)
 	bk_spectrum = eigenspectrum(bk_operator)
+	print(bk_operator)
 	print(bk_spectrum)
 
 We see that despite the different representation, these operators are iso-spectral. We can also apply the Jordan-Wigner transform in reverse to map arbitrary QubitOperators to FermionOperators. Note that we also demonstrate the .compress() method (a method on both FermionOperators and QubitOperators) which removes zero entries.
@@ -119,13 +124,11 @@ We see that despite the different representation, these operators are iso-spectr
 	
 	# Map QubitOperator to a FermionOperator.
 	mapped_operator = reverse_jordan_wigner(my_operator)
-	print('')
 	print(mapped_operator)
 	
 	# Map the operator back to qubits and make sure it is the same.
 	back_to_normal = jordan_wigner(mapped_operator)
 	back_to_normal.compress()
-	print('')
 	print(back_to_normal)
 
 Sparse matrices and the Hubbard model
@@ -157,12 +160,10 @@ Often, one would like to obtain a sparse matrix representation of an operator wh
 	# Get qubit operator under Jordan-Wigner.
 	jw_hamiltonian = jordan_wigner(hubbard_model)
 	jw_hamiltonian.compress()
-	print('')
 	print(jw_hamiltonian)
 	
 	# Get scipy.sparse.csc representation.
 	sparse_operator = get_sparse_operator(hubbard_model)
-	print('')
 	print(sparse_operator)
 	print('\nEnergy of the model is {} in units of T and J.'.format(
 	    get_ground_state(sparse_operator)[0]))
