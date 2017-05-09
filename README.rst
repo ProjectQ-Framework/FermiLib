@@ -31,7 +31,7 @@ To contribute code please adhere to the following very simple rules:
 2. Make sure you adhere to our style guide. Until we release a code style 
    guide, just have a look at our code for clues. We mostly follow pep8 and use the pep8 linter to check for it.
 3. Put global constants and configuration parameters into src/fermilib/config.py, and
-   add `from config import *` in the file that uses the constants/parameters.
+   add *from config import ** in the file that uses the constants/parameters.
 
 Documentation can be found `here <https://github.com/ProjectQ-Framework/FermiLib/tree/master/docs/>`_.
 
