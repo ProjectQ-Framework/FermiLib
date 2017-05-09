@@ -43,7 +43,7 @@ install:
   - pip$PY install coveralls
 
 # command to run tests
-script: pytest src/fermilib --cov src/fermilib
+script: cd src && pytest fermilib --cov fermilib
 
 after_success:
   - coveralls
