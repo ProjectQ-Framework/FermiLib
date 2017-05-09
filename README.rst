@@ -7,6 +7,10 @@ FermiLib - An open source software for analyzing quantum simulation algorithms
 .. image:: https://coveralls.io/repos/github/ProjectQ-Framework/FermiLib/badge.svg
     :target: https://coveralls.io/github/ProjectQ-Framework/FermiLib
 
+.. image:: https://readthedocs.org/projects/fermilib/badge/?version=latest
+:target: http://fermilib.readthedocs.io/en/latest/?badge=latest
+:alt: Documentation Status
+
 
 FermiLib is an open source effort for analyzing quantum simulation algorithms.
 
@@ -16,7 +20,7 @@ Getting started
 ---------------
 
 To start using FermiLib, simply follow the installation instructions in the `intro <https://github.com/ProjectQ-Framework/FermiLib/tree/master/docs/intro.html>`__. There, you will also find `code examples <https://github.com/ProjectQ-Framework/FermiLib/tree/master/examples.html>`__. Also, make sure to check out the `ProjectQ
-website <http://www.projectq.ch>`__ and the detailed `code documentation <https://github.com/ProjectQ-Framework/FermiLib/tree/master/docs/>`__.
+website <http://www.projectq.ch>`__ and the detailed `code documentation <https://fermilib.readthedocs.io/>`__.
 
 How to contribute
 -----------------
@@ -26,7 +30,7 @@ To contribute code please adhere to the following very simple rules:
 1. Make sure your new code comes with extensive tests!
 2. Make sure you adhere to our style guide. Until we release a code style 
    guide, just have a look at our code for clues. We mostly follow pep8 and use the pep8 linter to check for it.
-3. Put global constants and configuration parameters into src/config.py, and
+3. Put global constants and configuration parameters into src/fermilib/config.py, and
    add 'from config import *' in the file that uses the constants/parameters.
 
 Documentation can be found `here <https://github.com/ProjectQ-Framework/FermiLib/tree/master/docs/>`_.
@@ -41,13 +45,3 @@ License
 -------
 
 FermiLib is released under the Apache 2 license.
-
-
-
-
-
-
-
-
-
-

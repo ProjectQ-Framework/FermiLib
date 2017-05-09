@@ -13,14 +13,14 @@ Installing FermiLib requires pip. Make sure that you are using an up-to-date ver
 
 .. code-block:: bash
 
-	python -m pip install --user fermilib
+	python -m pip install --pre --user fermilib
 
 Alternatively, clone/download `this repo <https://github.com/ProjectQ-Framework/FermiLib>`_ (e.g., to your /home directory) and run
 
 .. code-block:: bash
 
 	cd /home/fermilib
-	python -m pip install --user .
+	python -m pip install --pre --user .
 
 This will install FermiLib and all its dependencies automatically. In particular, FermiLib requires `ProjectQ <https://projectq.ch>`_ . It might be useful to install ProjectQ separately before installing FermiLib as it might require setting some manual options such as, e.g., a C++ compiler. Please follow the `ProjectQ installation <https://projectq.ch/code-and-docs/>`_ instructions. FermiLib is compatible with both Python 2 and 3.
 
