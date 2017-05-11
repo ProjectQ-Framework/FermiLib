@@ -85,31 +85,6 @@ class UnitaryCC(unittest.TestCase):
                           (-0.0565340614) * FermionOperator("0^ 2 1^ 3"))
         self.assertTrue(test_generator.isclose(generator))
 
-    # Skip this test for now.
-    @unittest.skip
-    def test_projectq_filters(self):
-        """Verify ProjectQ filters work as intended"""
-        eng = MainEngine()
-        op = QubitOperator("X0 X1 X2", -0.5)
-        wavefunction = eng.allocate_qureg(4)
-
-        command = TimeEvolution(time=1., hamiltonian=op) | wavefunction
-        self.assertFalse(_identify_non_commuting(command))
-
-        op = QubitOperator("X0 X1 X2", -0.5) + QubitOperator("Z1", 1.0)
-        command = TimeEvolution(time=1., hamiltonian=op) | wavefunction
-
-        self.assertTrue(_identify_non_commuting(command))
-
-        op = QubitOperator("X0 X1 X2", -0.5)
-        command = TimeEvolution(time=1., hamiltonian=op) | wavefunction
-
-        self.assertFalse(_two_gate_filter(None, command))
-
-        command = X | wavefunction
-
-        self.assertTrue(_two_gate_filter(None, command))
-
     def test_simulation_energy(self):
         """Test UCCSD Singlet Energy for H2"""
 
