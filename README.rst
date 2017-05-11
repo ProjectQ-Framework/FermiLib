@@ -19,8 +19,8 @@ The first version (v0.1a0) is an alpha release which features data structures an
 Getting started
 ---------------
 
-To start using FermiLib, simply follow the installation instructions in the `intro <https://github.com/ProjectQ-Framework/FermiLib/tree/master/docs/intro.html>`__. There, you will also find `code examples <https://github.com/ProjectQ-Framework/FermiLib/tree/master/examples.html>`__. Also, make sure to check out the `ProjectQ
-website <http://www.projectq.ch>`__ and the detailed `code documentation <https://fermilib.readthedocs.io/>`__.
+To start using FermiLib, simply follow the installation instructions in the `intro <http://fermilib.readthedocs.io/en/latest/intro.html>`__. There, you will also find `code examples <http://fermilib.readthedocs.io/en/latest/examples.html>`__. Also, make sure to check out the `ProjectQ
+website <http://www.projectq.ch>`__ and the detailed `code documentation <http://fermilib.readthedocs.io/en/latest/fermilib.html>`__.
 
 How to contribute
 -----------------
@@ -33,7 +33,7 @@ To contribute code please adhere to the following very simple rules:
 3. Put global constants and configuration parameters into src/fermilib/config.py, and
    add *from config import ** in the file that uses the constants/parameters.
 
-Documentation can be found `here <https://github.com/ProjectQ-Framework/FermiLib/tree/master/docs/>`_.
+Documentation can be found `here <http://fermilib.readthedocs.io/>`_.
 
 Authors
 -------
