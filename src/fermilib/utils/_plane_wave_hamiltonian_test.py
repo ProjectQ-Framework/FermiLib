@@ -43,6 +43,27 @@ class PlaneWaveHamiltonianTest(unittest.TestCase):
             self.assertTrue(normal_ordered(h_plane_wave_t).isclose(
                 normal_ordered(h_dual_basis)))
 
+    def test_fourier_transform_energy_cutoff(self):
+        n_dimensions = 1
+        length_scale = 1.5
+        grid_length = 5
+        spinless_set = [True, False]
+        geometry = [('H', (0,)), ('H', (0.5,))]
+        energy_cutoff_set = [0.1, 10.0, 100.0]
+        for spinless in spinless_set:
+            for energy_cutoff in energy_cutoff_set:
+                h_plane_wave = plane_wave_hamiltonian(
+                    n_dimensions, grid_length, length_scale, geometry,
+                    spinless, True, energy_cutoff)
+                h_dual_basis = plane_wave_hamiltonian(
+                    n_dimensions, grid_length, length_scale, geometry,
+                    spinless, False, energy_cutoff)
+                h_plane_wave_t = fourier_transform(
+                    h_plane_wave, n_dimensions, grid_length, length_scale,
+                    spinless)
+                self.assertTrue(normal_ordered(h_plane_wave_t).isclose(
+                    normal_ordered(h_dual_basis)))
+
     def test_inverse_fourier_transform_1d(self):
         n_dimensions = 1
         length_scale = 1.5

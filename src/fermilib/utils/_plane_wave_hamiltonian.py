@@ -20,13 +20,14 @@ from fermilib.config import *
 from fermilib.ops import FermionOperator
 from fermilib.utils._molecular_data import periodic_hash_table
 from fermilib.utils._jellium import (orbital_id, grid_indices, position_vector,
-                                     momentum_vector, jellium_model)
+                                     momentum_vector, jellium_model,
+                                     above_energy_cutoff)
 
 from projectq.ops import QubitOperator
 
 
 def dual_basis_u_operator(n_dimensions, grid_length, length_scale, geometry,
-                          spinless):
+                          spinless, energy_cutoff=None):
     """Return the external potential operator in plane wave dual basis.
 
     Args:
@@ -37,6 +38,7 @@ def dual_basis_u_operator(n_dimensions, grid_length, length_scale, geometry,
             example is [('H', (0, 0, 0)), ('H', (0, 0, 0.7414))].
             Distances in atomic units. Use atomic symbols to specify atoms.
         spinless: Bool, whether to use the spinless model or not.
+        energy_cutoff: Float, energy cutoff.
 
     Returns:
         operator: An instance of the FermionOperator class.
@@ -44,7 +46,7 @@ def dual_basis_u_operator(n_dimensions, grid_length, length_scale, geometry,
     n_points = grid_length ** n_dimensions
     volume = length_scale ** float(n_dimensions)
     prefactor = -4.0 * numpy.pi / volume
-    operator = None
+    operator = FermionOperator()
     if spinless:
         spins = [None]
     else:
@@ -60,6 +62,11 @@ def dual_basis_u_operator(n_dimensions, grid_length, length_scale, geometry,
                                                      repeat=n_dimensions):
                 momenta = momentum_vector(momenta_indices, grid_length,
                                           length_scale)
+
+                # Apply energy cutoff.
+                if above_energy_cutoff(momenta, energy_cutoff):
+                    continue
+
                 momenta_squred = momenta.dot(momenta)
                 if momenta_squred < EQ_TOLERANCE:
                     continue
@@ -71,16 +78,13 @@ def dual_basis_u_operator(n_dimensions, grid_length, length_scale, geometry,
                     orbital_p = orbital_id(
                         grid_length, grid_indices_p, spin_p)
                     operators = ((orbital_p, 1), (orbital_p, 0))
-                    if operator is None:
-                        operator = FermionOperator(operators, coefficient)
-                    else:
-                        operator += FermionOperator(operators, coefficient)
+                    operator += FermionOperator(operators, coefficient)
 
     return operator
 
 
 def plane_wave_u_operator(n_dimensions, grid_length, length_scale, geometry,
-                          spinless):
+                          spinless, energy_cutoff=None):
     """Return the external potential operator in plane wave basis.
 
     Args:
@@ -91,6 +95,7 @@ def plane_wave_u_operator(n_dimensions, grid_length, length_scale, geometry,
             example is [('H', (0, 0, 0)), ('H', (0, 0, 0.7414))].
             Distances in atomic units. Use atomic symbols to specify atoms.
         spinless: Bool, whether to use the spinless model or not.
+        energy_cutoff: Float, energy cutoff.
 
     Returns:
         operator: An instance of the FermionOperator class.
@@ -98,7 +103,7 @@ def plane_wave_u_operator(n_dimensions, grid_length, length_scale, geometry,
     n_points = grid_length ** n_dimensions
     volume = length_scale ** float(n_dimensions)
     prefactor = -4.0 * numpy.pi / volume
-    operator = None
+    operator = FermionOperator()
     if spinless:
         spins = [None]
     else:
@@ -106,14 +111,23 @@ def plane_wave_u_operator(n_dimensions, grid_length, length_scale, geometry,
 
     for grid_indices_p in itertools.product(range(grid_length),
                                             repeat=n_dimensions):
+        momenta_p = momentum_vector(grid_indices_p, grid_length,
+                                    length_scale)
         for grid_indices_q in itertools.product(range(grid_length),
                                                 repeat=n_dimensions):
+            momenta_q = momentum_vector(grid_indices_q, grid_length,
+                                        length_scale)
             shift = grid_length // 2
             grid_indices_p_q = [
                 (grid_indices_p[i] - grid_indices_q[i] + shift) % grid_length
                 for i in range(n_dimensions)]
             momenta_p_q = momentum_vector(grid_indices_p_q, grid_length,
                                           length_scale)
+
+            # Apply energy cutoff.
+            if above_energy_cutoff(momenta_p_q, energy_cutoff):
+                continue
+
             momenta_p_q_squared = momenta_p_q.dot(momenta_p_q)
             if momenta_p_q_squared < EQ_TOLERANCE:
                 continue
@@ -130,16 +144,14 @@ def plane_wave_u_operator(n_dimensions, grid_length, length_scale, geometry,
                     orbital_q = orbital_id(
                         grid_length, grid_indices_q, spin)
                     operators = ((orbital_p, 1), (orbital_q, 0))
-                    if operator is None:
-                        operator = FermionOperator(operators, coefficient)
-                    else:
-                        operator += FermionOperator(operators, coefficient)
+                    operator += FermionOperator(operators, coefficient)
 
     return operator
 
 
 def plane_wave_hamiltonian(n_dimensions, grid_length, length_scale, geometry,
-                           spinless=False, momentum_space=True):
+                           spinless=False, momentum_space=True,
+                           energy_cutoff=None):
     """Returns Hamiltonian as FermionOperator class.
 
     Args:
@@ -152,6 +164,7 @@ def plane_wave_hamiltonian(n_dimensions, grid_length, length_scale, geometry,
         spinless: Bool, whether to use the spinless model or not.
         momentum_space: Boole, whether to return in plane wave basis (True)
             or plane wave dual basis (False).
+        energy_cutoff: Float, energy cutoff.
 
     Returns:
         hamiltonian: An instance of the FermionOperator class.
@@ -164,14 +177,14 @@ def plane_wave_hamiltonian(n_dimensions, grid_length, length_scale, geometry,
 
     if momentum_space:
         return jellium_model(n_dimensions, grid_length, length_scale, spinless,
-                             True) + \
+                             True, energy_cutoff) + \
             plane_wave_u_operator(n_dimensions, grid_length, length_scale,
-                                  geometry, spinless)
+                                  geometry, spinless, energy_cutoff)
     else:
         return jellium_model(n_dimensions, grid_length, length_scale, spinless,
-                             False) + \
+                             False, energy_cutoff) + \
             dual_basis_u_operator(n_dimensions, grid_length, length_scale,
-                                  geometry, spinless)
+                                  geometry, spinless, energy_cutoff)
 
 
 def fourier_transform(hamiltonian, n_dimensions, grid_length, length_scale,

@@ -139,9 +139,9 @@ def momentum_vector(momentum_indices, grid_length, length_scale):
         grid_length: Int, the number of points in one dimension of the grid.
         length_scale: Float, the real space length of a box dimension.
 
-        Returns:
-            momentum_vector: A numpy array giving the momentum vector with
-                dimensions.
+    Returns:
+        momentum_vector: A numpy array giving the momentum vector with
+            dimensions.
 
     Raises:
         OrbitalSpecificationError: Momentum indices must be integers
@@ -163,8 +163,32 @@ def momentum_vector(momentum_indices, grid_length, length_scale):
     return momentum_vector
 
 
+def above_energy_cutoff(momentum_vector, energy_cutoff):
+    """Returns if a kinetic term is above energy cutoff.
+
+    Args:
+        momentum_vector:  A numpy array giving the momentum vector with
+            dimensions.
+        energy_cutoff: Float, energy cutoff.
+
+    Returns:
+        above_cutoff: If the term is above energy cutoff.
+    """
+    if energy_cutoff is None:
+        return False
+
+    energy = 0.0
+    for k in momentum_vector:
+        energy += k * k
+    energy /= 2.0
+    above_cutoff = (energy >= energy_cutoff)
+
+    return above_cutoff
+
+
 def momentum_kinetic_operator(n_dimensions, grid_length,
-                              length_scale, spinless=False):
+                              length_scale, spinless=False,
+                              energy_cutoff=None):
     """Return the kinetic energy operator in momentum second quantization.
 
     Args:
@@ -172,6 +196,7 @@ def momentum_kinetic_operator(n_dimensions, grid_length,
         grid_length: Int, the number of points in one dimension of the grid.
         length_scale: Float, the real space length of a box dimension.
         spinless: Bool, whether to use the spinless model or not.
+        energy_cutoff: Float, energy cutoff.
 
     Returns:
         operator: An instance of the FermionOperator class.
@@ -188,6 +213,11 @@ def momentum_kinetic_operator(n_dimensions, grid_length,
     for grid_indices in itertools.product(range(grid_length),
                                           repeat=n_dimensions):
         momenta = momentum_vector(grid_indices, grid_length, length_scale)
+
+        # Apply energy cutoff.
+        if above_energy_cutoff(momenta, energy_cutoff):
+            continue
+
         coefficient = momenta.dot(momenta) / 2.
 
         # Loop over spins.
@@ -202,7 +232,8 @@ def momentum_kinetic_operator(n_dimensions, grid_length,
 
 
 def momentum_potential_operator(n_dimensions, grid_length,
-                                length_scale, spinless=False):
+                                length_scale, spinless=False,
+                                energy_cutoff=None):
     """Return the potential operator in momentum second quantization.
 
     Args:
@@ -210,6 +241,7 @@ def momentum_potential_operator(n_dimensions, grid_length,
         grid_length: Int, the number of points in one dimension of the grid.
         length_scale: Float, the real space length of a box dimension.
         spinless: Boole, whether to use the spinless model or not.
+        energy_cutoff: Float, energy cutoff.
 
     Returns:
         operator: An instance of the FermionOperator class.
@@ -244,6 +276,10 @@ def momentum_potential_operator(n_dimensions, grid_length,
 
         # Skip if omega momentum is zero.
         if not omega_momenta.any():
+            continue
+
+        # Apply energy cutoff.
+        if above_energy_cutoff(omega_momenta, energy_cutoff):
             continue
 
         # Compute coefficient.
@@ -285,7 +321,8 @@ def momentum_potential_operator(n_dimensions, grid_length,
 
 
 def position_kinetic_operator(n_dimensions, grid_length,
-                              length_scale, spinless=False):
+                              length_scale, spinless=False,
+                              energy_cutoff=None):
     """Return the kinetic operator in position space second quantization.
 
     Args:
@@ -293,6 +330,7 @@ def position_kinetic_operator(n_dimensions, grid_length,
         grid_length: Int, the number of points in one dimension of the grid.
         length_scale: Float, the real space length of a box dimension.
         spinless: Bool, whether to use the spinless model or not.
+        energy_cutoff: Float, energy cutoff.
 
     Returns:
         operator: An instance of the FermionOperator class.
@@ -322,6 +360,11 @@ def position_kinetic_operator(n_dimensions, grid_length,
                                                      repeat=n_dimensions):
                 momenta = momentum_vector(
                     momenta_indices, grid_length, length_scale)
+
+                # Apply energy cutoff.
+                if above_energy_cutoff(momenta, energy_cutoff):
+                    continue
+
                 if momenta.any():
                     coefficient += (
                         numpy.cos(momenta.dot(differences)) *
@@ -341,7 +384,8 @@ def position_kinetic_operator(n_dimensions, grid_length,
 
 
 def position_potential_operator(n_dimensions, grid_length,
-                                length_scale, spinless=False):
+                                length_scale, spinless=False,
+                                energy_cutoff=None):
     """Return the potential operator in position space second quantization.
 
     Args:
@@ -349,6 +393,7 @@ def position_potential_operator(n_dimensions, grid_length,
         grid_length: Int, the number of points in one dimension of the grid.
         length_scale: Float, the real space length of a box dimension.
         spinless: Boole, whether to use the spinless model or not.
+        energy_cutoff: energy cutoff.
 
     Returns:
         operator: An instance of the FermionOperator class.
@@ -380,6 +425,11 @@ def position_potential_operator(n_dimensions, grid_length,
                                                      repeat=n_dimensions):
                 momenta = momentum_vector(
                     momenta_indices, grid_length, length_scale)
+
+                # Apply energy cutoff.
+                if above_energy_cutoff(momenta, energy_cutoff):
+                    continue
+
                 if momenta.any():
                     coefficient += (
                         prefactor * numpy.cos(momenta.dot(differences)) /
@@ -401,7 +451,7 @@ def position_potential_operator(n_dimensions, grid_length,
 
 
 def jellium_model(n_dimensions, grid_length, length_scale,
-                  spinless=False, momentum_space=True):
+                  spinless=False, momentum_space=True, energy_cutoff=None):
     """Return jellium Hamiltonian as FermionOperator class.
 
     Args:
@@ -411,31 +461,29 @@ def jellium_model(n_dimensions, grid_length, length_scale,
         spinless: Bool, whether to use the spinless model or not.
         momentum_space: Boole, whether to return in momentum space (True)
             or position space (False).
+        energy_cutoff: Float, energy cutoff.
 
     Returns:
         hamiltonian: An instance of the FermionOperator class.
     """
     if momentum_space:
-        hamiltonian = momentum_kinetic_operator(n_dimensions,
-                                                grid_length,
-                                                length_scale,
-                                                spinless)
-        hamiltonian += momentum_potential_operator(n_dimensions,
-                                                   grid_length,
-                                                   length_scale,
-                                                   spinless)
+        hamiltonian = momentum_kinetic_operator(n_dimensions, grid_length,
+                                                length_scale, spinless,
+                                                energy_cutoff)
+        hamiltonian += momentum_potential_operator(n_dimensions, grid_length,
+                                                   length_scale, spinless,
+                                                   energy_cutoff)
     else:
-        hamiltonian = position_kinetic_operator(n_dimensions,
-                                                grid_length,
-                                                length_scale,
-                                                spinless)
-        hamiltonian += position_potential_operator(n_dimensions,
-                                                   grid_length,
-                                                   length_scale,
-                                                   spinless)
+        hamiltonian = position_kinetic_operator(n_dimensions, grid_length,
+                                                length_scale, spinless,
+                                                energy_cutoff)
+        hamiltonian += position_potential_operator(n_dimensions, grid_length,
+                                                   length_scale, spinless,
+                                                   energy_cutoff)
     return hamiltonian
 
 
+# TODO(wsws): Update with the latest formula, add U term, and add energy cut.
 def jordan_wigner_position_jellium(n_dimensions, grid_length,
                                    length_scale, spinless=False):
     """Return the position space jellium Hamiltonian as QubitOperator.
