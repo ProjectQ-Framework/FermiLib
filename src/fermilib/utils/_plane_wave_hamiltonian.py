@@ -64,8 +64,8 @@ def dual_basis_u_operator(n_dimensions, grid_length, length_scale, geometry,
                 if momenta_squred < EQ_TOLERANCE:
                     continue
                 exp_index = 1.0j * momenta.dot(coordinate_j - coordinate_p)
-                coefficient = prefactor / momenta_squred * \
-                    periodic_hash_table[nuclear_term[0]] * numpy.exp(exp_index)
+                coefficient = (prefactor / momenta_squred *
+                    periodic_hash_table[nuclear_term[0]] * numpy.exp(exp_index))
 
                 for spin_p in spins:
                     orbital_p = orbital_id(
@@ -121,8 +121,8 @@ def plane_wave_u_operator(n_dimensions, grid_length, length_scale, geometry,
             for nuclear_term in geometry:
                 coordinate_j = numpy.array(nuclear_term[1])
                 exp_index = 1.0j * momenta_p_q.dot(coordinate_j)
-                coefficient = prefactor / momenta_p_q_squared * \
-                    periodic_hash_table[nuclear_term[0]] * numpy.exp(exp_index)
+                coefficient = (prefactor / momenta_p_q_squared *
+                    periodic_hash_table[nuclear_term[0]] * numpy.exp(exp_index))
 
                 for spin in spins:
                     orbital_p = orbital_id(
@@ -163,15 +163,15 @@ def plane_wave_hamiltonian(n_dimensions, grid_length, length_scale, geometry,
             raise ValueError("Invalid nuclear element.")
 
     if momentum_space:
-        return jellium_model(n_dimensions, grid_length, length_scale, spinless,
-                             True) + \
+        return (jellium_model(n_dimensions, grid_length, length_scale, spinless,
+                             True) +
             plane_wave_u_operator(n_dimensions, grid_length, length_scale,
-                                  geometry, spinless)
+                                  geometry, spinless))
     else:
-        return jellium_model(n_dimensions, grid_length, length_scale, spinless,
-                             False) + \
+        return (jellium_model(n_dimensions, grid_length, length_scale, spinless,
+                             False) +
             dual_basis_u_operator(n_dimensions, grid_length, length_scale,
-                                  geometry, spinless)
+                                  geometry, spinless))
 
 
 def fourier_transform(hamiltonian, n_dimensions, grid_length, length_scale,
