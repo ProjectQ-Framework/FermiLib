@@ -46,7 +46,7 @@ class PlaneWaveHamiltonianTest(unittest.TestCase):
     def test_inverse_fourier_transform_1d(self):
         n_dimensions = 1
         length_scale = 1.5
-        grid_length = 3
+        grid_length = 4
         spinless_set = [True, False]
         geometry = [('H', (0,)), ('H', (0.5,))]
         for spinless in spinless_set:
