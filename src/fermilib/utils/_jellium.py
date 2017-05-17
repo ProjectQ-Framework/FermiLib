@@ -124,8 +124,7 @@ def position_vector(position_indices, grid_length, length_scale):
             'Position indices must be integers in [0, grid_length).')
 
     # Compute position vector.
-    shift = float(grid_length - 1) / 2.
-    adjusted_vector = numpy.array(position_indices, float) - shift
+    adjusted_vector = numpy.array(position_indices, float) - grid_length // 2
     position_vector = length_scale * adjusted_vector / float(grid_length)
     return position_vector
 
@@ -157,8 +156,7 @@ def momentum_vector(momentum_indices, grid_length, length_scale):
             'Momentum indices must be integers in [0, grid_length).')
 
     # Compute momentum vector.
-    shift = float(grid_length - 1) / 2.
-    adjusted_vector = numpy.array(momentum_indices, float) - shift
+    adjusted_vector = numpy.array(momentum_indices, float) - grid_length // 2
     momentum_vector = 2. * numpy.pi * adjusted_vector / length_scale
     return momentum_vector
 
@@ -217,11 +215,6 @@ def momentum_potential_operator(n_dimensions, grid_length,
     Raises:
         OrbitalSpecificationError: 'Must use an odd number of momentum modes.'
     """
-    # Make sure number of orbitals is odd.
-    if not (grid_length % 2):
-        raise OrbitalSpecificationError(
-            'Must use an odd number of momentum modes.')
-
     # Initialize.
     n_points = grid_length ** n_dimensions
     volume = length_scale ** float(n_dimensions)
@@ -415,6 +408,10 @@ def jellium_model(n_dimensions, grid_length, length_scale,
     Returns:
         hamiltonian: An instance of the FermionOperator class.
     """
+    if grid_length % 2 == 0 and (grid_length & (grid_length - 1)) != 0:
+        raise OrbitalSpecificationError(
+            'Must use an odd number or a power of 2 for momentum modes.')
+
     if momentum_space:
         hamiltonian = momentum_kinetic_operator(n_dimensions,
                                                 grid_length,
