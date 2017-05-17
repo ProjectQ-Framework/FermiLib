@@ -39,9 +39,6 @@ def orbital_id(grid_length, grid_coordinates, spin=None):
 
     Returns:
         tensor_factor: tensor factor associated with provided orbital label.
-
-    Raises:
-        OrbitalSpecificiationError: Invalid orbital coordinates provided.
     """
     # Initialize.
     if isinstance(grid_coordinates, int):
@@ -109,10 +106,6 @@ def position_vector(position_indices, grid_length, length_scale):
     Returns:
         position_vector: A numpy array giving the position vector with
         dimensions.
-
-    Raises:
-        orbitalSpecificationError: Position indices must be integers
-            in [0, grid_length).
     """
     # Raise exceptions.
     if isinstance(position_indices, int):
@@ -141,10 +134,6 @@ def momentum_vector(momentum_indices, grid_length, length_scale):
         Returns:
             momentum_vector: A numpy array giving the momentum vector with
                 dimensions.
-
-    Raises:
-        OrbitalSpecificationError: Momentum indices must be integers
-            in [0, grid_length).
     """
     # Raise exceptions.
     if isinstance(momentum_indices, int):
@@ -211,9 +200,6 @@ def momentum_potential_operator(n_dimensions, grid_length,
 
     Returns:
         operator: An instance of the FermionOperator class.
-
-    Raises:
-        OrbitalSpecificationError: 'Must use an odd number of momentum modes.'
     """
     # Initialize.
     n_points = grid_length ** n_dimensions
