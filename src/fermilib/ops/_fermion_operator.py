@@ -134,6 +134,26 @@ def normal_ordered(fermion_operator):
     return ordered_operator
 
 
+def _parse_ladder_operator(ladder_operator_text):
+    """
+    Args:
+        ladder_operator_text (str): A ladder operator term like '4' or '5^'.
+    Returns:
+        tuple[int, int]: The mode then raise-vs-lower.
+    """
+    inverted = 1 if ladder_operator_text.endswith('^') else 0
+
+    try:
+        mode = int(ladder_operator_text[:-inverted])
+        if mode < 0:
+            raise ValueError()  # Merge with not-an-int failure case.
+    except ValueError:
+        raise ValueError(
+            "Invalid ladder operator term '{}'.".format(ladder_operator_text))
+
+    return mode, inverted
+
+
 class FermionOperator(object):
     """FermionOperator stores a sum of products of fermionic ladder operators.
 
@@ -212,16 +232,8 @@ class FermionOperator(object):
 
         # String input.
         if isinstance(term, str):
-            ladder_operators = []
-            for ladder_operator in term.split():
-                if ladder_operator[-1] == '^':
-                    ladder_operators.append((int(ladder_operator[:-1]), 1))
-                else:
-                    try:
-                        ladder_operators.append((int(ladder_operator), 0))
-                    except ValueError:
-                        raise ValueError(
-                            'Invalid action provided to FermionTerm.')
+            ladder_operators = tuple(_parse_ladder_operator(e)
+                                     for e in term.split())
             self.terms[tuple(ladder_operators)] = coefficient
 
         # Tuple input.
