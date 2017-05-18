@@ -137,18 +137,22 @@ def normal_ordered(fermion_operator):
 def _parse_ladder_operator(ladder_operator_text):
     """
     Args:
-        ladder_operator_text (str): A ladder operator term like '4' or '5^'.
+        ladder_operator_text (str):
+            A ladder operator term like '4' or '5^', or an invalid string.
     Returns:
         tuple[int, int]: The mode then raise-vs-lower.
+    Raises:
+        FermionOperatorError: Given invalid text that doesn't match /\d+^?/ .
     """
     inverted = 1 if ladder_operator_text.endswith('^') else 0
+    mode_text = ladder_operator_text[:-1] if inverted else ladder_operator_text
 
     try:
-        mode = int(ladder_operator_text[:-inverted])
+        mode = int(mode_text)
         if mode < 0:
             raise ValueError()  # Merge with not-an-int failure case.
     except ValueError:
-        raise ValueError(
+        raise FermionOperatorError(
             "Invalid ladder operator term '{}'.".format(ladder_operator_text))
 
     return mode, inverted
