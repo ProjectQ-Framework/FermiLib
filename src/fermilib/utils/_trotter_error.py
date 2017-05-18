@@ -32,20 +32,18 @@ def trivially_commutes(term_a, term_b):
     position_b = 0
     commutes = True
 
-    len_a = len(list(term_a.terms.keys())[0])
-    len_b = len(list(term_b.terms.keys())[0])
+    term_op_a, = term_a.terms.keys()
+    term_op_b, = term_b.terms.keys()
 
-    while position_a < len_a and position_b < len_b:
-        qubit_a = list(term_a.terms.keys())[0][position_a][0]
-        qubit_b = list(term_b.terms.keys())[0][position_b][0]
+    while position_a < len(term_op_a) and position_b < len(term_op_b):
+        qubit_a, action_a = term_op_a[position_a]
+        qubit_b, action_b = term_op_b[position_b]
 
         if qubit_a > qubit_b:
             position_b += 1
         elif qubit_a < qubit_b:
             position_a += 1
         else:
-            action_a = list(term_a.terms.keys())[0][position_a][1]
-            action_b = list(term_b.terms.keys())[0][position_b][1]
             if action_a != action_b:
                 commutes = not commutes
             position_a += 1
@@ -66,12 +64,13 @@ def trivially_double_commutes(term_a, term_b, term_c):
         qubits) is empty, then the double commutator is trivially zero.
     """
     # determine the set of qubits each term acts on
-    qubits_a = set([list(term_a.terms.keys())[0][i][0]
-                    for i in range(len(list(term_a.terms.keys())[0]))])
-    qubits_b = set([list(term_b.terms.keys())[0][i][0]
-                    for i in range(len(list(term_b.terms.keys())[0]))])
-    qubits_c = set([list(term_c.terms.keys())[0][i][0]
-                    for i in range(len(list(term_c.terms.keys())[0]))])
+    term_op_a, = term_a.terms.keys()
+    term_op_b, = term_b.terms.keys()
+    term_op_c, = term_c.terms.keys()
+
+    qubits_a = set([index for index, _ in term_op_a])
+    qubits_b = set([index for index, _ in term_op_b])
+    qubits_c = set([index for index, _ in term_op_c])
 
     return (trivially_commutes(term_b, term_c) or
             not qubits_a.intersection(set(qubits_b.union(qubits_c))))
@@ -153,13 +152,13 @@ def error_bound(terms, tight=False):
     elif not tight:
         for alpha in range(len(terms)):
             term_a = terms[alpha]
-            coefficient_a = list(term_a.terms.values())[0]
+            coefficient_a, = term_a.terms.values()
             if coefficient_a:
                 error_a = 0.
 
                 for beta in range(alpha + 1, len(terms)):
                     term_b = terms[beta]
-                    coefficient_b = list(term_b.terms.values())[0]
+                    coefficient_b, = term_b.terms.values()
                     if not (trivially_commutes(term_a, term_b) or
                             commutator(term_a, term_b).isclose(zero)):
                         error_a += abs(coefficient_b)
