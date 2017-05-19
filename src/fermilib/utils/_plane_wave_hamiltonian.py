@@ -162,16 +162,26 @@ def plane_wave_hamiltonian(n_dimensions, grid_length, length_scale, geometry,
         if item[0] not in periodic_hash_table:
             raise ValueError("Invalid nuclear element.")
 
+    jellium_op = jellium_model(n_dimensions,
+                               grid_length,
+                               length_scale,
+                               spinless,
+                               momentum_space)
+
     if momentum_space:
-        return (jellium_model(n_dimensions, grid_length, length_scale, spinless,
-                             True) +
-            plane_wave_u_operator(n_dimensions, grid_length, length_scale,
-                                  geometry, spinless))
+        other_op = plane_wave_u_operator(n_dimensions,
+                                         grid_length,
+                                         length_scale,
+                                         geometry,
+                                         spinless)
     else:
-        return (jellium_model(n_dimensions, grid_length, length_scale, spinless,
-                             False) +
-            dual_basis_u_operator(n_dimensions, grid_length, length_scale,
-                                  geometry, spinless))
+        other_op = dual_basis_u_operator(n_dimensions,
+                                         grid_length,
+                                         length_scale,
+                                         geometry,
+                                         spinless)
+
+    return jellium_op + other_op
 
 
 def fourier_transform(hamiltonian, n_dimensions, grid_length, length_scale,
