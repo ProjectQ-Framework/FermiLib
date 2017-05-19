@@ -113,7 +113,7 @@ def position_vector(position_indices, grid_length, length_scale):
     if (not isinstance(grid_length, int) or
         max(position_indices) >= grid_length or
             min(position_indices) < 0.):
-        raise orbitalSpecificationError(
+        raise OrbitalSpecificationError(
             'Position indices must be integers in [0, grid_length).')
 
     # Compute position vector.
