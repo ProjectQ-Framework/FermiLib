@@ -169,19 +169,19 @@ def plane_wave_hamiltonian(n_dimensions, grid_length, length_scale, geometry,
                                momentum_space)
 
     if momentum_space:
-        other_op = plane_wave_u_operator(n_dimensions,
-                                         grid_length,
-                                         length_scale,
-                                         geometry,
-                                         spinless)
+        external_potential = plane_wave_u_operator(n_dimensions,
+                                                   grid_length,
+                                                   length_scale,
+                                                   geometry,
+                                                   spinless)
     else:
-        other_op = dual_basis_u_operator(n_dimensions,
-                                         grid_length,
-                                         length_scale,
-                                         geometry,
-                                         spinless)
+        external_potential = dual_basis_u_operator(n_dimensions,
+                                                   grid_length,
+                                                   length_scale,
+                                                   geometry,
+                                                   spinless)
 
-    return jellium_op + other_op
+    return jellium_op + external_potential
 
 
 def fourier_transform(hamiltonian, n_dimensions, grid_length, length_scale,
