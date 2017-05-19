@@ -57,7 +57,7 @@ class JelliumTest(unittest.TestCase):
         length_scale = 4.
         test_output = [position_vector(i, grid_length, length_scale)
                        for i in range(grid_length)]
-        correct_output = [-1.5, -.5, .5, 1.5]
+        correct_output = [-2, -1, 0, 1]
         self.assertEqual(correct_output, test_output)
 
         grid_length = 11
