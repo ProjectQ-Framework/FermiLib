@@ -97,9 +97,7 @@ def _transform_ladder_operator(ladder_operator, fenwick_tree):
                          fenwick_tree.get_remainder_set(index)]
 
     # Switch between lowering/raising operators.
-    d_coefficient = .5j
-    if ladder_operator[1]:
-        d_coefficient *= -1.
+    d_coefficient = -.5j if ladder_operator[1] else .5j
 
     # The fermion lowering operator is given by
     # a = (c+id)/2 where c, d are the majoranas.
@@ -119,7 +117,7 @@ def _transform_ladder_operator(ladder_operator, fenwick_tree):
 
 
 def inline_sum(seed, summands):
-    """Computes a product, using the __iadd__ operator.
+    """Computes a sum, using the __iadd__ operator.
     Args:
         seed (T): The starting total. The zero value.
         summands (iterable[T]): Values to add (with +=) into the total.
