@@ -519,7 +519,7 @@ class FermionOperator(object):
     def __add__(self, addend):
         """
         Args:
-            offset (FermionOperator): The operator to add.
+            addend (FermionOperator): The operator to add.
 
         Returns:
             sum (FermionOperator)
@@ -531,7 +531,7 @@ class FermionOperator(object):
     def __sub__(self, subtrahend):
         """
         Args:
-            offset (FermionOperator): The operator to subtract.
+            subtrahend (FermionOperator): The operator to subtract.
         Returns:
             difference (FermionOperator)
         """
