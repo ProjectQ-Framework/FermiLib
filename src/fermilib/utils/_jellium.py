@@ -170,6 +170,7 @@ def momentum_kinetic_operator(grid, spinless=False):
     # Loop once through all plane waves.
     for momenta_indices in grid.all_points_indices():
         momenta = momentum_vector(momenta_indices, grid.length, grid.scale)
+        coefficient = momenta.dot(momenta) / 2.
 
         # Loop over spins.
         for spin in spins:
