@@ -168,13 +168,12 @@ def momentum_kinetic_operator(grid, spinless=False):
         spins = [0, 1]
 
     # Loop once through all plane waves.
-    for grid_indices in grid.all_points_indices():
-        momenta = momentum_vector(grid_indices, grid.length, grid.scale)
-        coefficient = momenta.dot(momenta) / 2.
+    for momenta_indices in grid.all_points_indices():
+        momenta = momentum_vector(momenta_indices, grid.length, grid.scale)
 
         # Loop over spins.
         for spin in spins:
-            orbital = orbital_id(grid.length, grid_indices, spin)
+            orbital = orbital_id(grid.length, momenta_indices, spin)
 
             # Add interaction term.
             operators = ((orbital, 1), (orbital, 0))
