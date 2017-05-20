@@ -75,8 +75,10 @@ class InteractionOperator(InteractionTensor):
             2. pqrs = rqps = psrq = srqp = qpsr = rspq = spqr = qrsp.
 
         Args:
-            complex_valued: Bool, whether the operator has complex
-                coefficients.
+            complex_valued (bool):
+                Whether the operator has complex coefficients.
+        Yields:
+            tuple[int]
         """
         # Constant.
         if self.constant:
@@ -86,23 +88,24 @@ class InteractionOperator(InteractionTensor):
         for p in range(self.n_qubits):
             for q in range(p + 1):
                 if self.one_body_tensor[p, q]:
-                    yield [p, q]
+                    yield p, q
 
         # Two-body terms.
-        record_map = {}
-        for p in range(self.n_qubits):
-            for q in range(self.n_qubits):
-                for r in range(self.n_qubits):
-                    for s in range(self.n_qubits):
-                        if self.two_body_tensor[p, q, r, s] and \
-                           (p, q, r, s) not in record_map:
-                            yield [p, q, r, s]
-                            record_map[(p, q, r, s)] = []
-                            record_map[(s, r, q, p)] = []
-                            record_map[(q, p, s, r)] = []
-                            record_map[(r, s, p, q)] = []
-                            if not complex_valued:
-                                record_map[(p, s, r, q)] = []
-                                record_map[(s, p, q, r)] = []
-                                record_map[(q, r, s, p)] = []
-                                record_map[(r, q, p, s)] = []
+        seen = set()
+        for quad in itertools.product(range(self.n_qubits), repeat=4):
+            if self[quad] and quad not in seen:
+                seen |= set(_symmetric_two_body_terms(quad, complex_valued))
+                yield quad
+
+
+def _symmetric_two_body_terms(quad, complex_valued):
+    p, q, r, s = quad
+    yield p, q, r, s
+    yield q, p, s, r
+    yield s, r, q, p
+    yield r, s, p, q
+    if not complex_valued:
+        yield p, s, r, q
+        yield q, r, s, p
+        yield s, p, q, r
+        yield r, q, p, s
