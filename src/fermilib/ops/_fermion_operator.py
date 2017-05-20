@@ -281,6 +281,32 @@ class FermionOperator(object):
         """
         return FermionOperator(term=())
 
+    @staticmethod
+    def sum(fermion_operators):
+        """
+        Args:
+            fermion_operators (iterable[FermionOperator]): The summands.
+        Returns:
+            sum (FermionOperator)
+        """
+        total = FermionOperator.additive_identity()
+        for op in fermion_operators:
+            total += op
+        return total
+
+    @staticmethod
+    def product(fermion_operators):
+        """
+        Args:
+            fermion_operators (iterable[FermionOperator]): The factors.
+        Returns:
+            product (FermionOperator)
+        """
+        total = FermionOperator.multiplicative_identity()
+        for op in fermion_operators:
+            total *= op
+        return total
+
     def compress(self, abs_tol=EQ_TOLERANCE):
         """
         Eliminates all terms with coefficients close to zero and removes
