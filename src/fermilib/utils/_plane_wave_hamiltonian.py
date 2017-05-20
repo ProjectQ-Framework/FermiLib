@@ -21,6 +21,7 @@ from fermilib.ops import FermionOperator
 from fermilib.utils._molecular_data import periodic_hash_table
 from fermilib.utils._jellium import (orbital_id, grid_indices, position_vector,
                                      momentum_vector, jellium_model)
+from fermilib.utils._grid import Grid
 
 from projectq.ops import QubitOperator
 
@@ -162,9 +163,7 @@ def plane_wave_hamiltonian(n_dimensions, grid_length, length_scale, geometry,
         if item[0] not in periodic_hash_table:
             raise ValueError("Invalid nuclear element.")
 
-    jellium_op = jellium_model(n_dimensions,
-                               grid_length,
-                               length_scale,
+    jellium_op = jellium_model(Grid(n_dimensions, grid_length, length_scale),
                                spinless,
                                momentum_space)
 

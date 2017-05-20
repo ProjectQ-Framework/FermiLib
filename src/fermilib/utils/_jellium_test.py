@@ -13,12 +13,24 @@
 from __future__ import absolute_import
 
 import itertools
-import numpy
 import unittest
 
+import numpy
+
 from fermilib.transforms import jordan_wigner
-from fermilib.utils._jellium import *
-from fermilib.utils import count_qubits, eigenspectrum
+from fermilib.utils import count_qubits, eigenspectrum, Grid
+from fermilib.utils._jellium import (
+    jellium_model,
+    jordan_wigner_position_jellium,
+    momentum_kinetic_operator,
+    momentum_potential_operator,
+    momentum_vector,
+    orbital_id,
+    OrbitalSpecificationError,
+    position_kinetic_operator,
+    position_potential_operator,
+    position_vector,
+)
 
 
 class JelliumTest(unittest.TestCase):
@@ -120,9 +132,10 @@ class JelliumTest(unittest.TestCase):
         n_dimensions = 2
         grid_length = 2
         length_scale = 3.
-        spinless = 0
+        spinless = False
         momentum_kinetic = momentum_kinetic_operator(
-            n_dimensions, grid_length, length_scale, spinless)
+            Grid(n_dimensions, grid_length, length_scale),
+            spinless)
         position_kinetic = position_kinetic_operator(
             n_dimensions, grid_length, length_scale, spinless)
 
@@ -164,14 +177,10 @@ class JelliumTest(unittest.TestCase):
     def test_model_integration(self):
 
         # Compute Hamiltonian in both momentum and position space.
-        n_dimensions = 2
-        grid_length = 3
-        length_scale = 1.
-        spinless = 1
-        momentum_hamiltonian = jellium_model(
-            n_dimensions, grid_length, length_scale, spinless, 1)
-        position_hamiltonian = jellium_model(
-            n_dimensions, grid_length, length_scale, spinless, 0)
+        grid = Grid(dimensions=2, length=3, scale=1.0)
+        spinless = True
+        momentum_hamiltonian = jellium_model(grid, spinless, True)
+        position_hamiltonian = jellium_model(grid, spinless, False)
 
         # Diagonalize and confirm the same energy.
         jw_momentum = jordan_wigner(momentum_hamiltonian)
@@ -312,11 +321,11 @@ class JelliumTest(unittest.TestCase):
         n_dimensions = 2
         grid_length = 3
         length_scale = 1.
-        spinless = 1
+        spinless = True
 
         # Compute fermionic Hamiltonian.
         fermion_hamiltonian = jellium_model(
-            n_dimensions, grid_length, length_scale, spinless, 0)
+            Grid(n_dimensions, grid_length, length_scale), spinless, False)
         qubit_hamiltonian = jordan_wigner(fermion_hamiltonian)
 
         # Compute Jordan-Wigner Hamiltonian.
