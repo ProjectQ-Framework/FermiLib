@@ -516,7 +516,7 @@ class FermionOperator(object):
             raise TypeError('Cannot add invalid type to FermionOperator.')
         return self
 
-    def __add__(self, offset):
+    def __add__(self, addend):
         """
         Args:
             offset (FermionOperator): The operator to add.
@@ -525,19 +525,19 @@ class FermionOperator(object):
             sum (FermionOperator)
         """
         summand = copy.deepcopy(self)
-        summand += offset
+        summand += addend
         return summand
 
-    def __sub__(self, offset):
+    def __sub__(self, subtrahend):
         """
         Args:
             offset (FermionOperator): The operator to subtract.
         Returns:
             difference (FermionOperator)
         """
-        if not isinstance(offset, FermionOperator):
+        if not isinstance(subtrahend, FermionOperator):
             raise TypeError('Cannot subtract invalid type to FermionOperator.')
-        return self + (-1. * offset)
+        return self + (-1. * subtrahend)
 
     def __neg__(self):
         """
