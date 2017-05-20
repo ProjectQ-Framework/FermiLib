@@ -90,16 +90,19 @@ class InteractionOperator(InteractionTensor):
 
         # Two-body terms.
         record_map = {}
-        for p, q, r, s in itertools.product(range(self.n_qubits), repeat=4):
-            if self.two_body_tensor[p, q, r, s] and \
-               (p, q, r, s) not in record_map:
-                yield [p, q, r, s]
-                record_map[(p, q, r, s)] = []
-                record_map[(s, r, q, p)] = []
-                record_map[(q, p, s, r)] = []
-                record_map[(r, s, p, q)] = []
-                if not complex_valued:
-                    record_map[(p, s, r, q)] = []
-                    record_map[(s, p, q, r)] = []
-                    record_map[(q, r, s, p)] = []
-                    record_map[(r, q, p, s)] = []
+        for p in range(self.n_qubits):
+            for q in range(self.n_qubits):
+                for r in range(self.n_qubits):
+                    for s in range(self.n_qubits):
+                        if self.two_body_tensor[p, q, r, s] and \
+                           (p, q, r, s) not in record_map:
+                            yield [p, q, r, s]
+                            record_map[(p, q, r, s)] = []
+                            record_map[(s, r, q, p)] = []
+                            record_map[(q, p, s, r)] = []
+                            record_map[(r, s, p, q)] = []
+                            if not complex_valued:
+                                record_map[(p, s, r, q)] = []
+                                record_map[(s, p, q, r)] = []
+                                record_map[(q, r, s, p)] = []
+                                record_map[(r, q, p, s)] = []
