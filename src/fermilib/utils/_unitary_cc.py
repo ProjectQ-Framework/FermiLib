@@ -60,11 +60,8 @@ def uccsd_operator(single_amplitudes, double_amplitudes, anti_hermitian=True):
     for i, j in itertools.product(range(n_orbitals), repeat=2):
         if single_amplitudes[i, j] == 0.:
             continue
-        uccsd_generator += FermionOperator(
-            ((i, 1), (j, 0)), single_amplitudes[i, j])
-        if (anti_hermitian):
-            uccsd_generator += FermionOperator(
-                ((j, 1), (i, 0)), -single_amplitudes[i, j])
+        uccsd_generator += FermionOperator.annihilate_create(
+            i, j, single_amplitudes[i, j], anti_hermitian)
 
         # Add double excitations
     for i, j, k, l in itertools.product(range(n_orbitals), repeat=4):
@@ -77,7 +74,6 @@ def uccsd_operator(single_amplitudes, double_amplitudes, anti_hermitian=True):
             uccsd_generator += FermionOperator(
                 ((l, 1), (k, 0), (j, 1), (i, 0)),
                 -double_amplitudes[i, j, k, l])
-
     return uccsd_generator
 
 
@@ -126,7 +122,6 @@ def uccsd_singlet_operator(packed_amplitudes,
     n_occupied = int(numpy.ceil(n_electrons / 2.))
     n_virtual = int(n_qubits / 2 - n_occupied)  # Virtual Spatial Orbitals
     n_t1 = int(n_occupied * n_virtual)
-    n_t2 = int(n_t1 ** 2)
 
     t1 = packed_amplitudes[:n_t1]
     t2 = packed_amplitudes[n_t1:]
@@ -142,38 +137,30 @@ def uccsd_singlet_operator(packed_amplitudes,
 
     uccsd_generator = FermionOperator()
 
-    for i in range(n_virtual):
-        for j in range(n_occupied):
-            for s1 in range(2):
-                uccsd_generator += FermionOperator((
-                    (2 * (i + n_occupied) + s1, 1),
-                    (2 * j + s1, 0)),
-                    t1[t1_ind(i, j)])
+    spaces = range(n_virtual), range(n_occupied), range(2)
 
-                uccsd_generator += FermionOperator((
-                    (2 * j + s1, 1),
-                    (2 * (i + n_occupied) + s1, 0)),
-                    -t1[t1_ind(i, j)])
+    for i, j, s in itertools.product(*spaces):
+        uccsd_generator += FermionOperator.annihilate_create(
+            2 * (i + n_occupied) + s,
+            2 * j + s,
+            coefficient=t1[t1_ind(i, j)],
+            anti_hermitian=True)
 
-    for i in range(n_virtual):
-        for j in range(n_occupied):
-            for s1 in range(2):
-                for k in range(n_virtual):
-                    for l in range(n_occupied):
-                        for s2 in range(2):
-                            uccsd_generator += FermionOperator((
-                                (2 * (i + n_occupied) + s1, 1),
-                                (2 * j + s1, 0),
-                                (2 * (k + n_occupied) + s2, 1),
-                                (2 * l + s2, 0)),
-                                t2[t2_ind(i, j, k, l)])
+    for i, j, s, i2, j2, s2 in itertools.product(*spaces, repeat=2):
+        uccsd_generator += FermionOperator((
+            (2 * (i + n_occupied) + s, 1),
+            (2 * j + s, 0),
+            (2 * (i2 + n_occupied) + s2, 1),
+            (2 * j2 + s2, 0)),
+            t2[t2_ind(i, j, i2, j2)])
 
-                            uccsd_generator += FermionOperator((
-                                (2 * l + s2, 1),
-                                (2 * (k + n_occupied) + s2, 0),
-                                (2 * j + s1, 1),
-                                (2 * (i + n_occupied) + s1, 0)),
-                                -t2[t2_ind(i, j, k, l)])
+        uccsd_generator += FermionOperator((
+            (2 * j2 + s2, 1),
+            (2 * (i2 + n_occupied) + s2, 0),
+            (2 * j + s, 1),
+            (2 * (i + n_occupied) + s, 0)),
+            -t2[t2_ind(i, j, i2, j2)])
+
     return uccsd_generator
 
 

@@ -36,7 +36,7 @@ class SparseOperatorTest(unittest.TestCase):
         # Initialize a random fermionic operator.
         fermion_operator = FermionOperator(((3, 1), (2, 1), (1, 0), (0, 0)),
                                            -4.3)
-        fermion_operator += FermionOperator(((3, 1), (1, 0)), 8.17)
+        fermion_operator += FermionOperator.annihilate_create(3, 1, 8.17)
         fermion_operator += 3.2 * FermionOperator()
 
         # Map to qubits and compare matrix versions.
