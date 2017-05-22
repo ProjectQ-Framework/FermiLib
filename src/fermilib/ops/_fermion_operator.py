@@ -264,24 +264,50 @@ class FermionOperator(object):
                         'Must be 0 (lowering) or 1 (raising).')
 
     @staticmethod
-    def additive_identity():
+    def zero():
         """
         Returns:
-            FermionOperator:
+            additive_identity (FermionOperator):
                 A fermion operator o with the property that o+x = x+o = x for
-                all other fermion operators x.
+                all fermion operators x.
         """
         return FermionOperator(term=None)
 
     @staticmethod
-    def multiplicative_identity():
+    def identity():
         """
         Returns:
-            FermionOperator:
+            multiplicative_identity (FermionOperator):
                 A fermion operator u with the property that u*x = x*u = x for
-                all other fermion operators x.
+                all fermion operators x.
         """
         return FermionOperator(term=())
+
+    @staticmethod
+    def sum(fermion_operators):
+        """
+        Args:
+            fermion_operators (iterable[FermionOperator]): The summands.
+        Returns:
+            sum (FermionOperator)
+        """
+        total = FermionOperator.zero()
+        for op in fermion_operators:
+            total += op
+        return total
+
+    @staticmethod
+    def product(fermion_operators):
+        """
+        Args:
+            fermion_operators (iterable[FermionOperator]): The factors.
+        Returns:
+            product (FermionOperator)
+        """
+        total = FermionOperator.identity()
+        for op in fermion_operators:
+            total *= op
+        return total
 
     def compress(self, abs_tol=EQ_TOLERANCE):
         """

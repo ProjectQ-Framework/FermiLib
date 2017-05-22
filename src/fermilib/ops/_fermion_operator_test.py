@@ -56,8 +56,8 @@ class FermionOperatorTest(unittest.TestCase):
         self.assertEqual(len(fermion_op.terms), 1)
         self.assertEqual(fermion_op.terms[loc_op], coefficient)
 
-    def test_multiplicative_identity(self):
-        u = FermionOperator.multiplicative_identity()
+    def test_identity_is_multiplicative_identity(self):
+        u = FermionOperator.identity()
         f = FermionOperator(((0, 1), (5, 0), (6, 1)), 0.6j)
         g = FermionOperator(((0, 0), (5, 0), (6, 1)), 0.3j)
         h = f + g
@@ -67,14 +67,16 @@ class FermionOperatorTest(unittest.TestCase):
         self.assertTrue(g.isclose(g * u))
         self.assertTrue(h.isclose(u * h))
         self.assertTrue(h.isclose(h * u))
+
         u *= h
         self.assertTrue(h.isclose(u))
-
         self.assertFalse(f.isclose(u))
-        self.assertFalse(FermionOperator.multiplicative_identity().isclose(u))
 
-    def test_additive_identity(self):
-        o = FermionOperator.additive_identity()
+        # Method always returns new instances.
+        self.assertFalse(FermionOperator.identity().isclose(u))
+
+    def test_zero_is_additive_identity(self):
+        o = FermionOperator.zero()
         f = FermionOperator(((0, 1), (5, 0), (6, 1)), 0.6j)
         g = FermionOperator(((0, 0), (5, 0), (6, 1)), 0.3j)
         h = f + g
@@ -84,15 +86,17 @@ class FermionOperatorTest(unittest.TestCase):
         self.assertTrue(g.isclose(g + o))
         self.assertTrue(h.isclose(o + h))
         self.assertTrue(h.isclose(h + o))
+
         o += h
         self.assertTrue(h.isclose(o))
-
         self.assertFalse(f.isclose(o))
-        self.assertFalse(FermionOperator.multiplicative_identity().isclose(o))
 
-    def test_additive_identity_is_multiplicative_nil(self):
-        o = FermionOperator.additive_identity()
-        u = FermionOperator.multiplicative_identity()
+        # Method always returns new instances.
+        self.assertFalse(FermionOperator.zero().isclose(o))
+
+    def test_zero_is_multiplicative_nil(self):
+        o = FermionOperator.zero()
+        u = FermionOperator.identity()
         f = FermionOperator(((0, 1), (5, 0), (6, 1)), 0.6j)
         g = FermionOperator(((0, 0), (5, 0), (6, 1)), 0.3j)
         self.assertTrue(o.isclose(o * u))
@@ -468,10 +472,32 @@ class FermionOperatorTest(unittest.TestCase):
         self.assertTrue(a.isclose(FermionOperator(term_a, 1.0)))
         self.assertTrue(b.isclose(FermionOperator(term_b, 0.5)))
 
+    def test_sum(self):
+        a = FermionOperator(((1, 1), (3, 0), (8, 1)), 1.0)
+        b = FermionOperator(((1, 0), (3, 0), (8, 1)), 0.5)
+        c = FermionOperator(((1, 0), (3, 0), (5, 1)), 0.5)
+
+        self.assertTrue(FermionOperator.sum([]).isclose(FermionOperator.zero()))
+        self.assertTrue(FermionOperator.sum([a]).isclose(a))
+        self.assertTrue(FermionOperator.sum([b]).isclose(b))
+        self.assertTrue(FermionOperator.sum([a, b]).isclose(a + b))
+        self.assertTrue(FermionOperator.sum([a, b, c]).isclose(a + b + c))
+
+    def test_product(self):
+        a = FermionOperator(((1, 1), (3, 0), (8, 1)), 1.0)
+        b = FermionOperator(((1, 0), (3, 0), (8, 1)), 0.5)
+        c = FermionOperator(((1, 0), (3, 0), (5, 1)), 0.5)
+
+        self.assertTrue(FermionOperator.product([]).isclose(FermionOperator.identity()))
+        self.assertTrue(FermionOperator.product([a]).isclose(a))
+        self.assertTrue(FermionOperator.product([b]).isclose(b))
+        self.assertTrue(FermionOperator.product([a, b]).isclose(a * b))
+        self.assertTrue(FermionOperator.product([a, b, c]).isclose(a * b * c))
+
     def test_add_bad_addend(self):
         op = FermionOperator((), 1.0)
         with self.assertRaises(TypeError):
-            op = op + "0.5"
+            _ = op + "0.5"
 
     def test_sub(self):
         term_a = ((1, 1), (3, 1), (8, 1))
