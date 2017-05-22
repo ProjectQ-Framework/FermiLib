@@ -262,20 +262,20 @@ class FermionOperator(object):
                         'Must be 0 (lowering) or 1 (raising).')
 
     @staticmethod
-    def additive_identity():
+    def zero():
         """
         Returns:
-            FermionOperator:
+            additive_identity (FermionOperator):
                 A fermion operator o with the property that o+x = x+o = x for
                 all fermion operators x.
         """
         return FermionOperator(term=None)
 
     @staticmethod
-    def multiplicative_identity():
+    def identity():
         """
         Returns:
-            FermionOperator:
+            multiplicative_identity (FermionOperator):
                 A fermion operator u with the property that u*x = x*u = x for
                 all fermion operators x.
         """
@@ -289,7 +289,7 @@ class FermionOperator(object):
         Returns:
             sum (FermionOperator)
         """
-        total = FermionOperator.additive_identity()
+        total = FermionOperator.zero()
         for op in fermion_operators:
             total += op
         return total
@@ -302,7 +302,7 @@ class FermionOperator(object):
         Returns:
             product (FermionOperator)
         """
-        total = FermionOperator.multiplicative_identity()
+        total = FermionOperator.identity()
         for op in fermion_operators:
             total *= op
         return total
