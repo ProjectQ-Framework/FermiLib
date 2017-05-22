@@ -94,31 +94,27 @@ def grid_indices(qubit_id, n_dimensions, grid_length, spinless):
     return grid_indices
 
 
-def position_vector(position_indices, grid_length, length_scale):
+def position_vector(position_indices, grid):
     """Given grid point coordinate, return position vector with dimensions.
 
     Args:
         position_indices: List or tuple of integers giving grid point
             coordinate. Allowed values are ints in [0, grid_length).
-        grid_length (int): The number of points in one dimension of the grid.
-        length_scale (float): The real space length of a box dimension.
+        grid (Grid): The discretization to use.
 
     Returns:
-        position_vector: A numpy array giving the position vector with
-        dimensions.
+        position_vector (numpy.ndarray[float])
     """
     # Raise exceptions.
     if isinstance(position_indices, int):
         position_indices = [position_indices]
-    if (not isinstance(grid_length, int) or
-        max(position_indices) >= grid_length or
-            min(position_indices) < 0.):
+    if not all(0 <= e < grid.length for e in position_indices):
         raise OrbitalSpecificationError(
             'Position indices must be integers in [0, grid_length).')
 
     # Compute position vector.
-    adjusted_vector = numpy.array(position_indices, float) - grid_length // 2
-    position_vector = length_scale * adjusted_vector / float(grid_length)
+    adjusted_vector = numpy.array(position_indices, float) - grid.length // 2
+    position_vector = grid.scale * adjusted_vector / float(grid.length)
     return position_vector
 
 
@@ -272,11 +268,9 @@ def position_kinetic_operator(grid, spinless=False):
 
     # Loop once through all lattice sites.
     for grid_indices_a in grid.all_points_indices():
-        coordinates_a = position_vector(
-            grid_indices_a, grid.length, grid.scale)
+        coordinates_a = position_vector(grid_indices_a, grid)
         for grid_indices_b in grid.all_points_indices():
-            coordinates_b = position_vector(
-                grid_indices_b, grid.length, grid.scale)
+            coordinates_b = position_vector(grid_indices_b, grid)
             differences = coordinates_b - coordinates_a
 
             # Compute coefficient.
@@ -323,11 +317,9 @@ def position_potential_operator(grid, spinless=False):
 
     # Loop once through all lattice sites.
     for grid_indices_a in grid.all_points_indices():
-        coordinates_a = position_vector(
-            grid_indices_a, grid.length, grid.scale)
+        coordinates_a = position_vector(grid_indices_a, grid)
         for grid_indices_b in grid.all_points_indices():
-            coordinates_b = position_vector(
-                grid_indices_b, grid.length, grid.scale)
+            coordinates_b = position_vector(grid_indices_b, grid)
             differences = coordinates_b - coordinates_a
 
             # Compute coefficient.
@@ -431,10 +423,10 @@ def jordan_wigner_position_jellium(grid, spinless=False):
     prefactor = numpy.pi / volume
     for p in range(n_qubits):
         index_p = grid_indices(p, grid.dimensions, grid.length, spinless)
-        position_p = position_vector(index_p, grid.length, grid.scale)
+        position_p = position_vector(index_p, grid)
         for q in range(p + 1, n_qubits):
             index_q = grid_indices(q, grid.dimensions, grid.length, spinless)
-            position_q = position_vector(index_q, grid.length, grid.scale)
+            position_q = position_vector(index_q, grid)
 
             differences = position_p - position_q
 
@@ -454,13 +446,13 @@ def jordan_wigner_position_jellium(grid, spinless=False):
     prefactor = .25 / float(n_orbitals)
     for p in range(n_qubits):
         index_p = grid_indices(p, grid.dimensions, grid.length, spinless)
-        position_p = position_vector(index_p, grid.length, grid.scale)
+        position_p = position_vector(index_p, grid)
         for q in range(p + 1, n_qubits):
             if not spinless and (p + q) % 2:
                 continue
 
             index_q = grid_indices(q, grid.dimensions, grid.length, spinless)
-            position_q = position_vector(index_q, grid.length, grid.scale)
+            position_q = position_vector(index_q, grid)
 
             differences = position_p - position_q
 

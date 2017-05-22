@@ -64,31 +64,26 @@ class JelliumTest(unittest.TestCase):
     def test_position_vector(self):
 
         # Test in 1D.
-        grid_length = 4
-        length_scale = 4.
-        test_output = [position_vector(i, grid_length, length_scale)
-                       for i in range(grid_length)]
+        grid = Grid(dimensions=1, length=4, scale=4.)
+        test_output = [position_vector(i, grid)
+                       for i in range(grid.length)]
         correct_output = [-2, -1, 0, 1]
         self.assertEqual(correct_output, test_output)
 
-        grid_length = 11
-        length_scale = 2. * numpy.pi
-        for i in range(grid_length):
+        grid = Grid(dimensions=1, length=11, scale=2. * numpy.pi)
+        for i in range(grid.length):
             self.assertAlmostEqual(
-                -position_vector(i, grid_length, length_scale),
-                position_vector(
-                    grid_length - i - 1, grid_length, length_scale))
+                -position_vector(i, grid),
+                position_vector(grid.length - i - 1, grid))
 
         # Test in 2D.
-        grid_length = 3
-        length_scale = 3.
+        grid = Grid(dimensions=2, length=3, scale=3.)
         test_input = []
         test_output = []
         for i in range(3):
             for j in range(3):
                 test_input += [(i, j)]
-                test_output += [position_vector(
-                    (i, j), grid_length, length_scale)]
+                test_output += [position_vector((i, j), grid)]
         correct_output = numpy.array([[-1., -1.], [-1., 0.], [-1., 1.],
                                       [0., -1.], [0., 0.], [0., 1.],
                                       [1., -1.], [1., 0.], [1., 1.]])
@@ -257,10 +252,8 @@ class JelliumTest(unittest.TestCase):
                 paper_kinetic_coefficient = 0.
                 paper_potential_coefficient = 0.
 
-                position_a = position_vector(
-                    indices_a, grid.length, grid.scale)
-                position_b = position_vector(
-                    indices_b, grid.length, grid.scale)
+                position_a = position_vector(indices_a, grid)
+                position_b = position_vector(indices_b, grid)
                 differences = position_b - position_a
 
                 for spin_a in spins:
