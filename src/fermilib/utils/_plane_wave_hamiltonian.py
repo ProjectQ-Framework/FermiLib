@@ -208,18 +208,18 @@ def _fourier_transform_helper(hamiltonian,
                               phase_factor,
                               vec_func_1,
                               vec_func_2):
-    hamiltonian_t = FermionOperator.additive_identity()
+    hamiltonian_t = FermionOperator.zero()
     normalize_factor = numpy.sqrt(1.0 / float(grid.num_points()))
 
     for term in hamiltonian.terms:
-        transformed_term = FermionOperator.multiplicative_identity()
+        transformed_term = FermionOperator.identity()
         for ladder_op_mode, ladder_op_type in term:
             indices_1 = grid_indices(ladder_op_mode,
                                      grid.dimensions,
                                      grid.length,
                                      spinless)
             vec1 = vec_func_1(indices_1, grid.length, grid.scale)
-            new_basis = FermionOperator.additive_identity()
+            new_basis = FermionOperator.zero()
             for indices_2 in grid.all_points_indices():
                 vec2 = vec_func_2(indices_2, grid.length, grid.scale)
                 spin = None if spinless else ladder_op_mode % 2
