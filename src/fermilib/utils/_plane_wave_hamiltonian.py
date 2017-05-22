@@ -181,8 +181,7 @@ def fourier_transform(hamiltonian, n_dimensions, grid_length, length_scale,
     for term in hamiltonian.terms:
         transformed_term = None
         for ladder_operator in term:
-            momentum_indices = grid_indices(ladder_operator[0], n_dimensions,
-                                            grid_length, spinless)
+            momentum_indices = grid_indices(ladder_operator[0], grid, spinless)
             momentum_vec = momentum_vector(momentum_indices, grid)
             new_basis = None
             for position_indices in itertools.product(range(grid_length),
@@ -251,8 +250,7 @@ def inverse_fourier_transform(hamiltonian, n_dimensions, grid_length,
     for term in hamiltonian.terms:
         transformed_term = None
         for ladder_operator in term:
-            position_indices = grid_indices(ladder_operator[0], n_dimensions,
-                                            grid_length, spinless)
+            position_indices = grid_indices(ladder_operator[0], grid, spinless)
             position_vec = position_vector(position_indices, grid)
             new_basis = None
             for momentum_indices in itertools.product(range(grid_length),
