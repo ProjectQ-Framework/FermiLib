@@ -175,54 +175,14 @@ def fourier_transform(hamiltonian, n_dimensions, grid_length, length_scale,
     Returns:
         hamiltonian_t: An instance of the FermionOperator class.
     """
-    hamiltonian_t = None
-
-    for term in hamiltonian.terms:
-        transformed_term = None
-        for ladder_operator in term:
-            momentum_indices = grid_indices(ladder_operator[0], n_dimensions,
-                                            grid_length, spinless)
-            momentum_vec = momentum_vector(momentum_indices, grid_length,
-                                           length_scale)
-            new_basis = None
-            for position_indices in itertools.product(range(grid_length),
-                                                      repeat=n_dimensions):
-                position_vec = position_vector(position_indices, grid_length,
-                                               length_scale)
-                if spinless:
-                    spin = None
-                else:
-                    spin = ladder_operator[0] % 2
-                orbital = orbital_id(grid_length, position_indices, spin)
-                exp_index = 1.0j * numpy.dot(momentum_vec, position_vec)
-                if ladder_operator[1] == 1:
-                    exp_index *= -1.0
-
-                element = FermionOperator(((orbital, ladder_operator[1]),),
-                                          numpy.exp(exp_index))
-                if new_basis is None:
-                    new_basis = element
-                else:
-                    new_basis += element
-
-            new_basis *= numpy.sqrt(1.0/float(grid_length**n_dimensions))
-
-            if transformed_term is None:
-                transformed_term = new_basis
-            else:
-                transformed_term *= new_basis
-        if transformed_term is None:
-            continue
-
-        # Coefficient.
-        transformed_term *= hamiltonian.terms[term]
-
-        if hamiltonian_t is None:
-            hamiltonian_t = transformed_term
-        else:
-            hamiltonian_t += transformed_term
-
-    return hamiltonian_t
+    return _fourier_transform_helper(hamiltonian=hamiltonian,
+                                     n_dimensions=n_dimensions,
+                                     grid_length=grid_length,
+                                     length_scale=length_scale,
+                                     spinless=spinless,
+                                     factor=+1,
+                                     vec_func_1=momentum_vector,
+                                     vec_func_2=position_vector)
 
 
 def inverse_fourier_transform(hamiltonian, n_dimensions, grid_length,
@@ -244,26 +204,37 @@ def inverse_fourier_transform(hamiltonian, n_dimensions, grid_length,
     Returns:
         hamiltonian_t: An instance of the FermionOperator class.
     """
+    return _fourier_transform_helper(hamiltonian=hamiltonian,
+                                     n_dimensions=n_dimensions,
+                                     grid_length=grid_length,
+                                     length_scale=length_scale,
+                                     spinless=spinless,
+                                     factor=-1,
+                                     vec_func_1=position_vector,
+                                     vec_func_2=momentum_vector)
+
+
+def _fourier_transform_helper(hamiltonian, n_dimensions, grid_length,
+                              length_scale, spinless, factor,
+                              vec_func_1, vec_func_2):
     hamiltonian_t = None
 
     for term in hamiltonian.terms:
         transformed_term = None
         for ladder_operator in term:
-            position_indices = grid_indices(ladder_operator[0], n_dimensions,
-                                            grid_length, spinless)
-            position_vec = position_vector(position_indices, grid_length,
-                                           length_scale)
+            indices_1 = grid_indices(ladder_operator[0], n_dimensions,
+                                     grid_length, spinless)
+            vec_1 = vec_func_1(indices_1, grid_length, length_scale)
             new_basis = None
-            for momentum_indices in itertools.product(range(grid_length),
-                                                      repeat=n_dimensions):
-                momentum_vec = momentum_vector(momentum_indices, grid_length,
-                                               length_scale)
+            for indices_2 in itertools.product(range(grid_length),
+                                               repeat=n_dimensions):
+                vec_2 = vec_func_2(indices_2, grid_length, length_scale)
                 if spinless:
                     spin = None
                 else:
                     spin = ladder_operator[0] % 2
-                orbital = orbital_id(grid_length, momentum_indices, spin)
-                exp_index = -1.0j * numpy.dot(position_vec, momentum_vec)
+                orbital = orbital_id(grid_length, indices_2, spin)
+                exp_index = factor * 1.0j * numpy.dot(vec_1, vec_2)
                 if ladder_operator[1] == 1:
                     exp_index *= -1.0
 
