@@ -43,8 +43,9 @@ class GridTest(unittest.TestCase):
             _ = Grid(dimensions=-1, length=1, scale=1.0)
 
     def test_properties(self):
-        g = Grid(dimensions=2, length=3, scale=1.0)
+        g = Grid(dimensions=2, length=3, scale=5.0)
         self.assertEqual(g.num_points(), 9)
+        self.assertEqual(g.volume_scale(), 25)
         self.assertEqual(list(g.all_points_indices()), [
             (0, 0),
             (0, 1),
