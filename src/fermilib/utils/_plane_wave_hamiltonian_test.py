@@ -13,84 +13,73 @@
 """Tests for plane_wave_hamiltonian.py"""
 from __future__ import absolute_import
 
-import numpy
 import unittest
 
-from fermilib.ops import *
+import numpy
+
+from fermilib.ops import normal_ordered
 from fermilib.transforms import jordan_wigner
-from fermilib.utils import eigenspectrum
-from fermilib.utils._plane_wave_hamiltonian import *
+from fermilib.utils import eigenspectrum, Grid
+from fermilib.utils._plane_wave_hamiltonian import (
+    plane_wave_hamiltonian,
+    fourier_transform,
+    inverse_fourier_transform,
+    plane_wave_u_operator,
+    dual_basis_u_operator,
+)
 
 
 class PlaneWaveHamiltonianTest(unittest.TestCase):
 
     def test_fourier_transform(self):
-        n_dimensions = 1
-        length_scale = 1.5
-        grid_length = 3
+        grid = Grid(dimensions=1, scale=1.5, length=3)
         spinless_set = [True, False]
         geometry = [('H', (0,)), ('H', (0.5,))]
         for spinless in spinless_set:
             h_plane_wave = plane_wave_hamiltonian(
-                n_dimensions, grid_length, length_scale, geometry, spinless,
-                True)
+                grid, geometry, spinless, True)
             h_dual_basis = plane_wave_hamiltonian(
-                n_dimensions, grid_length, length_scale, geometry, spinless,
-                False)
+                grid, geometry, spinless, False)
             h_plane_wave_t = fourier_transform(
-                h_plane_wave, n_dimensions, grid_length, length_scale,
-                spinless)
+                h_plane_wave, grid.dimensions, grid.length,
+                grid.scale, spinless)
             self.assertTrue(normal_ordered(h_plane_wave_t).isclose(
                 normal_ordered(h_dual_basis)))
 
     def test_inverse_fourier_transform_1d(self):
-        n_dimensions = 1
-        length_scale = 1.5
-        grid_length = 4
+        grid = Grid(dimensions=1, scale=1.5, length=4)
         spinless_set = [True, False]
         geometry = [('H', (0,)), ('H', (0.5,))]
         for spinless in spinless_set:
             h_plane_wave = plane_wave_hamiltonian(
-                n_dimensions, grid_length, length_scale, geometry, spinless,
-                True)
+                grid, geometry, spinless, True)
             h_dual_basis = plane_wave_hamiltonian(
-                n_dimensions, grid_length, length_scale, geometry, spinless,
-                False)
+                grid, geometry, spinless, False)
             h_dual_basis_t = inverse_fourier_transform(
-                h_dual_basis, n_dimensions, grid_length, length_scale,
-                spinless)
+                h_dual_basis, grid.dimensions, grid.length,
+                grid.scale, spinless)
             self.assertTrue(normal_ordered(h_dual_basis_t).isclose(
                 normal_ordered(h_plane_wave)))
 
     def test_inverse_fourier_transform_2d(self):
-        n_dimensions = 2
-        length_scale = 1.5
-        grid_length = 3
+        grid = Grid(dimensions=2, scale=1.5, length=3)
         spinless = True
         geometry = [('H', (0, 0)), ('H', (0.5, 0.8))]
-        h_plane_wave = plane_wave_hamiltonian(
-            n_dimensions, grid_length, length_scale, geometry, spinless,
-            True)
-        h_dual_basis = plane_wave_hamiltonian(
-            n_dimensions, grid_length, length_scale, geometry, spinless,
-            False)
+        h_plane_wave = plane_wave_hamiltonian(grid, geometry, spinless, True)
+        h_dual_basis = plane_wave_hamiltonian(grid, geometry, spinless, False)
         h_dual_basis_t = inverse_fourier_transform(
-            h_dual_basis, n_dimensions, grid_length, length_scale,
+            h_dual_basis, grid.dimensions, grid.length, grid.scale,
             spinless)
         self.assertTrue(normal_ordered(h_dual_basis_t).isclose(
             normal_ordered(h_plane_wave)))
 
     def test_u_operator_integration(self):
-        n_dimensions = 1
-        length_scale = 1
-        grid_length = 3
+        grid = Grid(dimensions=1, scale=1.0, length=3)
         spinless_set = [True, False]
         geometry = [('H', (0,)), ('H', (0.8,))]
         for spinless in spinless_set:
-            u_plane_wave = plane_wave_u_operator(
-                n_dimensions, grid_length, length_scale, geometry, spinless)
-            u_dual_basis = dual_basis_u_operator(
-                n_dimensions, grid_length, length_scale, geometry, spinless)
+            u_plane_wave = plane_wave_u_operator(grid, geometry, spinless)
+            u_dual_basis = dual_basis_u_operator(grid, geometry, spinless)
             jw_u_plane_wave = jordan_wigner(u_plane_wave)
             jw_u_dual_basis = jordan_wigner(u_dual_basis)
             u_plane_wave_spectrum = eigenspectrum(jw_u_plane_wave)
