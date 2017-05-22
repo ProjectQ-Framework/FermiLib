@@ -318,19 +318,15 @@ class JelliumTest(unittest.TestCase):
 
     def test_jordan_wigner_position_jellium(self):
         # Parameters.
-        n_dimensions = 2
-        grid_length = 3
-        length_scale = 1.
+        grid = Grid(dimensions=2, length=3, scale=1.)
         spinless = True
 
         # Compute fermionic Hamiltonian.
-        fermion_hamiltonian = jellium_model(
-            Grid(n_dimensions, grid_length, length_scale), spinless, False)
+        fermion_hamiltonian = jellium_model(grid, spinless, False)
         qubit_hamiltonian = jordan_wigner(fermion_hamiltonian)
 
         # Compute Jordan-Wigner Hamiltonian.
-        test_hamiltonian = jordan_wigner_position_jellium(
-            n_dimensions, grid_length, length_scale, spinless)
+        test_hamiltonian = jordan_wigner_position_jellium(grid, spinless)
 
         # Make sure Hamiltonians are the same.
         self.assertTrue(test_hamiltonian.isclose(qubit_hamiltonian))
