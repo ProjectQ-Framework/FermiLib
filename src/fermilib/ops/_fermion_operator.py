@@ -263,6 +263,26 @@ class FermionOperator(object):
                         'Invalid action in FermionOperator: '
                         'Must be 0 (lowering) or 1 (raising).')
 
+    @staticmethod
+    def additive_identity():
+        """
+        Returns:
+            FermionOperator:
+                A fermion operator o with the property that o+x = x+o = x for
+                all other fermion operators x.
+        """
+        return FermionOperator(term=None)
+
+    @staticmethod
+    def multiplicative_identity():
+        """
+        Returns:
+            FermionOperator:
+                A fermion operator u with the property that u*x = x*u = x for
+                all other fermion operators x.
+        """
+        return FermionOperator(term=())
+
     def compress(self, abs_tol=EQ_TOLERANCE):
         """
         Eliminates all terms with coefficients close to zero and removes
