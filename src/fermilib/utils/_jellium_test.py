@@ -90,31 +90,26 @@ class JelliumTest(unittest.TestCase):
         self.assertAlmostEqual(0., numpy.amax(test_output - correct_output))
 
     def test_momentum_vector(self):
-        grid_length = 3
-        length_scale = 2. * numpy.pi
-        test_output = [momentum_vector(i, grid_length, length_scale)
-                       for i in range(grid_length)]
+        grid = Grid(dimensions=1, length=3, scale=2. * numpy.pi)
+        test_output = [momentum_vector(i, grid)
+                       for i in range(grid.length)]
         correct_output = [-1., 0, 1.]
         self.assertEqual(correct_output, test_output)
 
-        grid_length = 11
-        length_scale = 2. * numpy.pi
-        for i in range(grid_length):
+        grid = Grid(dimensions=1, length=11, scale=2. * numpy.pi)
+        for i in range(grid.length):
             self.assertAlmostEqual(
-                -momentum_vector(i, grid_length, length_scale),
-                momentum_vector(
-                    grid_length - i - 1, grid_length, length_scale))
+                -momentum_vector(i, grid),
+                momentum_vector(grid.length - i - 1, grid))
 
         # Test in 2D.
-        grid_length = 3
-        length_scale = 2. * numpy.pi
+        grid = Grid(dimensions=2, length=3, scale=2. * numpy.pi)
         test_input = []
         test_output = []
         for i in range(3):
             for j in range(3):
                 test_input += [(i, j)]
-                test_output += [momentum_vector(
-                    (i, j), grid_length, length_scale)]
+                test_output += [momentum_vector((i, j), grid)]
         correct_output = numpy.array([[-1, -1], [-1, 0], [-1, 1],
                                       [0, -1], [0, 0], [0, 1],
                                       [1, -1], [1, 0], [1, 1]])
@@ -203,7 +198,7 @@ class JelliumTest(unittest.TestCase):
         paper_kinetic_coefficient = 0.
         paper_potential_coefficient = 0.
         for indices in grid.all_points_indices():
-            momenta = momentum_vector(indices, grid.length, grid.scale)
+            momenta = momentum_vector(indices, grid)
             paper_kinetic_coefficient += float(
                 n_qubits) * momenta.dot(momenta) / float(4. * n_orbitals)
 
@@ -226,7 +221,7 @@ class JelliumTest(unittest.TestCase):
             paper_kinetic_coefficient = 0.
             paper_potential_coefficient = 0.
             for indices in grid.all_points_indices():
-                momenta = momentum_vector(indices, grid.length, grid.scale)
+                momenta = momentum_vector(indices, grid)
                 paper_kinetic_coefficient -= momenta.dot(
                     momenta) / float(4. * n_orbitals)
 
@@ -274,8 +269,7 @@ class JelliumTest(unittest.TestCase):
                             potential_coefficient = 0.
 
                         for indices_c in grid.all_points_indices():
-                            momenta = momentum_vector(
-                                indices_c, grid.length, grid.scale)
+                            momenta = momentum_vector(indices_c, grid)
 
                             if momenta.any():
                                 potential_contribution = numpy.pi * numpy.cos(

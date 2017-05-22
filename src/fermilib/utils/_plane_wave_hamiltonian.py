@@ -53,8 +53,7 @@ def dual_basis_u_operator(grid, geometry, spinless):
         for nuclear_term in geometry:
             coordinate_j = numpy.array(nuclear_term[1], float)
             for momenta_indices in grid.all_points_indices():
-                momenta = momentum_vector(momenta_indices, grid.length,
-                                          grid.scale)
+                momenta = momentum_vector(momenta_indices, grid)
                 momenta_squared = momenta.dot(momenta)
                 if momenta_squared < EQ_TOLERANCE:
                     continue
@@ -100,8 +99,7 @@ def plane_wave_u_operator(grid, geometry, spinless):
             grid_indices_p_q = [
                 (indices_p[i] - indices_q[i] + shift) % grid.length
                 for i in range(grid.dimensions)]
-            momenta_p_q = momentum_vector(grid_indices_p_q, grid.length,
-                                          grid.scale)
+            momenta_p_q = momentum_vector(grid_indices_p_q, grid)
             momenta_p_q_squared = momenta_p_q.dot(momenta_p_q)
             if momenta_p_q_squared < EQ_TOLERANCE:
                 continue
@@ -185,8 +183,7 @@ def fourier_transform(hamiltonian, n_dimensions, grid_length, length_scale,
         for ladder_operator in term:
             momentum_indices = grid_indices(ladder_operator[0], n_dimensions,
                                             grid_length, spinless)
-            momentum_vec = momentum_vector(momentum_indices, grid_length,
-                                           length_scale)
+            momentum_vec = momentum_vector(momentum_indices, grid)
             new_basis = None
             for position_indices in itertools.product(range(grid_length),
                                                       repeat=n_dimensions):
@@ -260,8 +257,7 @@ def inverse_fourier_transform(hamiltonian, n_dimensions, grid_length,
             new_basis = None
             for momentum_indices in itertools.product(range(grid_length),
                                                       repeat=n_dimensions):
-                momentum_vec = momentum_vector(momentum_indices, grid_length,
-                                               length_scale)
+                momentum_vec = momentum_vector(momentum_indices, grid)
                 if spinless:
                     spin = None
                 else:

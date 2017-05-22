@@ -118,14 +118,13 @@ def position_vector(position_indices, grid):
     return position_vector
 
 
-def momentum_vector(momentum_indices, grid_length, length_scale):
+def momentum_vector(momentum_indices, grid):
     """Given grid point coordinate, return momentum vector with dimensions.
 
     Args:
         momentum_indices: List or tuple of integers giving momentum indices.
             Allowed values are ints in [0, grid_length).
-        grid_length: Int, the number of points in one dimension of the grid.
-        length_scale: Float, the real space length of a box dimension.
+        grid (Grid): The discretization to use.
 
         Returns:
             momentum_vector: A numpy array giving the momentum vector with
@@ -134,15 +133,13 @@ def momentum_vector(momentum_indices, grid_length, length_scale):
     # Raise exceptions.
     if isinstance(momentum_indices, int):
         momentum_indices = [momentum_indices]
-    if (not isinstance(grid_length, int) or
-        max(momentum_indices) >= grid_length or
-            min(momentum_indices) < 0.):
+    if not all(0 <= e < grid.length for e in momentum_indices):
         raise OrbitalSpecificationError(
             'Momentum indices must be integers in [0, grid_length).')
 
     # Compute momentum vector.
-    adjusted_vector = numpy.array(momentum_indices, float) - grid_length // 2
-    momentum_vector = 2. * numpy.pi * adjusted_vector / length_scale
+    adjusted_vector = numpy.array(momentum_indices, float) - grid.length // 2
+    momentum_vector = 2. * numpy.pi * adjusted_vector / grid.scale
     return momentum_vector
 
 
@@ -165,7 +162,7 @@ def momentum_kinetic_operator(grid, spinless=False):
 
     # Loop once through all plane waves.
     for momenta_indices in grid.all_points_indices():
-        momenta = momentum_vector(momenta_indices, grid.length, grid.scale)
+        momenta = momentum_vector(momenta_indices, grid)
         coefficient = momenta.dot(momenta) / 2.
 
         # Loop over spins.
@@ -204,8 +201,7 @@ def momentum_potential_operator(grid, spinless=False):
                                  index in omega_indices]
 
         # Get the momenta vectors.
-        omega_momenta = momentum_vector(
-            omega_indices, grid.length, grid.scale)
+        omega_momenta = momentum_vector(omega_indices, grid)
 
         # Skip if omega momentum is zero.
         if not omega_momenta.any():
@@ -276,8 +272,7 @@ def position_kinetic_operator(grid, spinless=False):
             # Compute coefficient.
             coefficient = 0.
             for momenta_indices in grid.all_points_indices():
-                momenta = momentum_vector(
-                    momenta_indices, grid.length, grid.scale)
+                momenta = momentum_vector(momenta_indices, grid)
                 if momenta.any():
                     coefficient += (
                         numpy.cos(momenta.dot(differences)) *
@@ -325,8 +320,7 @@ def position_potential_operator(grid, spinless=False):
             # Compute coefficient.
             coefficient = 0.
             for momenta_indices in grid.all_points_indices():
-                momenta = momentum_vector(
-                    momenta_indices, grid.length, grid.scale)
+                momenta = momentum_vector(momenta_indices, grid)
                 if momenta.any():
                     coefficient += (
                         prefactor * numpy.cos(momenta.dot(differences)) /
@@ -394,7 +388,7 @@ def jordan_wigner_position_jellium(grid, spinless=False):
     # Compute the identity coefficient.
     identity_coefficient = 0.
     for k_indices in grid.all_points_indices():
-        momenta = momentum_vector(k_indices, grid.length, grid.scale)
+        momenta = momentum_vector(k_indices, grid)
         if momenta.any():
             identity_coefficient += momenta.dot(momenta) / 2.
             identity_coefficient -= (numpy.pi * float(n_orbitals) /
@@ -409,7 +403,7 @@ def jordan_wigner_position_jellium(grid, spinless=False):
     # Compute coefficient of local Z terms.
     z_coefficient = 0.
     for k_indices in grid.all_points_indices():
-        momenta = momentum_vector(k_indices, grid.length, grid.scale)
+        momenta = momentum_vector(k_indices, grid)
         if momenta.any():
             z_coefficient += numpy.pi / (momenta.dot(momenta) * volume)
             z_coefficient -= momenta.dot(momenta) / (4. * float(n_orbitals))
@@ -433,7 +427,7 @@ def jordan_wigner_position_jellium(grid, spinless=False):
             # Loop through momenta.
             zpzq_coefficient = 0.
             for k_indices in grid.all_points_indices():
-                momenta = momentum_vector(k_indices, grid.length, grid.scale)
+                momenta = momentum_vector(k_indices, grid)
                 if momenta.any():
                     zpzq_coefficient += prefactor * numpy.cos(
                         momenta.dot(differences)) / momenta.dot(momenta)
@@ -459,7 +453,7 @@ def jordan_wigner_position_jellium(grid, spinless=False):
             # Loop through momenta.
             term_coefficient = 0.
             for k_indices in grid.all_points_indices():
-                momenta = momentum_vector(k_indices, grid.length, grid.scale)
+                momenta = momentum_vector(k_indices, grid)
                 if momenta.any():
                     term_coefficient += prefactor * momenta.dot(momenta) * \
                         numpy.cos(momenta.dot(differences))
