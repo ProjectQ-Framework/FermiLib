@@ -44,6 +44,13 @@ class Grid:
         self.length = length
         self.scale = scale
 
+    def volume_scale(self):
+        """
+        Returns:
+            float: The volume of a length-scale hypercube within the grid.
+        """
+        return self.scale**float(self.dimensions)
+
     def num_points(self):
         """
         Returns:
