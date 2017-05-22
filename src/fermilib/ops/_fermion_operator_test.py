@@ -62,21 +62,25 @@ class FermionOperatorTest(unittest.TestCase):
         self.assertIn(correct, fermion_op.terms)
         self.assertEqual(fermion_op.terms[correct], -1.0)
 
+    def test_merges_multiple_whitespace(self):
+        fermion_op = FermionOperator('        \n ')
+        self.assertEqual(fermion_op.terms, {(): 1})
+
     def test_init_str_identity(self):
         fermion_op = FermionOperator('')
         self.assertIn((), fermion_op.terms)
 
     def test_init_bad_term(self):
         with self.assertRaises(ValueError):
-            fermion_op = FermionOperator(list())
+            _ = FermionOperator(list())
 
     def test_init_bad_coefficient(self):
         with self.assertRaises(ValueError):
-            fermion_op = FermionOperator('0^', "0.5")
+            _ = FermionOperator('0^', "0.5")
 
     def test_init_bad_action_str(self):
-        with self.assertRaises(ValueError):
-            fermion_op = FermionOperator('0-')
+        with self.assertRaises(FermionOperatorError):
+            _ = FermionOperator('0-')
 
     def test_init_bad_action_tuple(self):
         with self.assertRaises(ValueError):
@@ -84,15 +88,15 @@ class FermionOperatorTest(unittest.TestCase):
 
     def test_init_bad_tuple(self):
         with self.assertRaises(ValueError):
-            fermion_op = FermionOperator(((0, 1, 1),))
+            _ = FermionOperator(((0, 1, 1),))
 
     def test_init_bad_str(self):
-        with self.assertRaises(ValueError):
-            fermion_op = FermionOperator('^')
+        with self.assertRaises(FermionOperatorError):
+            _ = FermionOperator('^')
 
     def test_init_bad_mode_num(self):
         with self.assertRaises(FermionOperatorError):
-            fermion_op = FermionOperator('-1^')
+            _ = FermionOperator('-1^')
 
     def test_FermionOperator(self):
         op = FermionOperator((), 3.)

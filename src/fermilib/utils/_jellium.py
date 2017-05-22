@@ -39,9 +39,6 @@ def orbital_id(grid_length, grid_coordinates, spin=None):
 
     Returns:
         tensor_factor: tensor factor associated with provided orbital label.
-
-    Raises:
-        OrbitalSpecificiationError: Invalid orbital coordinates provided.
     """
     # Initialize.
     if isinstance(grid_coordinates, int):
@@ -109,10 +106,6 @@ def position_vector(position_indices, grid_length, length_scale):
     Returns:
         position_vector: A numpy array giving the position vector with
         dimensions.
-
-    Raises:
-        orbitalSpecificationError: Position indices must be integers
-            in [0, grid_length).
     """
     # Raise exceptions.
     if isinstance(position_indices, int):
@@ -120,7 +113,7 @@ def position_vector(position_indices, grid_length, length_scale):
     if (not isinstance(grid_length, int) or
         max(position_indices) >= grid_length or
             min(position_indices) < 0.):
-        raise orbitalSpecificationError(
+        raise OrbitalSpecificationError(
             'Position indices must be integers in [0, grid_length).')
 
     # Compute position vector.
@@ -141,10 +134,6 @@ def momentum_vector(momentum_indices, grid_length, length_scale):
         Returns:
             momentum_vector: A numpy array giving the momentum vector with
                 dimensions.
-
-    Raises:
-        OrbitalSpecificationError: Momentum indices must be integers
-            in [0, grid_length).
     """
     # Raise exceptions.
     if isinstance(momentum_indices, int):
@@ -161,21 +150,17 @@ def momentum_vector(momentum_indices, grid_length, length_scale):
     return momentum_vector
 
 
-def momentum_kinetic_operator(n_dimensions, grid_length,
-                              length_scale, spinless=False):
+def momentum_kinetic_operator(grid, spinless=False):
     """Return the kinetic energy operator in momentum second quantization.
 
     Args:
-        n_dimensions: An int giving the number of dimensions for the model.
-        grid_length: Int, the number of points in one dimension of the grid.
-        length_scale: Float, the real space length of a box dimension.
-        spinless: Bool, whether to use the spinless model or not.
+        grid (fermilib.utils.Grid): The discretization to use.
+        spinless (bool): Whether to use the spinless model or not.
 
     Returns:
-        operator: An instance of the FermionOperator class.
+        FermionOperator: The kinetic momentum operator.
     """
     # Initialize.
-    n_points = grid_length ** n_dimensions
     operator = FermionOperator()
     if spinless:
         spins = [None]
@@ -183,14 +168,13 @@ def momentum_kinetic_operator(n_dimensions, grid_length,
         spins = [0, 1]
 
     # Loop once through all plane waves.
-    for grid_indices in itertools.product(range(grid_length),
-                                          repeat=n_dimensions):
-        momenta = momentum_vector(grid_indices, grid_length, length_scale)
+    for momenta_indices in grid.all_points_indices():
+        momenta = momentum_vector(momenta_indices, grid.length, grid.scale)
         coefficient = momenta.dot(momenta) / 2.
 
         # Loop over spins.
         for spin in spins:
-            orbital = orbital_id(grid_length, grid_indices, spin)
+            orbital = orbital_id(grid.length, momenta_indices, spin)
 
             # Add interaction term.
             operators = ((orbital, 1), (orbital, 0))
@@ -211,9 +195,6 @@ def momentum_potential_operator(n_dimensions, grid_length,
 
     Returns:
         operator: An instance of the FermionOperator class.
-
-    Raises:
-        OrbitalSpecificationError: 'Must use an odd number of momentum modes.'
     """
     # Initialize.
     n_points = grid_length ** n_dimensions
@@ -393,42 +374,36 @@ def position_potential_operator(n_dimensions, grid_length,
     return operator
 
 
-def jellium_model(n_dimensions, grid_length, length_scale,
-                  spinless=False, momentum_space=True):
+def jellium_model(grid, spinless=False, momentum_space=True):
     """Return jellium Hamiltonian as FermionOperator class.
 
     Args:
-        n_dimensions: An int giving the number of dimensions for the model.
-        grid_length: Int, the number of points in one dimension of the grid.
-        length_scale: Float, the real space length of a box dimension.
-        spinless: Bool, whether to use the spinless model or not.
-        momentum_space: Boole, whether to return in momentum space (True)
+        grid (fermilib.utils.Grid): The discretization to use.
+        spinless (bool): Whether to use the spinless model or not.
+        momentum_space (bool): Whether to return in momentum space (True)
             or position space (False).
 
     Returns:
-        hamiltonian: An instance of the FermionOperator class.
+        FermionOperator: The Hamiltonian of the model.
     """
-    if grid_length % 2 == 0 and (grid_length & (grid_length - 1)) != 0:
+    if grid.length & 1 == 0 and grid.length & (grid.length - 1):
         raise OrbitalSpecificationError(
             'Must use an odd number or a power of 2 for momentum modes.')
 
     if momentum_space:
-        hamiltonian = momentum_kinetic_operator(n_dimensions,
-                                                grid_length,
-                                                length_scale,
-                                                spinless)
-        hamiltonian += momentum_potential_operator(n_dimensions,
-                                                   grid_length,
-                                                   length_scale,
+        hamiltonian = momentum_kinetic_operator(grid, spinless)
+        hamiltonian += momentum_potential_operator(grid.dimensions,
+                                                   grid.length,
+                                                   grid.scale,
                                                    spinless)
     else:
-        hamiltonian = position_kinetic_operator(n_dimensions,
-                                                grid_length,
-                                                length_scale,
+        hamiltonian = position_kinetic_operator(grid.dimensions,
+                                                grid.length,
+                                                grid.scale,
                                                 spinless)
-        hamiltonian += position_potential_operator(n_dimensions,
-                                                   grid_length,
-                                                   length_scale,
+        hamiltonian += position_potential_operator(grid.dimensions,
+                                                   grid.length,
+                                                   grid.scale,
                                                    spinless)
     return hamiltonian
 

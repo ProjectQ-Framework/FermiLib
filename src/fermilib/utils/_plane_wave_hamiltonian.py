@@ -14,62 +14,57 @@
 from __future__ import absolute_import
 
 import itertools
+
 import numpy
 
 from fermilib.config import *
 from fermilib.ops import FermionOperator
-from fermilib.utils._molecular_data import periodic_hash_table
+from fermilib.utils._grid import Grid
 from fermilib.utils._jellium import (orbital_id, grid_indices, position_vector,
                                      momentum_vector, jellium_model)
+from fermilib.utils._molecular_data import periodic_hash_table
+from fermilib.utils._grid import Grid
 
 from projectq.ops import QubitOperator
 
 
-def dual_basis_u_operator(n_dimensions, grid_length, length_scale, geometry,
-                          spinless):
+def dual_basis_u_operator(grid, geometry, spinless):
     """Return the external potential operator in plane wave dual basis.
 
     Args:
-        n_dimensions: An int giving the number of dimensions for the model.
-        grid_length: Int, the number of points in one dimension of the grid.
-        length_scale: Float, the real space length of a box dimension.
+        grid (Grid): The discretization to use.
         geometry: A list of tuples giving the coordinates of each atom.
             example is [('H', (0, 0, 0)), ('H', (0, 0, 0.7414))].
             Distances in atomic units. Use atomic symbols to specify atoms.
-        spinless: Bool, whether to use the spinless model or not.
+        spinless (bool): Whether to use the spinless model or not.
 
     Returns:
-        operator: An instance of the FermionOperator class.
+        FermionOperator: The dual basis operator.
     """
-    n_points = grid_length ** n_dimensions
-    volume = length_scale ** float(n_dimensions)
-    prefactor = -4.0 * numpy.pi / volume
+    prefactor = -4.0 * numpy.pi / grid.volume_scale()
     operator = None
     if spinless:
         spins = [None]
     else:
         spins = [0, 1]
 
-    for grid_indices_p in itertools.product(range(grid_length),
-                                            repeat=n_dimensions):
-        coordinate_p = position_vector(grid_indices_p, grid_length,
-                                       length_scale)
+    for pos_indices in grid.all_points_indices():
+        coordinate_p = position_vector(pos_indices, grid.length, grid.scale)
         for nuclear_term in geometry:
             coordinate_j = numpy.array(nuclear_term[1], float)
-            for momenta_indices in itertools.product(range(grid_length),
-                                                     repeat=n_dimensions):
-                momenta = momentum_vector(momenta_indices, grid_length,
-                                          length_scale)
-                momenta_squred = momenta.dot(momenta)
-                if momenta_squred < EQ_TOLERANCE:
+            for momenta_indices in grid.all_points_indices():
+                momenta = momentum_vector(momenta_indices, grid.length,
+                                          grid.scale)
+                momenta_squared = momenta.dot(momenta)
+                if momenta_squared < EQ_TOLERANCE:
                     continue
                 exp_index = 1.0j * momenta.dot(coordinate_j - coordinate_p)
-                coefficient = prefactor / momenta_squred * \
-                    periodic_hash_table[nuclear_term[0]] * numpy.exp(exp_index)
+                coefficient = (prefactor / momenta_squared *
+                    periodic_hash_table[nuclear_term[0]] * numpy.exp(exp_index))
 
                 for spin_p in spins:
                     orbital_p = orbital_id(
-                        grid_length, grid_indices_p, spin_p)
+                        grid.length, pos_indices, spin_p)
                     operators = ((orbital_p, 1), (orbital_p, 0))
                     if operator is None:
                         operator = FermionOperator(operators, coefficient)
@@ -79,41 +74,34 @@ def dual_basis_u_operator(n_dimensions, grid_length, length_scale, geometry,
     return operator
 
 
-def plane_wave_u_operator(n_dimensions, grid_length, length_scale, geometry,
-                          spinless):
+def plane_wave_u_operator(grid, geometry, spinless):
     """Return the external potential operator in plane wave basis.
 
     Args:
-        n_dimensions: An int giving the number of dimensions for the model.
-        grid_length: Int, the number of points in one dimension of the grid.
-        length_scale: Float, the real space length of a box dimension.
+        grid (Grid): The discretization to use.
         geometry: A list of tuples giving the coordinates of each atom.
             example is [('H', (0, 0, 0)), ('H', (0, 0, 0.7414))].
             Distances in atomic units. Use atomic symbols to specify atoms.
         spinless: Bool, whether to use the spinless model or not.
 
     Returns:
-        operator: An instance of the FermionOperator class.
+        FermionOperator: The plane wave operator.
     """
-    n_points = grid_length ** n_dimensions
-    volume = length_scale ** float(n_dimensions)
-    prefactor = -4.0 * numpy.pi / volume
+    prefactor = -4.0 * numpy.pi / grid.volume_scale()
     operator = None
     if spinless:
         spins = [None]
     else:
         spins = [0, 1]
 
-    for grid_indices_p in itertools.product(range(grid_length),
-                                            repeat=n_dimensions):
-        for grid_indices_q in itertools.product(range(grid_length),
-                                                repeat=n_dimensions):
-            shift = grid_length // 2
+    for indices_p in grid.all_points_indices():
+        for indices_q in grid.all_points_indices():
+            shift = grid.length // 2
             grid_indices_p_q = [
-                (grid_indices_p[i] - grid_indices_q[i] + shift) % grid_length
-                for i in range(n_dimensions)]
-            momenta_p_q = momentum_vector(grid_indices_p_q, grid_length,
-                                          length_scale)
+                (indices_p[i] - indices_q[i] + shift) % grid.length
+                for i in range(grid.dimensions)]
+            momenta_p_q = momentum_vector(grid_indices_p_q, grid.length,
+                                          grid.scale)
             momenta_p_q_squared = momenta_p_q.dot(momenta_p_q)
             if momenta_p_q_squared < EQ_TOLERANCE:
                 continue
@@ -121,14 +109,12 @@ def plane_wave_u_operator(n_dimensions, grid_length, length_scale, geometry,
             for nuclear_term in geometry:
                 coordinate_j = numpy.array(nuclear_term[1])
                 exp_index = 1.0j * momenta_p_q.dot(coordinate_j)
-                coefficient = prefactor / momenta_p_q_squared * \
-                    periodic_hash_table[nuclear_term[0]] * numpy.exp(exp_index)
+                coefficient = (prefactor / momenta_p_q_squared *
+                    periodic_hash_table[nuclear_term[0]] * numpy.exp(exp_index))
 
                 for spin in spins:
-                    orbital_p = orbital_id(
-                        grid_length, grid_indices_p, spin)
-                    orbital_q = orbital_id(
-                        grid_length, grid_indices_q, spin)
+                    orbital_p = orbital_id(grid.length, indices_p, spin)
+                    orbital_q = orbital_id(grid.length, indices_q, spin)
                     operators = ((orbital_p, 1), (orbital_q, 0))
                     if operator is None:
                         operator = FermionOperator(operators, coefficient)
@@ -138,40 +124,36 @@ def plane_wave_u_operator(n_dimensions, grid_length, length_scale, geometry,
     return operator
 
 
-def plane_wave_hamiltonian(n_dimensions, grid_length, length_scale, geometry,
+def plane_wave_hamiltonian(grid, geometry,
                            spinless=False, momentum_space=True):
     """Returns Hamiltonian as FermionOperator class.
 
     Args:
-        n_dimensions: An int giving the number of dimensions for the model.
-        grid_length: Int, the number of points in one dimension of the grid.
-        length_scale: Float, the real space length of a box dimension.
+        grid (Grid): The discretization to use.
         geometry: A list of tuples giving the coordinates of each atom.
             example is [('H', (0, 0, 0)), ('H', (0, 0, 0.7414))].
             Distances in atomic units. Use atomic symbols to specify atoms.
-        spinless: Bool, whether to use the spinless model or not.
-        momentum_space: Boole, whether to return in plane wave basis (True)
+        spinless (bool): Whether to use the spinless model or not.
+        momentum_space (bool): Whether to return in plane wave basis (True)
             or plane wave dual basis (False).
 
     Returns:
-        hamiltonian: An instance of the FermionOperator class.
+        FermionOperator: The hamiltonian.
     """
     for item in geometry:
-        if len(item[1]) != n_dimensions:
+        if len(item[1]) != grid.dimensions:
             raise ValueError("Invalid geometry coordinate.")
         if item[0] not in periodic_hash_table:
             raise ValueError("Invalid nuclear element.")
 
+    jellium_op = jellium_model(grid, spinless, momentum_space)
+
     if momentum_space:
-        return jellium_model(n_dimensions, grid_length, length_scale, spinless,
-                             True) + \
-            plane_wave_u_operator(n_dimensions, grid_length, length_scale,
-                                  geometry, spinless)
+        external_potential = plane_wave_u_operator(grid, geometry, spinless)
     else:
-        return jellium_model(n_dimensions, grid_length, length_scale, spinless,
-                             False) + \
-            dual_basis_u_operator(n_dimensions, grid_length, length_scale,
-                                  geometry, spinless)
+        external_potential = dual_basis_u_operator(grid, geometry, spinless)
+
+    return jellium_op + external_potential
 
 
 def fourier_transform(hamiltonian, n_dimensions, grid_length, length_scale,
