@@ -49,7 +49,7 @@ def dual_basis_u_operator(grid, geometry, spinless):
         spins = [0, 1]
 
     for pos_indices in grid.all_points_indices():
-        coordinate_p = position_vector(pos_indices, grid.length, grid.scale)
+        coordinate_p = position_vector(pos_indices, grid)
         for nuclear_term in geometry:
             coordinate_j = numpy.array(nuclear_term[1], float)
             for momenta_indices in grid.all_points_indices():
@@ -176,6 +176,9 @@ def fourier_transform(hamiltonian, n_dimensions, grid_length, length_scale,
         hamiltonian_t: An instance of the FermionOperator class.
     """
     hamiltonian_t = None
+    grid = Grid(dimensions=n_dimensions,
+                length=grid_length,
+                scale=length_scale)
 
     for term in hamiltonian.terms:
         transformed_term = None
@@ -187,8 +190,7 @@ def fourier_transform(hamiltonian, n_dimensions, grid_length, length_scale,
             new_basis = None
             for position_indices in itertools.product(range(grid_length),
                                                       repeat=n_dimensions):
-                position_vec = position_vector(position_indices, grid_length,
-                                               length_scale)
+                position_vec = position_vector(position_indices, grid)
                 if spinless:
                     spin = None
                 else:
@@ -245,14 +247,16 @@ def inverse_fourier_transform(hamiltonian, n_dimensions, grid_length,
         hamiltonian_t: An instance of the FermionOperator class.
     """
     hamiltonian_t = None
+    grid = Grid(dimensions=n_dimensions,
+                length=grid_length,
+                scale=length_scale)
 
     for term in hamiltonian.terms:
         transformed_term = None
         for ladder_operator in term:
             position_indices = grid_indices(ladder_operator[0], n_dimensions,
                                             grid_length, spinless)
-            position_vec = position_vector(position_indices, grid_length,
-                                           length_scale)
+            position_vec = position_vector(position_indices, grid)
             new_basis = None
             for momentum_indices in itertools.product(range(grid_length),
                                                       repeat=n_dimensions):
