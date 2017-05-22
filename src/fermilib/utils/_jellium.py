@@ -183,22 +183,18 @@ def momentum_kinetic_operator(grid, spinless=False):
     return operator
 
 
-def momentum_potential_operator(n_dimensions, grid_length,
-                                length_scale, spinless=False):
+def momentum_potential_operator(grid, spinless=False):
     """Return the potential operator in momentum second quantization.
 
     Args:
-        n_dimensions: An int giving the number of dimensions for the model.
-        grid_length: Int, the number of points in one dimension of the grid.
-        length_scale: Float, the real space length of a box dimension.
+        grid (Grid): The discretization to use.
         spinless: Boole, whether to use the spinless model or not.
 
     Returns:
         operator: An instance of the FermionOperator class.
     """
     # Initialize.
-    n_points = grid_length ** n_dimensions
-    volume = length_scale ** float(n_dimensions)
+    volume = grid.volume_scale()
     prefactor = 2. * numpy.pi / volume
     operator = FermionOperator((), 0.0)
     if spinless:
@@ -207,14 +203,13 @@ def momentum_potential_operator(n_dimensions, grid_length,
         spins = [0, 1]
 
     # Loop once through all plane waves.
-    for omega_indices in itertools.product(range(grid_length),
-                                           repeat=n_dimensions):
-        shifted_omega_indices = [index - grid_length // 2 for
+    for omega_indices in grid.all_points_indices():
+        shifted_omega_indices = [index - grid.length // 2 for
                                  index in omega_indices]
 
         # Get the momenta vectors.
         omega_momenta = momentum_vector(
-            omega_indices, grid_length, length_scale)
+            omega_indices, grid.length, grid.scale)
 
         # Skip if omega momentum is zero.
         if not omega_momenta.any():
@@ -224,28 +219,27 @@ def momentum_potential_operator(n_dimensions, grid_length,
         coefficient = prefactor / \
             omega_momenta.dot(omega_momenta)
 
-        for grid_indices_a in itertools.product(range(grid_length),
-                                                repeat=n_dimensions):
+        for grid_indices_a in grid.all_points_indices():
             shifted_indices_d = [
-                (grid_indices_a[i] - shifted_omega_indices[i]) %
-                grid_length for i in range(n_dimensions)]
-            for grid_indices_b in itertools.product(range(grid_length),
-                                                    repeat=n_dimensions):
+                (grid_indices_a[i] - shifted_omega_indices[i]) % grid.length
+                for i in range(grid.dimensions)]
+            for grid_indices_b in grid.all_points_indices():
                 shifted_indices_c = [
                     (grid_indices_b[i] + shifted_omega_indices[i]) %
-                    grid_length for i in range(n_dimensions)]
+                    grid.length
+                    for i in range(grid.dimensions)]
 
                 # Loop over spins.
                 for spin_a in spins:
                     orbital_a = orbital_id(
-                        grid_length, grid_indices_a, spin_a)
+                        grid.length, grid_indices_a, spin_a)
                     orbital_d = orbital_id(
-                        grid_length, shifted_indices_d, spin_a)
+                        grid.length, shifted_indices_d, spin_a)
                     for spin_b in spins:
                         orbital_b = orbital_id(
-                            grid_length, grid_indices_b, spin_b)
+                            grid.length, grid_indices_b, spin_b)
                         orbital_c = orbital_id(
-                            grid_length, shifted_indices_c, spin_b)
+                            grid.length, shifted_indices_c, spin_b)
 
                         # Add interaction term.
                         if (orbital_a != orbital_b) and \
@@ -392,10 +386,7 @@ def jellium_model(grid, spinless=False, momentum_space=True):
 
     if momentum_space:
         hamiltonian = momentum_kinetic_operator(grid, spinless)
-        hamiltonian += momentum_potential_operator(grid.dimensions,
-                                                   grid.length,
-                                                   grid.scale,
-                                                   spinless)
+        hamiltonian += momentum_potential_operator(grid, spinless)
     else:
         hamiltonian = position_kinetic_operator(grid.dimensions,
                                                 grid.length,
