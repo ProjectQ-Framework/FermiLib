@@ -246,7 +246,7 @@ def sparse_eigenspectrum(sparse_operator):
         eigenspectrum = numpy.linalg.eigvalsh(dense_operator)
     else:
         eigenspectrum = numpy.linalg.eigvals(dense_operator)
-    return eigenspectrum
+    return numpy.sort(eigenspectrum)
 
 
 def expectation(sparse_operator, state):
