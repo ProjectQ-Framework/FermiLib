@@ -39,6 +39,8 @@ def number_operator(n_orbitals, orbital=None, coefficient=1.):
         orbital (int, optional): The orbital on which to return the number
             operator. If None, return total number operator on all sites.
         coefficient (float): The coefficient of the term.
+    Returns:
+        operator (FermionOperator)
     """
     if orbital is None:
         operator = FermionOperator()
@@ -290,7 +292,7 @@ class FermionOperator(object):
         imaginary parts of coefficients that are close to zero.
 
         Args:
-            abs_tol(float): Absolute tolerance, must be at least 0.0
+            abs_tol (float): Absolute tolerance, must be at least 0.0
         """
         new_terms = {}
         for term in self.terms:
@@ -396,6 +398,8 @@ class FermionOperator(object):
 
         Args:
           multiplier(complex float, or FermionOperator): multiplier
+        Returns:
+            product (FermionOperator): Mutated self.
         """
         # Handle scalars.
         if isinstance(multiplier, (int, float, complex)):
@@ -427,7 +431,7 @@ class FermionOperator(object):
             multiplier: A scalar, or a FermionOperator.
 
         Returns:
-            product: A FermionOperator.
+            product (FermionOperator)
 
         Raises:
             TypeError: Invalid type cannot be multiply with FermionOperator.
@@ -444,14 +448,14 @@ class FermionOperator(object):
         """Return multiplier * self for a scalar.
 
         We only define __rmul__ for scalars because the left multiply
-        exist for  FermionOperator and left multiply
+        exist for FermionOperator and left multiply
         is also queried as the default behavior.
 
         Args:
             multiplier: A scalar to multiply by.
 
         Returns:
-            product: A new instance of FermionOperator.
+            product (FermionOperator)
 
         Raises:
             TypeError: Object of invalid type cannot multiply FermionOperator.
@@ -467,10 +471,10 @@ class FermionOperator(object):
         Note that this is always floating point division.
 
         Args:
-            divisor: A scalar to divide by.
+            divisor (int|float|complex): A scalar to divide by.
 
         Returns:
-            A new instance of FermionOperator.
+            quotient (FermionOperator)
 
         Raises:
             TypeError: Cannot divide local operator by non-scalar type.
@@ -480,17 +484,33 @@ class FermionOperator(object):
         return self * (1.0 / divisor)
 
     def __div__(self, divisor):
-        """For compatibility with Python 2. """
+        """For compatibility with Python 2.
+        Args:
+            divisor (int|float|complex): A scalar to divide by.
+        Returns:
+            quotient (FermionOperator)
+        """
         return self.__truediv__(divisor)
 
     def __itruediv__(self, divisor):
+        """
+        Args:
+            divisor (int|float|complex): A scalar to divide by.
+        Returns:
+            quotient (FermionOperator): Mutated self.
+        """
         if not isinstance(divisor, (int, float, complex)):
             raise TypeError('Cannot divide QubitOperator by non-scalar type.')
         self *= (1.0 / divisor)
         return self
 
     def __idiv__(self, divisor):
-        """For compatibility with Python 2. """
+        """For compatibility with Python 2.
+        Args:
+            divisor (int|float|complex): A scalar to divide by.
+        Returns:
+            quotient (FermionOperator): Mutated self.
+        """
         return self.__itruediv__(divisor)
 
     def __iadd__(self, addend):
@@ -498,6 +518,9 @@ class FermionOperator(object):
 
         Args:
             addend: A FermionOperator.
+
+        Returns:
+            sum (FermionOperator): Mutated self.
 
         Raises:
             TypeError: Cannot add invalid type.
@@ -517,28 +540,43 @@ class FermionOperator(object):
         return self
 
     def __add__(self, addend):
-        """Return self + addend for a FermionOperator. """
+        """
+        Args:
+            addend (FermionOperator): The operator to add.
+
+        Returns:
+            sum (FermionOperator)
+        """
         summand = copy.deepcopy(self)
         summand += addend
         return summand
 
     def __sub__(self, subtrahend):
-        """Return self - subtrahend for a FermionOperator."""
+        """
+        Args:
+            subtrahend (FermionOperator): The operator to subtract.
+        Returns:
+            difference (FermionOperator)
+        """
         if not isinstance(subtrahend, FermionOperator):
             raise TypeError('Cannot subtract invalid type to FermionOperator.')
         return self + (-1. * subtrahend)
 
     def __neg__(self):
+        """
+        Returns:
+            negation (FermionOperator)
+        """
         return -1 * self
 
     def __pow__(self, exponent):
         """Exponentiate the FermionOperator.
 
         Args:
-            exponent: An int, the exponent with which to raise the operator.
+            exponent (int): The exponent with which to raise the operator.
 
         Returns:
-            exponentiated: The exponentiated operator.
+            exponentiated (FermionOperator)
 
         Raises:
             ValueError: Can only raise FermionOperator to non-negative
@@ -547,7 +585,8 @@ class FermionOperator(object):
         # Handle invalid exponents.
         if not isinstance(exponent, int) or exponent < 0:
             raise ValueError(
-                'Can only raise FermionOperator to positive integer powers.')
+                'exponent must be a non-negative int, but was {} {}'.format(
+                    type(exponent), repr(exponent)))
 
         # Initialized identity.
         exponentiated = FermionOperator(())
