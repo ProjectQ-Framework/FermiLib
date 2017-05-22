@@ -263,29 +263,6 @@ class FermionOperator(object):
                         'Invalid action in FermionOperator: '
                         'Must be 0 (lowering) or 1 (raising).')
 
-    @staticmethod
-    def annihilate_create(annihilate_mode,
-                          create_mode,
-                          coefficient=1.0,
-                          anti_hermitian=False):
-        """
-        Args:
-            annihilate_mode (int)
-            create_mode (int)
-            coefficient (float|complex)
-            anti_hermitian (bool)
-        Returns:
-            FermionOperator: A paired annihilation-creation operator.
-        """
-        result = FermionOperator(term=((annihilate_mode, 1),
-                                       (create_mode, 0)),
-                                 coefficient=coefficient)
-        if anti_hermitian:
-            result += FermionOperator(term=((create_mode, 1),
-                                            (annihilate_mode, 0)),
-                                      coefficient=-coefficient)
-        return result
-
     def compress(self, abs_tol=EQ_TOLERANCE):
         """
         Eliminates all terms with coefficients close to zero and removes

@@ -60,8 +60,11 @@ def uccsd_operator(single_amplitudes, double_amplitudes, anti_hermitian=True):
     for i, j in itertools.product(range(n_orbitals), repeat=2):
         if single_amplitudes[i, j] == 0.:
             continue
-        uccsd_generator += FermionOperator.annihilate_create(
-            i, j, single_amplitudes[i, j], anti_hermitian)
+        uccsd_generator += FermionOperator(((i, 1), (j, 0)),
+                                           single_amplitudes[i, j])
+        if anti_hermitian:
+            uccsd_generator += FermionOperator(((j, 1), (i, 0)),
+                                               -single_amplitudes[i, j])
 
         # Add double excitations
     for i, j, k, l in itertools.product(range(n_orbitals), repeat=4):
@@ -70,7 +73,7 @@ def uccsd_operator(single_amplitudes, double_amplitudes, anti_hermitian=True):
         uccsd_generator += FermionOperator(
             ((i, 1), (j, 0), (k, 1), (l, 0)),
             double_amplitudes[i, j, k, l])
-        if (anti_hermitian):
+        if anti_hermitian:
             uccsd_generator += FermionOperator(
                 ((l, 1), (k, 0), (j, 1), (i, 0)),
                 -double_amplitudes[i, j, k, l])
@@ -140,11 +143,19 @@ def uccsd_singlet_operator(packed_amplitudes,
     spaces = range(n_virtual), range(n_occupied), range(2)
 
     for i, j, s in itertools.product(*spaces):
-        uccsd_generator += FermionOperator.annihilate_create(
-            2 * (i + n_occupied) + s,
-            2 * j + s,
-            coefficient=t1[t1_ind(i, j)],
-            anti_hermitian=True)
+        uccsd_generator += FermionOperator(
+            (
+                (2 * (i + n_occupied) + s, 1),
+                (2 * j + s, 0),
+            ),
+            coefficient=t1[t1_ind(i, j)])
+
+        uccsd_generator += FermionOperator(
+            (
+                (2 * j + s, 1),
+                (2 * (i + n_occupied) + s, 0),
+            ),
+            coefficient=-t1[t1_ind(i, j)])
 
     for i, j, s, i2, j2, s2 in itertools.product(*spaces, repeat=2):
         uccsd_generator += FermionOperator((

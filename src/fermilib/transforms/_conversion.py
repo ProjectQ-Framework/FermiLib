@@ -160,8 +160,8 @@ def get_fermion_operator(interaction_operator):
 
     # Add one-body terms.
     for p, q in itertools.product(range(n_qubits), repeat=2):
-        fermion_operator += FermionOperator.annihilate_create(
-            p, q, coefficient=interaction_operator[p, q])
+        fermion_operator += FermionOperator(
+            ((p, 1), (q, 0)), coefficient=interaction_operator[p, q])
 
     # Add two-body terms.
     for p, q, r, s in itertools.product(range(n_qubits), repeat=4):

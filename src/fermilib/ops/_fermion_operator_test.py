@@ -448,28 +448,6 @@ class FermionOperatorTest(unittest.TestCase):
         with self.assertRaises(TypeError):
             _ = op - "0.5"
 
-    def test_annihilate_create(self):
-        at = FermionOperator(term=((100, 1),))
-        a = FermionOperator(term=((100, 0),))
-
-        bt = FermionOperator(term=((101, 1),))
-        b = FermionOperator(term=((101, 0),))
-
-        ct = FermionOperator(term=((102, 1),))
-        c = FermionOperator(term=((102, 0),))
-
-        self.assertTrue(FermionOperator.annihilate_create(
-            100, 101).isclose(at * b))
-        self.assertTrue(FermionOperator.annihilate_create(
-            100, 101, 0.5j).isclose(at * b * 0.5j))
-        self.assertTrue(FermionOperator.annihilate_create(
-            100, 102, 0.2j).isclose(at * c * 0.2j))
-        self.assertTrue(FermionOperator.annihilate_create(
-            100, 102, anti_hermitian=True).isclose(at * c - ct * a))
-        self.assertTrue(FermionOperator.annihilate_create(
-            100, 101, 0.2j, anti_hermitian=True).isclose(
-                at * b * 0.2j - bt * a * 0.2j))
-
     def test_isub_different_term(self):
         term_a = ((1, 1), (3, 1), (8, 0))
         term_b = ((1, 0), (3, 1), (8, 1))
