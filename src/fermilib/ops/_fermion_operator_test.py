@@ -516,7 +516,7 @@ class FermionOperatorTest(unittest.TestCase):
     def test_sub_bad_subtrahend(self):
         op = FermionOperator((), 1.0)
         with self.assertRaises(TypeError):
-            op = op - "0.5"
+            _ = op - "0.5"
 
     def test_isub_different_term(self):
         term_a = ((1, 1), (3, 1), (8, 0))
@@ -538,7 +538,7 @@ class FermionOperatorTest(unittest.TestCase):
 
     def test_neg(self):
         op = FermionOperator(((1, 1), (3, 1), (8, 1)), 0.5)
-        -op
+        _ = -op
         # out of place
         self.assertTrue(op.isclose(FermionOperator(((1, 1), (3, 1), (8, 1)),
                                                    0.5)))
