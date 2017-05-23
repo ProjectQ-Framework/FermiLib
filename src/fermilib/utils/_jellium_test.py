@@ -37,28 +37,25 @@ class JelliumTest(unittest.TestCase):
     def test_orbital_id(self):
 
         # Test in 1D with spin.
-        grid_length = 5
+        grid = Grid(dimensions=1, length=5, scale=1.0)
         input_coords = [0, 1, 2, 3, 4]
         tensor_factors_up = [1, 3, 5, 7, 9]
         tensor_factors_down = [0, 2, 4, 6, 8]
 
-        test_output_up = [orbital_id(
-            grid_length, i, 1) for i in input_coords]
-        test_output_down = [orbital_id(
-            grid_length, i, 0) for i in input_coords]
+        test_output_up = [orbital_id(grid, i, 1) for i in input_coords]
+        test_output_down = [orbital_id(grid, i, 0) for i in input_coords]
 
         self.assertEqual(test_output_up, tensor_factors_up)
         self.assertEqual(test_output_down, tensor_factors_down)
 
         with self.assertRaises(OrbitalSpecificationError):
-            orbital_id(5, 6, 1)
+            orbital_id(grid, 6, 1)
 
         # Test in 2D without spin.
-        grid_length = 3
+        grid = Grid(dimensions=2, length=3, scale=1.0)
         input_coords = [(0, 0), (0, 1), (1, 2)]
         tensor_factors = [0, 3, 7]
-        test_output = [orbital_id(
-            grid_length, i) for i in input_coords]
+        test_output = [orbital_id(grid, i) for i in input_coords]
         self.assertEqual(test_output, tensor_factors)
 
     def test_position_vector(self):
@@ -253,10 +250,8 @@ class JelliumTest(unittest.TestCase):
                 for spin_a in spins:
                     for spin_b in spins:
 
-                        p = orbital_id(
-                            grid.length, indices_a, spin_a)
-                        q = orbital_id(
-                            grid.length, indices_b, spin_b)
+                        p = orbital_id(grid, indices_a, spin_a)
+                        q = orbital_id(grid, indices_b, spin_b)
 
                         if p == q:
                             continue
