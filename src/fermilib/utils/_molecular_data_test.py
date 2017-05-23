@@ -95,16 +95,20 @@ class MolecularDataTest(unittest.TestCase):
         # Save molecule.
         molecule.save()
 
-        # Change attributes and load.
-        molecule.ccsd_energy = -2.232
+        try:
+            # Change attributes and load.
+            molecule.ccsd_energy = -2.232
 
-        # Load molecule.
-        new_molecule = MolecularData(filename=filename)
-        molecule.load()
+            # Load molecule.
+            new_molecule = MolecularData(filename=filename)
+            molecule.load()
 
-        # Check CCSD energy.
-        self.assertAlmostEqual(new_molecule.ccsd_energy, molecule.ccsd_energy)
-        self.assertAlmostEqual(molecule.ccsd_energy, 88.)
+            # Check CCSD energy.
+            self.assertAlmostEqual(new_molecule.ccsd_energy,
+                                   molecule.ccsd_energy)
+            self.assertAlmostEqual(molecule.ccsd_energy, 88.)
+        finally:
+            os.remove(filename + '.hdf5')
 
     def test_energies(self):
         self.assertAlmostEqual(self.molecule.hf_energy, -1.1167, places=4)
