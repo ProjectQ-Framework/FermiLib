@@ -151,8 +151,7 @@ class JelliumTest(unittest.TestCase):
         grid = Grid(dimensions=2, length=3, scale = 2.)
         spinless = 1
         momentum_potential = momentum_potential_operator(grid, spinless)
-        position_potential = position_potential_operator(
-            grid.dimensions, grid.length, grid.scale, spinless)
+        position_potential = position_potential_operator(grid, spinless)
 
         # Diagonalize and confirm the same energy.
         jw_momentum = jordan_wigner(momentum_potential)
@@ -198,8 +197,7 @@ class JelliumTest(unittest.TestCase):
         qubit_kinetic = jordan_wigner(kinetic)
 
         # Potential operator.
-        potential = position_potential_operator(
-            grid.dimensions, grid.length, grid.scale, spinless)
+        potential = position_potential_operator(grid, spinless)
         qubit_potential = jordan_wigner(potential)
 
         # Check identity.
