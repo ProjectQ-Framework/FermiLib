@@ -23,9 +23,6 @@ from fermilib.utils._grid import Grid
 from fermilib.utils._jellium import (orbital_id, grid_indices, position_vector,
                                      momentum_vector, jellium_model)
 from fermilib.utils._molecular_data import periodic_hash_table
-from fermilib.utils._grid import Grid
-
-from projectq.ops import QubitOperator
 
 
 def dual_basis_u_operator(grid, geometry, spinless):
@@ -49,12 +46,11 @@ def dual_basis_u_operator(grid, geometry, spinless):
         spins = [0, 1]
 
     for pos_indices in grid.all_points_indices():
-        coordinate_p = position_vector(pos_indices, grid.length, grid.scale)
+        coordinate_p = position_vector(pos_indices, grid)
         for nuclear_term in geometry:
             coordinate_j = numpy.array(nuclear_term[1], float)
             for momenta_indices in grid.all_points_indices():
-                momenta = momentum_vector(momenta_indices, grid.length,
-                                          grid.scale)
+                momenta = momentum_vector(momenta_indices, grid)
                 momenta_squared = momenta.dot(momenta)
                 if momenta_squared < EQ_TOLERANCE:
                     continue
@@ -100,8 +96,7 @@ def plane_wave_u_operator(grid, geometry, spinless):
             grid_indices_p_q = [
                 (indices_p[i] - indices_q[i] + shift) % grid.length
                 for i in range(grid.dimensions)]
-            momenta_p_q = momentum_vector(grid_indices_p_q, grid.length,
-                                          grid.scale)
+            momenta_p_q = momentum_vector(grid_indices_p_q, grid)
             momenta_p_q_squared = momenta_p_q.dot(momenta_p_q)
             if momenta_p_q_squared < EQ_TOLERANCE:
                 continue
@@ -218,17 +213,20 @@ def _fourier_transform_helper(hamiltonian, n_dimensions, grid_length,
                               length_scale, spinless, factor,
                               vec_func_1, vec_func_2):
     hamiltonian_t = None
+    grid = Grid(dimensions=n_dimensions,
+                length=grid_length,
+                scale=length_scale)
 
     for term in hamiltonian.terms:
         transformed_term = None
         for ladder_operator in term:
             indices_1 = grid_indices(ladder_operator[0], n_dimensions,
                                      grid_length, spinless)
-            vec_1 = vec_func_1(indices_1, grid_length, length_scale)
+            vec_1 = vec_func_1(indices_1, grid)
             new_basis = None
             for indices_2 in itertools.product(range(grid_length),
                                                repeat=n_dimensions):
-                vec_2 = vec_func_2(indices_2, grid_length, length_scale)
+                vec_2 = vec_func_2(indices_2, grid)
                 if spinless:
                     spin = None
                 else:
