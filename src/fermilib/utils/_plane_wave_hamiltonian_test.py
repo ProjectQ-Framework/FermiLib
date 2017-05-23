@@ -40,9 +40,7 @@ class PlaneWaveHamiltonianTest(unittest.TestCase):
                 grid, geometry, spinless, True)
             h_dual_basis = plane_wave_hamiltonian(
                 grid, geometry, spinless, False)
-            h_plane_wave_t = fourier_transform(
-                h_plane_wave, grid.dimensions, grid.length,
-                grid.scale, spinless)
+            h_plane_wave_t = fourier_transform(h_plane_wave, grid, spinless)
             self.assertTrue(normal_ordered(h_plane_wave_t).isclose(
                 normal_ordered(h_dual_basis)))
 
@@ -56,8 +54,7 @@ class PlaneWaveHamiltonianTest(unittest.TestCase):
             h_dual_basis = plane_wave_hamiltonian(
                 grid, geometry, spinless, False)
             h_dual_basis_t = inverse_fourier_transform(
-                h_dual_basis, grid.dimensions, grid.length,
-                grid.scale, spinless)
+                h_dual_basis, grid, spinless)
             self.assertTrue(normal_ordered(h_dual_basis_t).isclose(
                 normal_ordered(h_plane_wave)))
 
@@ -68,8 +65,7 @@ class PlaneWaveHamiltonianTest(unittest.TestCase):
         h_plane_wave = plane_wave_hamiltonian(grid, geometry, spinless, True)
         h_dual_basis = plane_wave_hamiltonian(grid, geometry, spinless, False)
         h_dual_basis_t = inverse_fourier_transform(
-            h_dual_basis, grid.dimensions, grid.length, grid.scale,
-            spinless)
+            h_dual_basis, grid, spinless)
         self.assertTrue(normal_ordered(h_dual_basis_t).isclose(
             normal_ordered(h_plane_wave)))
 
