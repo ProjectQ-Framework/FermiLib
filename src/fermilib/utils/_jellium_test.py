@@ -12,7 +12,6 @@
 
 from __future__ import absolute_import
 
-import itertools
 import unittest
 
 import numpy
@@ -129,15 +128,10 @@ class JelliumTest(unittest.TestCase):
     def test_kinetic_integration(self):
 
         # Compute kinetic energy operator in both momentum and position space.
-        n_dimensions = 2
-        grid_length = 2
-        length_scale = 3.
+        grid = Grid(dimensions=2, length=2, scale=3.)
         spinless = False
-        momentum_kinetic = momentum_kinetic_operator(
-            Grid(n_dimensions, grid_length, length_scale),
-            spinless)
-        position_kinetic = position_kinetic_operator(
-            n_dimensions, grid_length, length_scale, spinless)
+        momentum_kinetic = momentum_kinetic_operator(grid, spinless)
+        position_kinetic = position_kinetic_operator(grid, spinless)
 
         # Diagonalize and confirm the same energy.
         jw_momentum = jordan_wigner(momentum_kinetic)
@@ -193,22 +187,19 @@ class JelliumTest(unittest.TestCase):
     def test_coefficients(self):
 
         # Test that the coefficients post-JW transform are as claimed in paper.
-        n_dimensions = 2
-        grid_length = 3
-        length_scale = 2.
+        grid = Grid(dimensions=2, length=3, scale=2.)
         spinless = 1
-        n_orbitals = grid_length ** n_dimensions
+        n_orbitals = grid.num_points()
         n_qubits = (2 ** (1 - spinless)) * n_orbitals
-        volume = length_scale ** n_dimensions
+        volume = grid.volume_scale()
 
         # Kinetic operator.
-        kinetic = position_kinetic_operator(
-            n_dimensions, grid_length, length_scale, spinless)
+        kinetic = position_kinetic_operator(grid, spinless)
         qubit_kinetic = jordan_wigner(kinetic)
 
         # Potential operator.
         potential = position_potential_operator(
-            n_dimensions, grid_length, length_scale, spinless)
+            grid.dimensions, grid.length, grid.scale, spinless)
         qubit_potential = jordan_wigner(potential)
 
         # Check identity.
@@ -218,10 +209,8 @@ class JelliumTest(unittest.TestCase):
 
         paper_kinetic_coefficient = 0.
         paper_potential_coefficient = 0.
-        for indices in itertools.product(range(grid_length),
-                                         repeat=n_dimensions):
-            momenta = momentum_vector(
-                indices, grid_length, length_scale)
+        for indices in grid.all_points_indices():
+            momenta = momentum_vector(indices, grid.length, grid.scale)
             paper_kinetic_coefficient += float(
                 n_qubits) * momenta.dot(momenta) / float(4. * n_orbitals)
 
@@ -243,10 +232,8 @@ class JelliumTest(unittest.TestCase):
 
             paper_kinetic_coefficient = 0.
             paper_potential_coefficient = 0.
-            for indices in itertools.product(range(grid_length),
-                                             repeat=n_dimensions):
-                momenta = momentum_vector(
-                    indices, grid_length, length_scale)
+            for indices in grid.all_points_indices():
+                momenta = momentum_vector(indices, grid.length, grid.scale)
                 paper_kinetic_coefficient -= momenta.dot(
                     momenta) / float(4. * n_orbitals)
 
@@ -266,27 +253,25 @@ class JelliumTest(unittest.TestCase):
         else:
             spins = [0, 1]
 
-        for indices_a in itertools.product(range(grid_length),
-                                           repeat=n_dimensions):
-            for indices_b in itertools.product(range(grid_length),
-                                               repeat=n_dimensions):
+        for indices_a in grid.all_points_indices():
+            for indices_b in grid.all_points_indices():
 
                 paper_kinetic_coefficient = 0.
                 paper_potential_coefficient = 0.
 
                 position_a = position_vector(
-                    indices_a, grid_length, length_scale)
+                    indices_a, grid.length, grid.scale)
                 position_b = position_vector(
-                    indices_b, grid_length, length_scale)
+                    indices_b, grid.length, grid.scale)
                 differences = position_b - position_a
 
                 for spin_a in spins:
                     for spin_b in spins:
 
                         p = orbital_id(
-                            grid_length, indices_a, spin_a)
+                            grid.length, indices_a, spin_a)
                         q = orbital_id(
-                            grid_length, indices_b, spin_b)
+                            grid.length, indices_b, spin_b)
 
                         if p == q:
                             continue
@@ -297,11 +282,9 @@ class JelliumTest(unittest.TestCase):
                         else:
                             potential_coefficient = 0.
 
-                        for indices_c in \
-                                itertools.product(range(grid_length),
-                                                  repeat=n_dimensions):
+                        for indices_c in grid.all_points_indices():
                             momenta = momentum_vector(
-                                indices_c, grid_length, length_scale)
+                                indices_c, grid.length, grid.scale)
 
                             if momenta.any():
                                 potential_contribution = numpy.pi * numpy.cos(
