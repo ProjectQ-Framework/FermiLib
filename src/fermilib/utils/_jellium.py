@@ -24,11 +24,11 @@ class OrbitalSpecificationError(Exception):
     pass
 
 
-def orbital_id(grid_length, grid_coordinates, spin=None):
+def orbital_id(grid, grid_coordinates, spin=None):
     """Return the tensor factor of a orbital with given coordinates and spin.
 
     Args:
-        grid_length: Int, the number of points in one dimension of the grid.
+        grid (Grid): The discretization to use.
         grid_coordinates: List or tuple of ints giving coordinates of grid
             element. Acceptable to provide an int (instead of tuple or list)
             for 1D case.
@@ -47,8 +47,8 @@ def orbital_id(grid_length, grid_coordinates, spin=None):
     for dimension, grid_coordinate in enumerate(grid_coordinates):
 
         # Make sure coordinate is an integer in the correct bounds.
-        if isinstance(grid_coordinate, int) and grid_coordinate < grid_length:
-            tensor_factor += grid_coordinate * (grid_length ** dimension)
+        if isinstance(grid_coordinate, int) and grid_coordinate < grid.length:
+            tensor_factor += grid_coordinate * (grid.length ** dimension)
 
         else:
             # Raise for invalid model.
@@ -164,7 +164,7 @@ def momentum_kinetic_operator(grid, spinless=False):
 
         # Loop over spins.
         for spin in spins:
-            orbital = orbital_id(grid.length, momenta_indices, spin)
+            orbital = orbital_id(grid, momenta_indices, spin)
 
             # Add interaction term.
             operators = ((orbital, 1), (orbital, 0))
@@ -220,15 +220,11 @@ def momentum_potential_operator(grid, spinless=False):
 
                 # Loop over spins.
                 for spin_a in spins:
-                    orbital_a = orbital_id(
-                        grid.length, grid_indices_a, spin_a)
-                    orbital_d = orbital_id(
-                        grid.length, shifted_indices_d, spin_a)
+                    orbital_a = orbital_id(grid, grid_indices_a, spin_a)
+                    orbital_d = orbital_id(grid, shifted_indices_d, spin_a)
                     for spin_b in spins:
-                        orbital_b = orbital_id(
-                            grid.length, grid_indices_b, spin_b)
-                        orbital_c = orbital_id(
-                            grid.length, shifted_indices_c, spin_b)
+                        orbital_b = orbital_id(grid, grid_indices_b, spin_b)
+                        orbital_c = orbital_id(grid, shifted_indices_c, spin_b)
 
                         # Add interaction term.
                         if (orbital_a != orbital_b) and \
@@ -277,8 +273,8 @@ def position_kinetic_operator(grid, spinless=False):
 
             # Loop over spins and identify interacting orbitals.
             for spin in spins:
-                orbital_a = orbital_id(grid.length, grid_indices_a, spin)
-                orbital_b = orbital_id(grid.length, grid_indices_b, spin)
+                orbital_a = orbital_id(grid, grid_indices_a, spin)
+                orbital_b = orbital_id(grid, grid_indices_b, spin)
 
                 # Add interaction term.
                 operators = ((orbital_a, 1), (orbital_b, 0))
@@ -325,9 +321,9 @@ def position_potential_operator(grid, spinless=False):
 
             # Loop over spins and identify interacting orbitals.
             for spin_a in spins:
-                orbital_a = orbital_id(grid.length, grid_indices_a, spin_a)
+                orbital_a = orbital_id(grid, grid_indices_a, spin_a)
                 for spin_b in spins:
-                    orbital_b = orbital_id(grid.length, grid_indices_b, spin_b)
+                    orbital_b = orbital_id(grid, grid_indices_b, spin_b)
 
                     # Add interaction term.
                     if orbital_a != orbital_b:
