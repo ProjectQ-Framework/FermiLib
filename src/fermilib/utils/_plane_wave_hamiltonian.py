@@ -54,7 +54,8 @@ def dual_basis_u_operator(grid, geometry, spinless):
                     continue
                 exp_index = 1.0j * momenta.dot(coordinate_j - coordinate_p)
                 coefficient = (prefactor / momenta_squared *
-                    periodic_hash_table[nuclear_term[0]] * numpy.exp(exp_index))
+                               periodic_hash_table[nuclear_term[0]] *
+                               numpy.exp(exp_index))
 
                 for spin_p in spins:
                     orbital_p = orbital_id(
@@ -103,7 +104,8 @@ def plane_wave_u_operator(grid, geometry, spinless):
                 coordinate_j = numpy.array(nuclear_term[1])
                 exp_index = 1.0j * momenta_p_q.dot(coordinate_j)
                 coefficient = (prefactor / momenta_p_q_squared *
-                    periodic_hash_table[nuclear_term[0]] * numpy.exp(exp_index))
+                               periodic_hash_table[nuclear_term[0]] *
+                               numpy.exp(exp_index))
 
                 for spin in spins:
                     orbital_p = orbital_id(grid.length, indices_p, spin)
