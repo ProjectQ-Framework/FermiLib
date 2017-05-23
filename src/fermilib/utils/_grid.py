@@ -25,7 +25,7 @@ class Grid:
         Args:
             dimensions (int): The number of dimensions the grid lives in.
             length (int): The number of points along each grid axis.
-            scale (float): The distance between adjacent grid points.
+            scale (float): The total length of each grid dimension.
         """
         if not isinstance(dimensions, int) or dimensions < 0:
             raise ValueError(
@@ -49,14 +49,14 @@ class Grid:
         Returns:
             float: The volume of a length-scale hypercube within the grid.
         """
-        return self.scale**float(self.dimensions)
+        return self.scale ** float(self.dimensions)
 
     def num_points(self):
         """
         Returns:
             int: The number of points in the grid.
         """
-        return self.length**self.dimensions
+        return self.length ** self.dimensions
 
     def all_points_indices(self):
         """
