@@ -44,12 +44,11 @@ def dual_basis_u_operator(grid, geometry, spinless):
         spins = [0, 1]
 
     for pos_indices in grid.all_points_indices():
-        coordinate_p = position_vector(pos_indices, grid.length, grid.scale)
+        coordinate_p = position_vector(pos_indices, grid)
         for nuclear_term in geometry:
             coordinate_j = numpy.array(nuclear_term[1], float)
             for momenta_indices in grid.all_points_indices():
-                momenta = momentum_vector(momenta_indices, grid.length,
-                                          grid.scale)
+                momenta = momentum_vector(momenta_indices, grid)
                 momenta_squared = momenta.dot(momenta)
                 if momenta_squared < EQ_TOLERANCE:
                     continue
@@ -95,8 +94,7 @@ def plane_wave_u_operator(grid, geometry, spinless):
             grid_indices_p_q = [
                 (indices_p[i] - indices_q[i] + shift) % grid.length
                 for i in range(grid.dimensions)]
-            momenta_p_q = momentum_vector(grid_indices_p_q, grid.length,
-                                          grid.scale)
+            momenta_p_q = momentum_vector(grid_indices_p_q, grid)
             momenta_p_q_squared = momenta_p_q.dot(momenta_p_q)
             if momenta_p_q_squared < EQ_TOLERANCE:
                 continue
@@ -214,14 +212,11 @@ def _fourier_transform_helper(hamiltonian,
     for term in hamiltonian.terms:
         transformed_term = FermionOperator.identity()
         for ladder_op_mode, ladder_op_type in term:
-            indices_1 = grid_indices(ladder_op_mode,
-                                     grid.dimensions,
-                                     grid.length,
-                                     spinless)
-            vec1 = vec_func_1(indices_1, grid.length, grid.scale)
+            indices_1 = grid_indices(ladder_op_mode, grid, spinless)
+            vec1 = vec_func_1(indices_1, grid)
             new_basis = FermionOperator.zero()
             for indices_2 in grid.all_points_indices():
-                vec2 = vec_func_2(indices_2, grid.length, grid.scale)
+                vec2 = vec_func_2(indices_2, grid)
                 spin = None if spinless else ladder_op_mode % 2
                 orbital = orbital_id(grid.length, indices_2, spin)
                 exp_index = phase_factor * 1.0j * numpy.dot(vec1, vec2)

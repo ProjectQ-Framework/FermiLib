@@ -13,12 +13,10 @@
 """This module constructs Hamiltonians for the uniform electron gas."""
 from __future__ import absolute_import
 
-import itertools
 import numpy
+from projectq.ops import QubitOperator
 
 from fermilib.ops import FermionOperator
-
-from projectq.ops import QubitOperator
 
 
 # Exceptions.
@@ -66,13 +64,12 @@ def orbital_id(grid_length, grid_coordinates, spin=None):
         return tensor_factor
 
 
-def grid_indices(qubit_id, n_dimensions, grid_length, spinless):
+def grid_indices(qubit_id, grid, spinless):
     """This function is the inverse of orbital_id.
 
     Args:
         qubit_id: The tensor factor to map to grid indices.
-        n_dimensions: An int giving the number of dimensions for the model.
-        grid_length (int): The number of points in one dimension of the grid.
+        grid (Grid): The discretization to use.
         spinless (bool): Whether to use the spinless model or not.
 
     Returns:
@@ -87,49 +84,44 @@ def grid_indices(qubit_id, n_dimensions, grid_length, spinless):
 
     # Get grid indices.
     grid_indices = []
-    for dimension in range(n_dimensions):
-        remainder = orbital_id % (grid_length ** (dimension + 1))
-        grid_index = remainder // (grid_length ** dimension)
+    for dimension in range(grid.dimensions):
+        remainder = orbital_id % (grid.length ** (dimension + 1))
+        grid_index = remainder // (grid.length ** dimension)
         grid_indices += [grid_index]
     return grid_indices
 
 
-def position_vector(position_indices, grid_length, length_scale):
+def position_vector(position_indices, grid):
     """Given grid point coordinate, return position vector with dimensions.
 
     Args:
         position_indices: List or tuple of integers giving grid point
             coordinate. Allowed values are ints in [0, grid_length).
-        grid_length (int): The number of points in one dimension of the grid.
-        length_scale (float): The real space length of a box dimension.
+        grid (Grid): The discretization to use.
 
     Returns:
-        position_vector: A numpy array giving the position vector with
-        dimensions.
+        position_vector (numpy.ndarray[float])
     """
     # Raise exceptions.
     if isinstance(position_indices, int):
         position_indices = [position_indices]
-    if (not isinstance(grid_length, int) or
-        max(position_indices) >= grid_length or
-            min(position_indices) < 0.):
+    if not all(0 <= e < grid.length for e in position_indices):
         raise OrbitalSpecificationError(
             'Position indices must be integers in [0, grid_length).')
 
     # Compute position vector.
-    adjusted_vector = numpy.array(position_indices, float) - grid_length // 2
-    position_vector = length_scale * adjusted_vector / float(grid_length)
+    adjusted_vector = numpy.array(position_indices, float) - grid.length // 2
+    position_vector = grid.scale * adjusted_vector / float(grid.length)
     return position_vector
 
 
-def momentum_vector(momentum_indices, grid_length, length_scale):
+def momentum_vector(momentum_indices, grid):
     """Given grid point coordinate, return momentum vector with dimensions.
 
     Args:
         momentum_indices: List or tuple of integers giving momentum indices.
             Allowed values are ints in [0, grid_length).
-        grid_length: Int, the number of points in one dimension of the grid.
-        length_scale: Float, the real space length of a box dimension.
+        grid (Grid): The discretization to use.
 
         Returns:
             momentum_vector: A numpy array giving the momentum vector with
@@ -138,15 +130,13 @@ def momentum_vector(momentum_indices, grid_length, length_scale):
     # Raise exceptions.
     if isinstance(momentum_indices, int):
         momentum_indices = [momentum_indices]
-    if (not isinstance(grid_length, int) or
-        max(momentum_indices) >= grid_length or
-            min(momentum_indices) < 0.):
+    if not all(0 <= e < grid.length for e in momentum_indices):
         raise OrbitalSpecificationError(
             'Momentum indices must be integers in [0, grid_length).')
 
     # Compute momentum vector.
-    adjusted_vector = numpy.array(momentum_indices, float) - grid_length // 2
-    momentum_vector = 2. * numpy.pi * adjusted_vector / length_scale
+    adjusted_vector = numpy.array(momentum_indices, float) - grid.length // 2
+    momentum_vector = 2. * numpy.pi * adjusted_vector / grid.scale
     return momentum_vector
 
 
@@ -169,7 +159,7 @@ def momentum_kinetic_operator(grid, spinless=False):
 
     # Loop once through all plane waves.
     for momenta_indices in grid.all_points_indices():
-        momenta = momentum_vector(momenta_indices, grid.length, grid.scale)
+        momenta = momentum_vector(momenta_indices, grid)
         coefficient = momenta.dot(momenta) / 2.
 
         # Loop over spins.
@@ -183,22 +173,18 @@ def momentum_kinetic_operator(grid, spinless=False):
     return operator
 
 
-def momentum_potential_operator(n_dimensions, grid_length,
-                                length_scale, spinless=False):
+def momentum_potential_operator(grid, spinless=False):
     """Return the potential operator in momentum second quantization.
 
     Args:
-        n_dimensions: An int giving the number of dimensions for the model.
-        grid_length: Int, the number of points in one dimension of the grid.
-        length_scale: Float, the real space length of a box dimension.
+        grid (Grid): The discretization to use.
         spinless: Boole, whether to use the spinless model or not.
 
     Returns:
         operator: An instance of the FermionOperator class.
     """
     # Initialize.
-    n_points = grid_length ** n_dimensions
-    volume = length_scale ** float(n_dimensions)
+    volume = grid.volume_scale()
     prefactor = 2. * numpy.pi / volume
     operator = FermionOperator((), 0.0)
     if spinless:
@@ -207,14 +193,12 @@ def momentum_potential_operator(n_dimensions, grid_length,
         spins = [0, 1]
 
     # Loop once through all plane waves.
-    for omega_indices in itertools.product(range(grid_length),
-                                           repeat=n_dimensions):
-        shifted_omega_indices = [index - grid_length // 2 for
+    for omega_indices in grid.all_points_indices():
+        shifted_omega_indices = [index - grid.length // 2 for
                                  index in omega_indices]
 
         # Get the momenta vectors.
-        omega_momenta = momentum_vector(
-            omega_indices, grid_length, length_scale)
+        omega_momenta = momentum_vector(omega_indices, grid)
 
         # Skip if omega momentum is zero.
         if not omega_momenta.any():
@@ -224,28 +208,27 @@ def momentum_potential_operator(n_dimensions, grid_length,
         coefficient = prefactor / \
             omega_momenta.dot(omega_momenta)
 
-        for grid_indices_a in itertools.product(range(grid_length),
-                                                repeat=n_dimensions):
+        for grid_indices_a in grid.all_points_indices():
             shifted_indices_d = [
-                (grid_indices_a[i] - shifted_omega_indices[i]) %
-                grid_length for i in range(n_dimensions)]
-            for grid_indices_b in itertools.product(range(grid_length),
-                                                    repeat=n_dimensions):
+                (grid_indices_a[i] - shifted_omega_indices[i]) % grid.length
+                for i in range(grid.dimensions)]
+            for grid_indices_b in grid.all_points_indices():
                 shifted_indices_c = [
                     (grid_indices_b[i] + shifted_omega_indices[i]) %
-                    grid_length for i in range(n_dimensions)]
+                    grid.length
+                    for i in range(grid.dimensions)]
 
                 # Loop over spins.
                 for spin_a in spins:
                     orbital_a = orbital_id(
-                        grid_length, grid_indices_a, spin_a)
+                        grid.length, grid_indices_a, spin_a)
                     orbital_d = orbital_id(
-                        grid_length, shifted_indices_d, spin_a)
+                        grid.length, shifted_indices_d, spin_a)
                     for spin_b in spins:
                         orbital_b = orbital_id(
-                            grid_length, grid_indices_b, spin_b)
+                            grid.length, grid_indices_b, spin_b)
                         orbital_c = orbital_id(
-                            grid_length, shifted_indices_c, spin_b)
+                            grid.length, shifted_indices_c, spin_b)
 
                         # Add interaction term.
                         if (orbital_a != orbital_b) and \
@@ -258,21 +241,18 @@ def momentum_potential_operator(n_dimensions, grid_length,
     return operator
 
 
-def position_kinetic_operator(n_dimensions, grid_length,
-                              length_scale, spinless=False):
+def position_kinetic_operator(grid, spinless=False):
     """Return the kinetic operator in position space second quantization.
 
     Args:
-        n_dimensions: An int giving the number of dimensions for the model.
-        grid_length: Int, the number of points in one dimension of the grid.
-        length_scale: Float, the real space length of a box dimension.
+        grid (Grid): The discretization to use.
         spinless: Bool, whether to use the spinless model or not.
 
     Returns:
         operator: An instance of the FermionOperator class.
     """
     # Initialize.
-    n_points = grid_length ** n_dimensions
+    n_points = grid.num_points()
     operator = FermionOperator()
     if spinless:
         spins = [None]
@@ -280,22 +260,16 @@ def position_kinetic_operator(n_dimensions, grid_length,
         spins = [0, 1]
 
     # Loop once through all lattice sites.
-    for grid_indices_a in itertools.product(range(grid_length),
-                                            repeat=n_dimensions):
-        coordinates_a = position_vector(
-            grid_indices_a, grid_length, length_scale)
-        for grid_indices_b in itertools.product(range(grid_length),
-                                                repeat=n_dimensions):
-            coordinates_b = position_vector(
-                grid_indices_b, grid_length, length_scale)
+    for grid_indices_a in grid.all_points_indices():
+        coordinates_a = position_vector(grid_indices_a, grid)
+        for grid_indices_b in grid.all_points_indices():
+            coordinates_b = position_vector(grid_indices_b, grid)
             differences = coordinates_b - coordinates_a
 
             # Compute coefficient.
             coefficient = 0.
-            for momenta_indices in itertools.product(range(grid_length),
-                                                     repeat=n_dimensions):
-                momenta = momentum_vector(
-                    momenta_indices, grid_length, length_scale)
+            for momenta_indices in grid.all_points_indices():
+                momenta = momentum_vector(momenta_indices, grid)
                 if momenta.any():
                     coefficient += (
                         numpy.cos(momenta.dot(differences)) *
@@ -303,8 +277,8 @@ def position_kinetic_operator(n_dimensions, grid_length,
 
             # Loop over spins and identify interacting orbitals.
             for spin in spins:
-                orbital_a = orbital_id(grid_length, grid_indices_a, spin)
-                orbital_b = orbital_id(grid_length, grid_indices_b, spin)
+                orbital_a = orbital_id(grid.length, grid_indices_a, spin)
+                orbital_b = orbital_id(grid.length, grid_indices_b, spin)
 
                 # Add interaction term.
                 operators = ((orbital_a, 1), (orbital_b, 0))
@@ -314,22 +288,18 @@ def position_kinetic_operator(n_dimensions, grid_length,
     return operator
 
 
-def position_potential_operator(n_dimensions, grid_length,
-                                length_scale, spinless=False):
+def position_potential_operator(grid, spinless=False):
     """Return the potential operator in position space second quantization.
 
     Args:
-        n_dimensions: An int giving the number of dimensions for the model.
-        grid_length: Int, the number of points in one dimension of the grid.
-        length_scale: Float, the real space length of a box dimension.
+        grid (Grid): The discretization to use.
         spinless: Boole, whether to use the spinless model or not.
 
     Returns:
         operator: An instance of the FermionOperator class.
     """
     # Initialize.
-    n_points = grid_length ** n_dimensions
-    volume = length_scale ** float(n_dimensions)
+    volume = grid.volume_scale()
     prefactor = 2. * numpy.pi / volume
     operator = FermionOperator()
     if spinless:
@@ -338,22 +308,16 @@ def position_potential_operator(n_dimensions, grid_length,
         spins = [0, 1]
 
     # Loop once through all lattice sites.
-    for grid_indices_a in itertools.product(range(grid_length),
-                                            repeat=n_dimensions):
-        coordinates_a = position_vector(
-            grid_indices_a, grid_length, length_scale)
-        for grid_indices_b in itertools.product(range(grid_length),
-                                                repeat=n_dimensions):
-            coordinates_b = position_vector(
-                grid_indices_b, grid_length, length_scale)
+    for grid_indices_a in grid.all_points_indices():
+        coordinates_a = position_vector(grid_indices_a, grid)
+        for grid_indices_b in grid.all_points_indices():
+            coordinates_b = position_vector(grid_indices_b, grid)
             differences = coordinates_b - coordinates_a
 
             # Compute coefficient.
             coefficient = 0.
-            for momenta_indices in itertools.product(range(grid_length),
-                                                     repeat=n_dimensions):
-                momenta = momentum_vector(
-                    momenta_indices, grid_length, length_scale)
+            for momenta_indices in grid.all_points_indices():
+                momenta = momentum_vector(momenta_indices, grid)
                 if momenta.any():
                     coefficient += (
                         prefactor * numpy.cos(momenta.dot(differences)) /
@@ -361,9 +325,9 @@ def position_potential_operator(n_dimensions, grid_length,
 
             # Loop over spins and identify interacting orbitals.
             for spin_a in spins:
-                orbital_a = orbital_id(grid_length, grid_indices_a, spin_a)
+                orbital_a = orbital_id(grid.length, grid_indices_a, spin_a)
                 for spin_b in spins:
-                    orbital_b = orbital_id(grid_length, grid_indices_b, spin_b)
+                    orbital_b = orbital_id(grid.length, grid_indices_b, spin_b)
 
                     # Add interaction term.
                     if orbital_a != orbital_b:
@@ -392,51 +356,36 @@ def jellium_model(grid, spinless=False, momentum_space=True):
 
     if momentum_space:
         hamiltonian = momentum_kinetic_operator(grid, spinless)
-        hamiltonian += momentum_potential_operator(grid.dimensions,
-                                                   grid.length,
-                                                   grid.scale,
-                                                   spinless)
+        hamiltonian += momentum_potential_operator(grid, spinless)
     else:
-        hamiltonian = position_kinetic_operator(grid.dimensions,
-                                                grid.length,
-                                                grid.scale,
-                                                spinless)
-        hamiltonian += position_potential_operator(grid.dimensions,
-                                                   grid.length,
-                                                   grid.scale,
-                                                   spinless)
+        hamiltonian = position_kinetic_operator(grid, spinless)
+        hamiltonian += position_potential_operator(grid, spinless)
     return hamiltonian
 
 
-def jordan_wigner_position_jellium(n_dimensions, grid_length,
-                                   length_scale, spinless=False):
+def jordan_wigner_position_jellium(grid, spinless=False):
     """Return the position space jellium Hamiltonian as QubitOperator.
 
     Args:
-        n_dimensions: An int giving the number of dimensions for the model.
-        grid_length: Int, the number of points in one dimension of the grid.
-        length_scale: Float, the real space length of a box dimension.
+        grid (Grid): The discretization to use.
         spinless: Bool, whether to use the spinless model or not.
 
     Returns:
         hamiltonian: An instance of the QubitOperator class.
     """
     # Initialize.
-    n_orbitals = grid_length ** n_dimensions
-    volume = length_scale ** float(n_dimensions)
+    n_orbitals = grid.num_points()
+    volume = grid.volume_scale()
     if spinless:
-        spins = [None]
         n_qubits = n_orbitals
     else:
-        spins = [0, 1]
         n_qubits = 2 * n_orbitals
     hamiltonian = QubitOperator()
 
     # Compute the identity coefficient.
     identity_coefficient = 0.
-    for k_indices in itertools.product(range(grid_length),
-                                       repeat=n_dimensions):
-        momenta = momentum_vector(k_indices, grid_length, length_scale)
+    for k_indices in grid.all_points_indices():
+        momenta = momentum_vector(k_indices, grid)
         if momenta.any():
             identity_coefficient += momenta.dot(momenta) / 2.
             identity_coefficient -= (numpy.pi * float(n_orbitals) /
@@ -450,9 +399,8 @@ def jordan_wigner_position_jellium(n_dimensions, grid_length,
 
     # Compute coefficient of local Z terms.
     z_coefficient = 0.
-    for k_indices in itertools.product(range(grid_length),
-                                       repeat=n_dimensions):
-        momenta = momentum_vector(k_indices, grid_length, length_scale)
+    for k_indices in grid.all_points_indices():
+        momenta = momentum_vector(k_indices, grid)
         if momenta.any():
             z_coefficient += numpy.pi / (momenta.dot(momenta) * volume)
             z_coefficient -= momenta.dot(momenta) / (4. * float(n_orbitals))
@@ -465,19 +413,18 @@ def jordan_wigner_position_jellium(n_dimensions, grid_length,
     # Add ZZ terms.
     prefactor = numpy.pi / volume
     for p in range(n_qubits):
-        index_p = grid_indices(p, n_dimensions, grid_length, spinless)
-        position_p = position_vector(index_p, grid_length, length_scale)
+        index_p = grid_indices(p, grid, spinless)
+        position_p = position_vector(index_p, grid)
         for q in range(p + 1, n_qubits):
-            index_q = grid_indices(q, n_dimensions, grid_length, spinless)
-            position_q = position_vector(index_q, grid_length, length_scale)
+            index_q = grid_indices(q, grid, spinless)
+            position_q = position_vector(index_q, grid)
 
             differences = position_p - position_q
 
             # Loop through momenta.
             zpzq_coefficient = 0.
-            for k_indices in itertools.product(range(grid_length),
-                                               repeat=n_dimensions):
-                momenta = momentum_vector(k_indices, grid_length, length_scale)
+            for k_indices in grid.all_points_indices():
+                momenta = momentum_vector(k_indices, grid)
                 if momenta.any():
                     zpzq_coefficient += prefactor * numpy.cos(
                         momenta.dot(differences)) / momenta.dot(momenta)
@@ -489,22 +436,21 @@ def jordan_wigner_position_jellium(n_dimensions, grid_length,
     # Add XZX + YZY terms.
     prefactor = .25 / float(n_orbitals)
     for p in range(n_qubits):
-        index_p = grid_indices(p, n_dimensions, grid_length, spinless)
-        position_p = position_vector(index_p, grid_length, length_scale)
+        index_p = grid_indices(p, grid, spinless)
+        position_p = position_vector(index_p, grid)
         for q in range(p + 1, n_qubits):
             if not spinless and (p + q) % 2:
                 continue
 
-            index_q = grid_indices(q, n_dimensions, grid_length, spinless)
-            position_q = position_vector(index_q, grid_length, length_scale)
+            index_q = grid_indices(q, grid, spinless)
+            position_q = position_vector(index_q, grid)
 
             differences = position_p - position_q
 
             # Loop through momenta.
             term_coefficient = 0.
-            for k_indices in itertools.product(range(grid_length),
-                                               repeat=n_dimensions):
-                momenta = momentum_vector(k_indices, grid_length, length_scale)
+            for k_indices in grid.all_points_indices():
+                momenta = momentum_vector(k_indices, grid)
                 if momenta.any():
                     term_coefficient += prefactor * momenta.dot(momenta) * \
                         numpy.cos(momenta.dot(differences))
