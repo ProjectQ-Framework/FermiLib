@@ -149,9 +149,8 @@ def plane_wave_hamiltonian(grid, geometry,
     return jellium_op + external_potential
 
 
-def fourier_transform(hamiltonian, n_dimensions, grid_length, length_scale,
-                      spinless):
-    """Apply Fourier tranform to change hamiltonian in plane wave basis.
+def fourier_transform(hamiltonian, grid, spinless):
+    """Apply Fourier transform to change hamiltonian in plane wave basis.
 
     .. math::
 
@@ -160,27 +159,22 @@ def fourier_transform(hamiltonian, n_dimensions, grid_length, length_scale,
 
     Args:
         hamiltonian: The hamiltonian in plane wave basis.
-        n_dimensions: An int giving the number of dimensions for the model.
-        grid_length: Int, the number of points in one dimension of the grid.
-        length_scale: Float, the real space length of a box dimension.
+        grid: The discretization to use.
         spinless: Bool, whether to use the spinless model or not.
 
     Returns:
         hamiltonian_t: An instance of the FermionOperator class.
     """
     return _fourier_transform_helper(hamiltonian=hamiltonian,
-                                     n_dimensions=n_dimensions,
-                                     grid_length=grid_length,
-                                     length_scale=length_scale,
+                                     grid=grid,
                                      spinless=spinless,
                                      factor=+1,
                                      vec_func_1=momentum_vector,
                                      vec_func_2=position_vector)
 
 
-def inverse_fourier_transform(hamiltonian, n_dimensions, grid_length,
-                              length_scale, spinless):
-    """Apply Fourier tranform to change hamiltonian in plane wave dual basis.
+def inverse_fourier_transform(hamiltonian, grid, spinless):
+    """Apply Fourier transform to change hamiltonian in plane wave dual basis.
 
     .. math::
 
@@ -189,31 +183,23 @@ def inverse_fourier_transform(hamiltonian, n_dimensions, grid_length,
 
     Args:
         hamiltonian: The hamiltonian in plane wave dual basis.
-        n_dimensions: An int giving the number of dimensions for the model.
-        grid_length: Int, the number of points in one dimension of the grid.
-        length_scale: Float, the real space length of a box dimension.
+        grid: The discretization to use.
         spinless: Bool, whether to use the spinless model or not.
 
     Returns:
         hamiltonian_t: An instance of the FermionOperator class.
     """
     return _fourier_transform_helper(hamiltonian=hamiltonian,
-                                     n_dimensions=n_dimensions,
-                                     grid_length=grid_length,
-                                     length_scale=length_scale,
+                                     grid=grid,
                                      spinless=spinless,
                                      factor=-1,
                                      vec_func_1=position_vector,
                                      vec_func_2=momentum_vector)
 
 
-def _fourier_transform_helper(hamiltonian, n_dimensions, grid_length,
-                              length_scale, spinless, factor,
-                              vec_func_1, vec_func_2):
+def _fourier_transform_helper(hamiltonian, grid, spinless,
+                              factor, vec_func_1, vec_func_2):
     hamiltonian_t = None
-    grid = Grid(dimensions=n_dimensions,
-                length=grid_length,
-                scale=length_scale)
 
     for term in hamiltonian.terms:
         transformed_term = None
@@ -227,7 +213,7 @@ def _fourier_transform_helper(hamiltonian, n_dimensions, grid_length,
                     spin = None
                 else:
                     spin = ladder_operator[0] % 2
-                orbital = orbital_id(grid_length, indices_2, spin)
+                orbital = orbital_id(grid.length, indices_2, spin)
                 exp_index = factor * 1.0j * numpy.dot(vec_1, vec_2)
                 if ladder_operator[1] == 1:
                     exp_index *= -1.0
@@ -239,7 +225,7 @@ def _fourier_transform_helper(hamiltonian, n_dimensions, grid_length,
                 else:
                     new_basis += element
 
-            new_basis *= numpy.sqrt(1.0/float(grid_length**n_dimensions))
+            new_basis *= numpy.sqrt(1.0/float(grid.num_points()))
 
             if transformed_term is None:
                 transformed_term = new_basis

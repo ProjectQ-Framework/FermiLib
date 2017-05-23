@@ -12,23 +12,21 @@
 
 """Transformations acting on operators and RDMs."""
 from __future__ import absolute_import
-from future.utils import iteritems
 
-import copy
 import itertools
+
 import numpy
+from future.utils import iteritems
+from projectq.ops import QubitOperator
 
 from fermilib.ops import (FermionOperator,
                           normal_ordered,
-                          number_operator,
                           InteractionOperator,
                           InteractionRDM)
 from fermilib.ops._interaction_operator import InteractionOperatorError
 from fermilib.utils import (count_qubits,
                             jordan_wigner_sparse,
                             qubit_operator_sparse)
-
-from projectq.ops import QubitOperator
 
 
 def get_sparse_operator(operator, n_qubits=None):
@@ -161,17 +159,15 @@ def get_fermion_operator(interaction_operator):
     n_qubits = count_qubits(interaction_operator)
 
     # Add one-body terms.
-    for p in range(n_qubits):
-        for q in range(n_qubits):
-            coefficient = interaction_operator[p, q]
-            fermion_operator += FermionOperator(((p, 1), (q, 0)), coefficient)
+    for p, q in itertools.product(range(n_qubits), repeat=2):
+        fermion_operator += FermionOperator(
+            ((p, 1), (q, 0)), coefficient=interaction_operator[p, q])
 
-            # Add two-body terms.
-            for r in range(n_qubits):
-                for s in range(n_qubits):
-                    coefficient = interaction_operator[p, q, r, s]
-                    fermion_operator += FermionOperator(((p, 1), (q, 1),
-                                                         (r, 0), (s, 0)),
-                                                        coefficient)
+    # Add two-body terms.
+    for p, q, r, s in itertools.product(range(n_qubits), repeat=4):
+        coefficient = interaction_operator[p, q, r, s]
+        fermion_operator += FermionOperator(((p, 1), (q, 1),
+                                             (r, 0), (s, 0)),
+                                            coefficient)
 
     return fermion_operator
