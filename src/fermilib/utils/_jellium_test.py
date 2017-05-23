@@ -136,9 +136,8 @@ class JelliumTest(unittest.TestCase):
 
     def test_potential_integration(self):
 
-        # Compute potential energy operator in both momentum and position
-        # space.
-        grid = Grid(dimensions=2, length=3, scale = 2.)
+        # Compute potential energy operator in momentum and position space.
+        grid = Grid(dimensions=2, length=3, scale=2.)
         spinless = 1
         momentum_potential = momentum_potential_operator(grid, spinless)
         position_potential = position_potential_operator(grid, spinless)
