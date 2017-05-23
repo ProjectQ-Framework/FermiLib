@@ -64,13 +64,12 @@ def orbital_id(grid_length, grid_coordinates, spin=None):
         return tensor_factor
 
 
-def grid_indices(qubit_id, n_dimensions, grid_length, spinless):
+def grid_indices(qubit_id, grid, spinless):
     """This function is the inverse of orbital_id.
 
     Args:
         qubit_id: The tensor factor to map to grid indices.
-        n_dimensions: An int giving the number of dimensions for the model.
-        grid_length (int): The number of points in one dimension of the grid.
+        grid (Grid): The discretization to use.
         spinless (bool): Whether to use the spinless model or not.
 
     Returns:
@@ -85,9 +84,9 @@ def grid_indices(qubit_id, n_dimensions, grid_length, spinless):
 
     # Get grid indices.
     grid_indices = []
-    for dimension in range(n_dimensions):
-        remainder = orbital_id % (grid_length ** (dimension + 1))
-        grid_index = remainder // (grid_length ** dimension)
+    for dimension in range(grid.dimensions):
+        remainder = orbital_id % (grid.length ** (dimension + 1))
+        grid_index = remainder // (grid.length ** dimension)
         grid_indices += [grid_index]
     return grid_indices
 
@@ -414,10 +413,10 @@ def jordan_wigner_position_jellium(grid, spinless=False):
     # Add ZZ terms.
     prefactor = numpy.pi / volume
     for p in range(n_qubits):
-        index_p = grid_indices(p, grid.dimensions, grid.length, spinless)
+        index_p = grid_indices(p, grid, spinless)
         position_p = position_vector(index_p, grid)
         for q in range(p + 1, n_qubits):
-            index_q = grid_indices(q, grid.dimensions, grid.length, spinless)
+            index_q = grid_indices(q, grid, spinless)
             position_q = position_vector(index_q, grid)
 
             differences = position_p - position_q
@@ -437,13 +436,13 @@ def jordan_wigner_position_jellium(grid, spinless=False):
     # Add XZX + YZY terms.
     prefactor = .25 / float(n_orbitals)
     for p in range(n_qubits):
-        index_p = grid_indices(p, grid.dimensions, grid.length, spinless)
+        index_p = grid_indices(p, grid, spinless)
         position_p = position_vector(index_p, grid)
         for q in range(p + 1, n_qubits):
             if not spinless and (p + q) % 2:
                 continue
 
-            index_q = grid_indices(q, grid.dimensions, grid.length, spinless)
+            index_q = grid_indices(q, grid, spinless)
             position_q = position_vector(index_q, grid)
 
             differences = position_p - position_q

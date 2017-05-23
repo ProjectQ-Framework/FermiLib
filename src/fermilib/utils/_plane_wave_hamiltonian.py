@@ -13,8 +13,6 @@
 """Construct Hamiltonians in plan wave basis and its dual in 3D."""
 from __future__ import absolute_import
 
-import itertools
-
 import numpy
 
 from fermilib.config import *
@@ -206,8 +204,7 @@ def _fourier_transform_helper(hamiltonian, grid, spinless,
     for term in hamiltonian.terms:
         transformed_term = None
         for ladder_operator in term:
-            indices_1 = grid_indices(ladder_operator[0], grid.dimensions,
-                                     grid.length, spinless)
+            indices_1 = grid_indices(ladder_operator[0], grid, spinless)
             vec_1 = vec_func_1(indices_1, grid)
             new_basis = None
             for indices_2 in grid.all_points_indices():
