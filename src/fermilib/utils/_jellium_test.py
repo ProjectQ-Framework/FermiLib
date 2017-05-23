@@ -148,14 +148,11 @@ class JelliumTest(unittest.TestCase):
 
         # Compute potential energy operator in both momentum and position
         # space.
-        n_dimensions = 2
-        grid_length = 3
-        length_scale = 2.
+        grid = Grid(dimensions=2, length=3, scale = 2.)
         spinless = 1
-        momentum_potential = momentum_potential_operator(
-            n_dimensions, grid_length, length_scale, spinless)
+        momentum_potential = momentum_potential_operator(grid, spinless)
         position_potential = position_potential_operator(
-            n_dimensions, grid_length, length_scale, spinless)
+            grid.dimensions, grid.length, grid.scale, spinless)
 
         # Diagonalize and confirm the same energy.
         jw_momentum = jordan_wigner(momentum_potential)
