@@ -13,12 +13,10 @@
 """This module constructs Hamiltonians for the uniform electron gas."""
 from __future__ import absolute_import
 
-import itertools
 import numpy
+from projectq.ops import QubitOperator
 
 from fermilib.ops import FermionOperator
-
-from projectq.ops import QubitOperator
 
 
 # Exceptions.
