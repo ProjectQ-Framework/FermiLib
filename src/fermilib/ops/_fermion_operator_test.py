@@ -472,28 +472,6 @@ class FermionOperatorTest(unittest.TestCase):
         self.assertTrue(a.isclose(FermionOperator(term_a, 1.0)))
         self.assertTrue(b.isclose(FermionOperator(term_b, 0.5)))
 
-    def test_sum(self):
-        a = FermionOperator(((1, 1), (3, 0), (8, 1)), 1.0)
-        b = FermionOperator(((1, 0), (3, 0), (8, 1)), 0.5)
-        c = FermionOperator(((1, 0), (3, 0), (5, 1)), 0.5)
-
-        self.assertTrue(FermionOperator.sum([]).isclose(FermionOperator.zero()))
-        self.assertTrue(FermionOperator.sum([a]).isclose(a))
-        self.assertTrue(FermionOperator.sum([b]).isclose(b))
-        self.assertTrue(FermionOperator.sum([a, b]).isclose(a + b))
-        self.assertTrue(FermionOperator.sum([a, b, c]).isclose(a + b + c))
-
-    def test_product(self):
-        a = FermionOperator(((1, 1), (3, 0), (8, 1)), 1.0)
-        b = FermionOperator(((1, 0), (3, 0), (8, 1)), 0.5)
-        c = FermionOperator(((1, 0), (3, 0), (5, 1)), 0.5)
-
-        self.assertTrue(FermionOperator.product([]).isclose(FermionOperator.identity()))
-        self.assertTrue(FermionOperator.product([a]).isclose(a))
-        self.assertTrue(FermionOperator.product([b]).isclose(b))
-        self.assertTrue(FermionOperator.product([a, b]).isclose(a * b))
-        self.assertTrue(FermionOperator.product([a, b, c]).isclose(a * b * c))
-
     def test_add_bad_addend(self):
         op = FermionOperator((), 1.0)
         with self.assertRaises(TypeError):
@@ -516,7 +494,7 @@ class FermionOperatorTest(unittest.TestCase):
     def test_sub_bad_subtrahend(self):
         op = FermionOperator((), 1.0)
         with self.assertRaises(TypeError):
-            op = op - "0.5"
+            _ = op - "0.5"
 
     def test_isub_different_term(self):
         term_a = ((1, 1), (3, 1), (8, 0))
@@ -538,7 +516,7 @@ class FermionOperatorTest(unittest.TestCase):
 
     def test_neg(self):
         op = FermionOperator(((1, 1), (3, 1), (8, 1)), 0.5)
-        -op
+        _ = -op
         # out of place
         self.assertTrue(op.isclose(FermionOperator(((1, 1), (3, 1), (8, 1)),
                                                    0.5)))
