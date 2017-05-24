@@ -58,8 +58,7 @@ def dual_basis_u_operator(grid, geometry, spinless):
                                numpy.exp(exp_index))
 
                 for spin_p in spins:
-                    orbital_p = orbital_id(
-                        grid.length, pos_indices, spin_p)
+                    orbital_p = orbital_id(grid, pos_indices, spin_p)
                     operators = ((orbital_p, 1), (orbital_p, 0))
                     if operator is None:
                         operator = FermionOperator(operators, coefficient)
@@ -108,8 +107,8 @@ def plane_wave_u_operator(grid, geometry, spinless):
                                numpy.exp(exp_index))
 
                 for spin in spins:
-                    orbital_p = orbital_id(grid.length, indices_p, spin)
-                    orbital_q = orbital_id(grid.length, indices_q, spin)
+                    orbital_p = orbital_id(grid, indices_p, spin)
+                    orbital_q = orbital_id(grid, indices_q, spin)
                     operators = ((orbital_p, 1), (orbital_q, 0))
                     if operator is None:
                         operator = FermionOperator(operators, coefficient)

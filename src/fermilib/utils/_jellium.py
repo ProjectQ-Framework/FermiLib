@@ -24,11 +24,11 @@ class OrbitalSpecificationError(Exception):
     pass
 
 
-def orbital_id(grid_length, grid_coordinates, spin=None):
+def orbital_id(grid, grid_coordinates, spin=None):
     """Return the tensor factor of a orbital with given coordinates and spin.
 
     Args:
-        grid_length: Int, the number of points in one dimension of the grid.
+        grid (Grid): The discretization to use.
         grid_coordinates: List or tuple of ints giving coordinates of grid
             element. Acceptable to provide an int (instead of tuple or list)
             for 1D case.
@@ -36,7 +36,8 @@ def orbital_id(grid_length, grid_coordinates, spin=None):
             If None, assume spinless model.
 
     Returns:
-        tensor_factor: tensor factor associated with provided orbital label.
+        tensor_factor (int):
+            tensor factor associated with provided orbital label.
     """
     # Initialize.
     if isinstance(grid_coordinates, int):
@@ -47,8 +48,8 @@ def orbital_id(grid_length, grid_coordinates, spin=None):
     for dimension, grid_coordinate in enumerate(grid_coordinates):
 
         # Make sure coordinate is an integer in the correct bounds.
-        if isinstance(grid_coordinate, int) and grid_coordinate < grid_length:
-            tensor_factor += grid_coordinate * (grid_length ** dimension)
+        if isinstance(grid_coordinate, int) and grid_coordinate < grid.length:
+            tensor_factor += grid_coordinate * (grid.length ** dimension)
 
         else:
             # Raise for invalid model.
@@ -68,12 +69,13 @@ def grid_indices(qubit_id, grid, spinless):
     """This function is the inverse of orbital_id.
 
     Args:
-        qubit_id: The tensor factor to map to grid indices.
+        qubit_id (int): The tensor factor to map to grid indices.
         grid (Grid): The discretization to use.
         spinless (bool): Whether to use the spinless model or not.
 
     Returns:
-        grid_indices: The location of the qubit on the grid.
+        grid_indices (numpy.ndarray[int]):
+            The location of the qubit on the grid.
     """
     # Remove spin degree of freedom.
     orbital_id = qubit_id
@@ -95,8 +97,9 @@ def position_vector(position_indices, grid):
     """Given grid point coordinate, return position vector with dimensions.
 
     Args:
-        position_indices: List or tuple of integers giving grid point
-            coordinate. Allowed values are ints in [0, grid_length).
+        position_indices (int|iterable[int]):
+            List or tuple of integers giving grid point coordinate.
+            Allowed values are ints in [0, grid_length).
         grid (Grid): The discretization to use.
 
     Returns:
@@ -111,8 +114,7 @@ def position_vector(position_indices, grid):
 
     # Compute position vector.
     adjusted_vector = numpy.array(position_indices, float) - grid.length // 2
-    position_vector = grid.scale * adjusted_vector / float(grid.length)
-    return position_vector
+    return grid.scale * adjusted_vector / float(grid.length)
 
 
 def momentum_vector(momentum_indices, grid):
@@ -136,8 +138,7 @@ def momentum_vector(momentum_indices, grid):
 
     # Compute momentum vector.
     adjusted_vector = numpy.array(momentum_indices, float) - grid.length // 2
-    momentum_vector = 2. * numpy.pi * adjusted_vector / grid.scale
-    return momentum_vector
+    return 2. * numpy.pi * adjusted_vector / grid.scale
 
 
 def momentum_kinetic_operator(grid, spinless=False):
@@ -164,7 +165,7 @@ def momentum_kinetic_operator(grid, spinless=False):
 
         # Loop over spins.
         for spin in spins:
-            orbital = orbital_id(grid.length, momenta_indices, spin)
+            orbital = orbital_id(grid, momenta_indices, spin)
 
             # Add interaction term.
             operators = ((orbital, 1), (orbital, 0))
@@ -178,19 +179,16 @@ def momentum_potential_operator(grid, spinless=False):
 
     Args:
         grid (Grid): The discretization to use.
-        spinless: Boole, whether to use the spinless model or not.
+        spinless (bool): Whether to use the spinless model or not.
 
     Returns:
-        operator: An instance of the FermionOperator class.
+        operator (FermionOperator)
     """
     # Initialize.
     volume = grid.volume_scale()
     prefactor = 2. * numpy.pi / volume
     operator = FermionOperator((), 0.0)
-    if spinless:
-        spins = [None]
-    else:
-        spins = [0, 1]
+    spins = [None] if spinless else [0, 1]
 
     # Loop once through all plane waves.
     for omega_indices in grid.all_points_indices():
@@ -205,8 +203,7 @@ def momentum_potential_operator(grid, spinless=False):
             continue
 
         # Compute coefficient.
-        coefficient = prefactor / \
-            omega_momenta.dot(omega_momenta)
+        coefficient = prefactor / omega_momenta.dot(omega_momenta)
 
         for grid_indices_a in grid.all_points_indices():
             shifted_indices_d = [
@@ -220,15 +217,11 @@ def momentum_potential_operator(grid, spinless=False):
 
                 # Loop over spins.
                 for spin_a in spins:
-                    orbital_a = orbital_id(
-                        grid.length, grid_indices_a, spin_a)
-                    orbital_d = orbital_id(
-                        grid.length, shifted_indices_d, spin_a)
+                    orbital_a = orbital_id(grid, grid_indices_a, spin_a)
+                    orbital_d = orbital_id(grid, shifted_indices_d, spin_a)
                     for spin_b in spins:
-                        orbital_b = orbital_id(
-                            grid.length, grid_indices_b, spin_b)
-                        orbital_c = orbital_id(
-                            grid.length, shifted_indices_c, spin_b)
+                        orbital_b = orbital_id(grid, grid_indices_b, spin_b)
+                        orbital_c = orbital_id(grid, shifted_indices_c, spin_b)
 
                         # Add interaction term.
                         if (orbital_a != orbital_b) and \
@@ -246,18 +239,15 @@ def position_kinetic_operator(grid, spinless=False):
 
     Args:
         grid (Grid): The discretization to use.
-        spinless: Bool, whether to use the spinless model or not.
+        spinless (bool): Whether to use the spinless model or not.
 
     Returns:
-        operator: An instance of the FermionOperator class.
+        operator (FermionOperator)
     """
     # Initialize.
     n_points = grid.num_points()
     operator = FermionOperator()
-    if spinless:
-        spins = [None]
-    else:
-        spins = [0, 1]
+    spins = [None] if spinless else [0, 1]
 
     # Loop once through all lattice sites.
     for grid_indices_a in grid.all_points_indices():
@@ -277,8 +267,8 @@ def position_kinetic_operator(grid, spinless=False):
 
             # Loop over spins and identify interacting orbitals.
             for spin in spins:
-                orbital_a = orbital_id(grid.length, grid_indices_a, spin)
-                orbital_b = orbital_id(grid.length, grid_indices_b, spin)
+                orbital_a = orbital_id(grid, grid_indices_a, spin)
+                orbital_b = orbital_id(grid, grid_indices_b, spin)
 
                 # Add interaction term.
                 operators = ((orbital_a, 1), (orbital_b, 0))
@@ -293,19 +283,16 @@ def position_potential_operator(grid, spinless=False):
 
     Args:
         grid (Grid): The discretization to use.
-        spinless: Boole, whether to use the spinless model or not.
+        spinless (bool): Whether to use the spinless model or not.
 
     Returns:
-        operator: An instance of the FermionOperator class.
+        operator (FermionOperator)
     """
     # Initialize.
     volume = grid.volume_scale()
     prefactor = 2. * numpy.pi / volume
     operator = FermionOperator()
-    if spinless:
-        spins = [None]
-    else:
-        spins = [0, 1]
+    spins = [None] if spinless else [0, 1]
 
     # Loop once through all lattice sites.
     for grid_indices_a in grid.all_points_indices():
@@ -325,9 +312,9 @@ def position_potential_operator(grid, spinless=False):
 
             # Loop over spins and identify interacting orbitals.
             for spin_a in spins:
-                orbital_a = orbital_id(grid.length, grid_indices_a, spin_a)
+                orbital_a = orbital_id(grid, grid_indices_a, spin_a)
                 for spin_b in spins:
-                    orbital_b = orbital_id(grid.length, grid_indices_b, spin_b)
+                    orbital_b = orbital_id(grid, grid_indices_b, spin_b)
 
                     # Add interaction term.
                     if orbital_a != orbital_b:
@@ -368,10 +355,10 @@ def jordan_wigner_position_jellium(grid, spinless=False):
 
     Args:
         grid (Grid): The discretization to use.
-        spinless: Bool, whether to use the spinless model or not.
+        spinless (bool): Whether to use the spinless model or not.
 
     Returns:
-        hamiltonian: An instance of the QubitOperator class.
+        hamiltonian (QubitOperator)
     """
     # Initialize.
     n_orbitals = grid.num_points()
