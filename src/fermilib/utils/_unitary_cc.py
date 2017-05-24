@@ -246,7 +246,12 @@ def _identify_non_commuting(cmd):
     return False
 
 
-def _non_adjacent_filter(self, cmd, qubit_graph):
+def _cmp_qubit_ids(qubit1, qubit2):
+    """Local compare to pass to graph functions"""
+    return (qubit1.id == qubit2.id)
+
+
+def _non_adjacent_filter(self, cmd, qubit_graph, flip=False):
     """A ProjectQ filter to identify when swaps are needed on a graph
 
     This flags any gates that act on two non-adjacent qubits with respect to
@@ -259,16 +264,26 @@ def _non_adjacent_filter(self, cmd, qubit_graph):
         qubit_graph(Graph): Graph object specifying connectivity of
             qubits. The values of the nodes of this graph are qubits or
             weak qubit references.
+        flip(Bool): Flip for switching if identifying a gate is in this class
+            by true or false.  Designed to meet the specification of ProjectQ
+            InstructionFilter and DecompositionRule with one function.
 
     """
+    if qubit_graph is None:
+        return True ^ flip
+
     total_qubits = (cmd.control_qubits +
                     [item for qureg in cmd.qubits for item in qureg])
+    # Check for non-connected gate on 2 qubits
     if ((len(total_qubits) == 1) or
-            (len(total) == 2 and
-            qubit_graph.is_adjacent(qubit_graph.find_index(total_qubits[0]),
-                                    qubit_graph.find_index(total_qubits[1])))):
-        return True
-    return False
+            (len(total_qubits) == 2 and
+             qubit_graph.is_adjacent(
+                 qubit_graph.find_index(total_qubits[0],
+                                        cmp_function=_cmp_qubit_ids),
+                 qubit_graph.find_index(total_qubits[1],
+                                        cmp_function=_cmp_qubit_ids)))):
+        return True ^ flip
+    return False ^ flip
 
 
 def _direct_graph_swap(cmd, qubit_graph):
@@ -279,19 +294,22 @@ def _direct_graph_swap(cmd, qubit_graph):
 
     Args:
         cmd(projectq.command): A command from ProjectQ that needs to be
-            factorized due to non-commuting terms
+            broken down due to non-adjacent terms
         qubit_graph(Graph): Graph object specifying connectivity of qubits.
             The values of the nodes of this graph are qubits or weak qubit
             references.
     """
     total_qubits = (cmd.control_qubits +
                     [item for qureg in cmd.qubits for item in qureg])
+
     gate = cmd.gate
-    graph_path = qubit_graph.shortest_path(qubit_graph.
-                                           find_index(total_qubits[0]),
-                                           qubit_graph.
-                                           find_index(total_qubits[1]))
-    swap_path = [(i, i + 1) for i in range(len(graph_path) - 1)]
+    graph_path = qubit_graph.shortest_path(
+        qubit_graph.find_index(total_qubits[0],
+                               cmp_function=_cmp_qubit_ids),
+        qubit_graph.find_index(total_qubits[1],
+                               cmp_function=_cmp_qubit_ids))
+    swap_path = [(graph_path[i], graph_path[i + 1])
+                 for i in range(len(graph_path) - 2)]
 
     # SWAP qubit 1 into position adjacent to qubit 2
     for pair in swap_path:
@@ -299,7 +317,12 @@ def _direct_graph_swap(cmd, qubit_graph):
                              qubit_graph.nodes[pair[1]].value)
 
     # Perform original gate
-    gate | (total_qubits[0],total_qubits[1])
+    if len(cmd.control_qubits) > 0:
+        projectq.ops.C(gate) | (qubit_graph.nodes[graph_path[-2]].value,
+                                total_qubits[1])
+    else:
+        gate | (qubit_graph.nodes[graph_path[-2]].value,
+                total_qubits[1])
 
     # Reverse the swaps to put qubits back in place
     for pair in reversed(swap_path):
@@ -381,21 +404,26 @@ def uccsd_trotter_engine(compiler_backend=projectq.backends.Simulator(),
     rule_set.add_decomposition_rule(trotter_rule_set)
 
     if qubit_graph is not None:
-        connectivity_rule_set = projectq.cengines. \
-        DecompositionRule(gate_class=projectq.ops.BasicGate,
-                          gate_decomposer=partial(_direct_graph_swap,
-                                                  qubit_graph = qubit_graph),
-                          gate_recognizer=partial(_non_adjacent_filter,
-                                                  qubit_graph = qubit_graph))
+        connectivity_rule_set = projectq.cengines.\
+            DecompositionRule(gate_class=projectq.ops.NOT.__class__,
+                              gate_decomposer=(lambda x: _direct_graph_swap(
+                                  x, qubit_graph)),
+                              gate_recognizer=(lambda x: _non_adjacent_filter(
+                                  None, x, qubit_graph, True)))
         rule_set.add_decomposition_rule(connectivity_rule_set)
 
     replacer = projectq.cengines.AutoReplacer(rule_set)
+    compiler_engine_list = [replacer,
+                            projectq.
+                            cengines.
+                            InstructionFilter(
+                                lambda x, y:
+                                (_non_adjacent_filter(x, y, qubit_graph) and
+                                 _two_gate_filter(x, y))),
+                            projectq.cengines.LocalOptimizer(5)]
 
     # Start the compiler engine with these rules
     compiler_engine = projectq.\
         MainEngine(backend=compiler_backend,
-                   engine_list=[replacer,
-                                projectq.
-                                cengines.InstructionFilter(_two_gate_filter),
-                                projectq.cengines.LocalOptimizer(3)])
+                   engine_list=compiler_engine_list)
     return compiler_engine
