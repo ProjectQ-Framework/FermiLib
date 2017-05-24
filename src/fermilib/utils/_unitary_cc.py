@@ -18,6 +18,7 @@ import numpy
 
 from fermilib.ops import FermionOperator
 from fermilib.transforms import jordan_wigner
+from functools import partial
 
 import projectq
 import projectq.backends
@@ -245,6 +246,67 @@ def _identify_non_commuting(cmd):
     return False
 
 
+def _non_adjacent_filter(self, cmd, qubit_graph):
+    """A ProjectQ filter to identify when swaps are needed on a graph
+
+    This flags any gates that act on two non-adjacent qubits with respect to
+    the qubit_graph that has been given
+
+    Args:
+        self(Dummy): Dummy parameter to meet function specification.
+        cmd(projectq.command): Command to be checked for decomposition into
+            additional swap gates.
+        qubit_graph(Graph): Graph object specifying connectivity of
+            qubits. The values of the nodes of this graph are qubits or
+            weak qubit references.
+
+    """
+    total_qubits = (cmd.control_qubits +
+                    [item for qureg in cmd.qubits for item in qureg])
+    if ((len(total_qubits) == 1) or
+            (len(total) == 2 and
+            qubit_graph.is_adjacent(qubit_graph.find_index(total_qubits[0]),
+                                    qubit_graph.find_index(total_qubits[1])))):
+        return True
+    return False
+
+
+def _direct_graph_swap(cmd, qubit_graph):
+    """Define a naive direct swap sequence to respect qubit_graph connectivity
+
+    Uses the connectivity of qubit_graph to find the shortest path between
+    two non-adjacent qubits, and swaps/unswaps qubits appropriately.
+
+    Args:
+        cmd(projectq.command): A command from ProjectQ that needs to be
+            factorized due to non-commuting terms
+        qubit_graph(Graph): Graph object specifying connectivity of qubits.
+            The values of the nodes of this graph are qubits or weak qubit
+            references.
+    """
+    total_qubits = (cmd.control_qubits +
+                    [item for qureg in cmd.qubits for item in qureg])
+    gate = cmd.gate
+    graph_path = qubit_graph.shortest_path(qubit_graph.
+                                           find_index(total_qubits[0]),
+                                           qubit_graph.
+                                           find_index(total_qubits[1]))
+    swap_path = [(i, i + 1) for i in range(len(graph_path) - 1)]
+
+    # SWAP qubit 1 into position adjacent to qubit 2
+    for pair in swap_path:
+        projectq.ops.Swap | (qubit_graph.nodes[pair[0]].value,
+                             qubit_graph.nodes[pair[1]].value)
+
+    # Perform original gate
+    gate | (total_qubits[0],total_qubits[1])
+
+    # Reverse the swaps to put qubits back in place
+    for pair in reversed(swap_path):
+        projectq.ops.Swap | (qubit_graph.nodes[pair[0]].value,
+                             qubit_graph.nodes[pair[1]].value)
+
+
 def _first_order_trotter(cmd):
     """Define a Trotter splitting for non-commuting Pauli in ProjectQ
 
@@ -253,7 +315,7 @@ def _first_order_trotter(cmd):
 
     Args:
         cmd(projectq.command): A command from ProjectQ that needs to be
-            factorized due to non-commuting terms
+            factorized due to non-commuting time evolution terms
     """
     qureg = cmd.qubits
     eng = cmd.engine
@@ -287,7 +349,8 @@ def _two_gate_filter(self, cmd):
     return False
 
 
-def uccsd_trotter_engine(compiler_backend=projectq.backends.Simulator()):
+def uccsd_trotter_engine(compiler_backend=projectq.backends.Simulator(),
+                         qubit_graph=None):
     """Define a ProjectQ compiler engine that is common for use with UCCSD
 
     This defines a ProjectQ compiler engine that decomposes time evolution
@@ -299,6 +362,9 @@ def uccsd_trotter_engine(compiler_backend=projectq.backends.Simulator()):
             circuit compiler, so that it may either simulate gates numerically
             or alternatively print a gate sequence, e.g. using
             projectq.backends.CommandPrinter()
+        qubit_graph(Graph): Graph object specifying connectivity of qubits.
+            The values of the nodes of this graph are qubits or weak qubit
+            references.  If None, all-to-all connectivity is assumed.
 
     Returns:
         projectq.cengine that is the compiler engine set up with these
@@ -307,11 +373,22 @@ def uccsd_trotter_engine(compiler_backend=projectq.backends.Simulator()):
     rule_set = \
         projectq.cengines. \
         DecompositionRuleSet(modules=[projectq.setups.decompositions])
+
     trotter_rule_set = projectq.cengines. \
         DecompositionRule(gate_class=projectq.ops.TimeEvolution,
                           gate_decomposer=_first_order_trotter,
                           gate_recognizer=_identify_non_commuting)
     rule_set.add_decomposition_rule(trotter_rule_set)
+
+    if qubit_graph is not None:
+        connectivity_rule_set = projectq.cengines. \
+        DecompositionRule(gate_class=projectq.ops.BasicGate,
+                          gate_decomposer=partial(_direct_graph_swap,
+                                                  qubit_graph = qubit_graph),
+                          gate_recognizer=partial(_non_adjacent_filter,
+                                                  qubit_graph = qubit_graph))
+        rule_set.add_decomposition_rule(connectivity_rule_set)
+
     replacer = projectq.cengines.AutoReplacer(rule_set)
 
     # Start the compiler engine with these rules

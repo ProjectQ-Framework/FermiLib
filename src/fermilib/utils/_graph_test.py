@@ -14,7 +14,7 @@ from __future__ import absolute_import
 
 import unittest
 
-from fermilib.utils import Graph
+from fermilib.utils import Graph, Node
 
 
 class GraphTest(unittest.TestCase):
@@ -73,7 +73,7 @@ class GraphTest(unittest.TestCase):
         """Build a ring of 8 nodes and test path finding"""
         eight_node = Graph()
         for i in range(8):
-            eight_node.add_node()
+            eight_node.add_node(Node(value=i))
         for i in range(8):
             eight_node.add_edge(i, (i + 1) % 8)
         self.assertEqual(eight_node.neighbors,
@@ -85,6 +85,12 @@ class GraphTest(unittest.TestCase):
         self.assertEqual(eight_node.shortest_path(0, 6),
                          [0, 7, 6])
         self.assertTrue(eight_node.is_adjacent(0, 7))
+
+        # Look for node with value 6 and value not present
+        found_index = eight_node.find_index(6)
+        self.assertEqual(found_index, 6)
+        found_index = eight_node.find_index(10)
+        self.assertIsNone(found_index)
 
         # Make a hole in the ring and check new distance
         eight_node.remove_node(7)

@@ -13,7 +13,7 @@
 from ._chemical_series import (make_atomic_ring,
                                make_atomic_lattice,
                                make_atom)
-from ._graph import Graph
+from ._graph import Graph, Node
 
 from ._grid import Grid
 

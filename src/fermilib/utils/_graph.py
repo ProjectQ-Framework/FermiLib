@@ -65,8 +65,6 @@ class Graph:
         self.uid_to_index[self.next_uid] = self.node_count() - 1
         self.next_uid += 1
 
-        return (next_uid - 1)
-
     def remove_node(self, node_id):
         """Remove a graph node
 
@@ -123,6 +121,33 @@ class Graph:
 
         self.neighbors[node_id1].remove(self.node_uids[node_id2])
         self.neighbors[node_id2].remove(self.node_uids[node_id1])
+
+    def find_index(self, value, starting_node=0):
+        """Find the index of the first node that matches value in a BFS
+
+        Performs a breadth-first search of the graph starting at node index
+        starting_node.  Returns the index or None if no match is found
+
+        Args:
+            value(Node Value) - Value to match against in the graph
+            starting_node(int) - Node index to start search from
+        """
+        if starting_node > self.node_count():
+            raise IndexError("Node ID out of range.")
+
+        visited = []
+        node_queue = queue.LifoQueue()
+        node_queue.put(starting_node)
+
+        while not node_queue.empty():
+            next_id = node_queue.get()
+            if self.nodes[next_id].value == value:
+                return next_id  # Success
+            visited += [next_id]
+            for uid in self.neighbors[next_id]:
+                if (self.uid_to_index[uid] not in visited):
+                    node_queue.put(self.uid_to_index[uid])
+        return None
 
     def is_adjacent(self, node_id1, node_id2):
         """Test for adjacency between node1 and node2

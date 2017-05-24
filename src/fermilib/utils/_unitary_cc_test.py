@@ -121,3 +121,7 @@ class UnitaryCC(unittest.TestCase):
                                                                wavefunction)
         All(Measure) | wavefunction
         self.assertAlmostEqual(energy, -1.13727017463)
+
+# Run test.
+if __name__ == '__main__':
+    unittest.main()
