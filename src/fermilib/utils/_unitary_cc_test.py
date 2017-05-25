@@ -124,7 +124,7 @@ class UnitaryCC(unittest.TestCase):
         self.assertAlmostEqual(energy, -1.13727017463)
 
     def test_simulation_with_graph(self):
-        """Test UCCSD Singlet Energy for H2"""
+        """Test UCCSD Singlet Energy for H2 using a restricted qubit_graph"""
 
         # Define H2 Hamiltonian inline
         hamiltonian = ((-0.0453222020986) * QubitOperator("X0 X1 Y2 Y3") +
@@ -153,7 +153,7 @@ class UnitaryCC(unittest.TestCase):
         compiler_engine = uccsd_trotter_engine(qubit_graph=qubit_graph)
         wavefunction = compiler_engine.allocate_qureg(4)
         for i in range(4):
-            qubit_graph.add_node(Node(value=wavefunction[i]))
+            qubit_graph.add_node(Node(value=wavefunction[i].id))
         for i in range(1, 4):
             qubit_graph.add_edge(0, i)
 

@@ -27,6 +27,7 @@ import projectq.meta
 import projectq.ops
 import projectq.setups
 import projectq.setups.decompositions
+import projectq.types
 
 
 def uccsd_operator(single_amplitudes, double_amplitudes, anti_hermitian=True):
@@ -246,11 +247,6 @@ def _identify_non_commuting(cmd):
     return False
 
 
-def _cmp_qubit_ids(qubit1, qubit2):
-    """Local compare to pass to graph functions"""
-    return (qubit1.id == qubit2.id)
-
-
 def _non_adjacent_filter(self, cmd, qubit_graph, flip=False):
     """A ProjectQ filter to identify when swaps are needed on a graph
 
@@ -274,14 +270,13 @@ def _non_adjacent_filter(self, cmd, qubit_graph, flip=False):
 
     total_qubits = (cmd.control_qubits +
                     [item for qureg in cmd.qubits for item in qureg])
+
     # Check for non-connected gate on 2 qubits
     if ((len(total_qubits) == 1) or
             (len(total_qubits) == 2 and
              qubit_graph.is_adjacent(
-                 qubit_graph.find_index(total_qubits[0],
-                                        cmp_function=_cmp_qubit_ids),
-                 qubit_graph.find_index(total_qubits[1],
-                                        cmp_function=_cmp_qubit_ids)))):
+                 qubit_graph.find_index(total_qubits[0].id),
+                 qubit_graph.find_index(total_qubits[1].id)))):
         return True ^ flip
     return False ^ flip
 
@@ -290,7 +285,8 @@ def _direct_graph_swap(cmd, qubit_graph):
     """Define a naive direct swap sequence to respect qubit_graph connectivity
 
     Uses the connectivity of qubit_graph to find the shortest path between
-    two non-adjacent qubits, and swaps/unswaps qubits appropriately.
+    two non-adjacent qubits, and swaps/unswaps qubits appropriately.  Baseline
+    for more sophisticated algorithms
 
     Args:
         cmd(projectq.command): A command from ProjectQ that needs to be
@@ -303,31 +299,43 @@ def _direct_graph_swap(cmd, qubit_graph):
                     [item for qureg in cmd.qubits for item in qureg])
 
     gate = cmd.gate
+    engine = cmd.engine
     graph_path = qubit_graph.shortest_path(
-        qubit_graph.find_index(total_qubits[0],
-                               cmp_function=_cmp_qubit_ids),
-        qubit_graph.find_index(total_qubits[1],
-                               cmp_function=_cmp_qubit_ids))
+        qubit_graph.find_index(total_qubits[0].id),
+        qubit_graph.find_index(total_qubits[1].id))
     swap_path = [(graph_path[i], graph_path[i + 1])
                  for i in range(len(graph_path) - 2)]
 
     # SWAP qubit 1 into position adjacent to qubit 2
     for pair in swap_path:
-        projectq.ops.Swap | (qubit_graph.nodes[pair[0]].value,
-                             qubit_graph.nodes[pair[1]].value)
+        projectq.ops.Swap | (projectq.types.
+                             WeakQubitRef(engine,
+                                          qubit_graph.nodes[pair[0]].value),
+                             projectq.types.
+                             WeakQubitRef(engine,
+                                          qubit_graph.nodes[pair[1]].value))
 
     # Perform original gate
     if len(cmd.control_qubits) > 0:
-        projectq.ops.C(gate) | (qubit_graph.nodes[graph_path[-2]].value,
+        projectq.ops.C(gate) | (projectq.types.
+                                WeakQubitRef(engine,
+                                             qubit_graph.
+                                             nodes[graph_path[-2]].value),
                                 total_qubits[1])
     else:
-        gate | (qubit_graph.nodes[graph_path[-2]].value,
+        gate | (projectq.types.
+                WeakQubitRef(engine,
+                             qubit_graph.nodes[graph_path[-2]].value),
                 total_qubits[1])
 
     # Reverse the swaps to put qubits back in place
     for pair in reversed(swap_path):
-        projectq.ops.Swap | (qubit_graph.nodes[pair[0]].value,
-                             qubit_graph.nodes[pair[1]].value)
+        projectq.ops.Swap | (projectq.types.
+                             WeakQubitRef(engine,
+                                          qubit_graph.nodes[pair[0]].value),
+                             projectq.types.
+                             WeakQubitRef(engine,
+                                          qubit_graph.nodes[pair[1]].value))
 
 
 def _first_order_trotter(cmd):
@@ -397,12 +405,14 @@ def uccsd_trotter_engine(compiler_backend=projectq.backends.Simulator(),
         projectq.cengines. \
         DecompositionRuleSet(modules=[projectq.setups.decompositions])
 
+    # Set rules for splitting non-commuting operators
     trotter_rule_set = projectq.cengines. \
         DecompositionRule(gate_class=projectq.ops.TimeEvolution,
                           gate_decomposer=_first_order_trotter,
                           gate_recognizer=_identify_non_commuting)
     rule_set.add_decomposition_rule(trotter_rule_set)
 
+    # Set rules for 2 qubit gates that act on non-adjacent qubits
     if qubit_graph is not None:
         connectivity_rule_set = projectq.cengines.\
             DecompositionRule(gate_class=projectq.ops.NOT.__class__,
@@ -412,6 +422,7 @@ def uccsd_trotter_engine(compiler_backend=projectq.backends.Simulator(),
                                   None, x, qubit_graph, True)))
         rule_set.add_decomposition_rule(connectivity_rule_set)
 
+    # Build the full set of engines that will be applied to qubits
     replacer = projectq.cengines.AutoReplacer(rule_set)
     compiler_engine_list = [replacer,
                             projectq.

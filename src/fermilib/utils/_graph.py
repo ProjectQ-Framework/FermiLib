@@ -122,7 +122,7 @@ class Graph:
         self.neighbors[node_id1].remove(self.node_uids[node_id2])
         self.neighbors[node_id2].remove(self.node_uids[node_id1])
 
-    def find_index(self, value, starting_node=0, cmp_function=None):
+    def find_index(self, value, starting_node=0):
         """Find the index of the first node that matches value in a BFS
 
         Performs a breadth-first search of the graph starting at node index
@@ -130,8 +130,6 @@ class Graph:
 
         Args:
             value(Node Value) - Value to match against in the graph
-            cmp_function(function) - Function taking two node values to
-                check equality between them.
             starting_node(int) - Node index to start search from
         """
         if starting_node > self.node_count():
@@ -142,11 +140,8 @@ class Graph:
         visited = [starting_node]
         while not node_queue.empty():
             next_id = node_queue.get()
-            if ((cmp_function is not None and
-                cmp_function(self.nodes[next_id].value, value))
-                 or (cmp_function is None and
-                             self.nodes[next_id].value == value)):
-                    return next_id  # Success
+            if (self.nodes[next_id].value == value):
+                return next_id  # Success
             for uid in self.neighbors[next_id]:
                 if (self.uid_to_index[uid] not in visited):
                     node_queue.put(self.uid_to_index[uid])
