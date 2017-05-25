@@ -33,7 +33,8 @@ from ._operator_utils import (eigenspectrum, commutator,
 
 from ._plane_wave_hamiltonian import (inverse_fourier_transform,
                                       fourier_transform,
-                                      plane_wave_hamiltonian)
+                                      plane_wave_hamiltonian,
+                                      jordan_wigner_dual_basis_hamiltonian)
 
 from ._sparse_tools import (expectation,
                             get_density_matrix,
