@@ -19,8 +19,11 @@ from fermilib.config import *
 from fermilib.ops import FermionOperator
 from fermilib.utils._grid import Grid
 from fermilib.utils._jellium import (orbital_id, grid_indices, position_vector,
-                                     momentum_vector, jellium_model)
+                                     momentum_vector, jellium_model,
+                                     jordan_wigner_position_jellium)
 from fermilib.utils._molecular_data import periodic_hash_table
+
+from projectq.ops import QubitOperator
 
 
 def dual_basis_u_operator(grid, geometry, spinless):
@@ -118,7 +121,7 @@ def plane_wave_u_operator(grid, geometry, spinless):
     return operator
 
 
-def plane_wave_hamiltonian(grid, geometry,
+def plane_wave_hamiltonian(grid, geometry=None,
                            spinless=False, momentum_space=True):
     """Returns Hamiltonian as FermionOperator class.
 
@@ -134,13 +137,16 @@ def plane_wave_hamiltonian(grid, geometry,
     Returns:
         FermionOperator: The hamiltonian.
     """
+    jellium_op = jellium_model(grid, spinless, momentum_space)
+
+    if geometry is None:
+        return jellium_op
+
     for item in geometry:
         if len(item[1]) != grid.dimensions:
             raise ValueError("Invalid geometry coordinate.")
         if item[0] not in periodic_hash_table:
             raise ValueError("Invalid nuclear element.")
-
-    jellium_op = jellium_model(grid, spinless, momentum_space)
 
     if momentum_space:
         external_potential = plane_wave_u_operator(grid, geometry, spinless)
@@ -237,3 +243,59 @@ def _fourier_transform_helper(hamiltonian,
         hamiltonian_t += transformed_term
 
     return hamiltonian_t
+
+
+def jordan_wigner_dual_basis_hamiltonian(grid, geometry=None, spinless=False):
+    """Return the dual basis Hamiltonian as QubitOperator.
+
+    Args:
+        grid (Grid): The discretization to use.
+        geometry: A list of tuples giving the coordinates of each atom.
+            example is [('H', (0, 0, 0)), ('H', (0, 0, 0.7414))].
+            Distances in atomic units. Use atomic symbols to specify atoms.
+        spinless (bool): Whether to use the spinless model or not.
+
+    Returns:
+        hamiltonian (QubitOperator)
+    """
+    jellium_op = jordan_wigner_position_jellium(grid, spinless)
+
+    if geometry is None:
+        return jellium_op
+
+    for item in geometry:
+        if len(item[1]) != grid.dimensions:
+            raise ValueError("Invalid geometry coordinate.")
+        if item[0] not in periodic_hash_table:
+            raise ValueError("Invalid nuclear element.")
+
+    n_orbitals = grid.num_points()
+    volume = grid.volume_scale()
+    if spinless:
+        n_qubits = n_orbitals
+    else:
+        n_qubits = 2 * n_orbitals
+    prefactor = -2 * numpy.pi / volume
+    external_potential = QubitOperator()
+
+    for k_indices in grid.all_points_indices():
+        momenta = momentum_vector(k_indices, grid)
+        momenta_squared = momenta.dot(momenta)
+        if momenta_squared < EQ_TOLERANCE:
+            continue
+
+        for p in range(n_qubits):
+            index_p = grid_indices(p, grid, spinless)
+            coordinate_p = position_vector(index_p, grid)
+
+            for nuclear_term in geometry:
+                coordinate_j = numpy.array(nuclear_term[1], float)
+
+                exp_index = 1.0j * momenta.dot(coordinate_j - coordinate_p)
+                coefficient = (prefactor / momenta_squared *
+                               periodic_hash_table[nuclear_term[0]] *
+                               numpy.exp(exp_index))
+                external_potential += (QubitOperator((), coefficient) -
+                                       QubitOperator(((p, 'Z'),), coefficient))
+
+    return jellium_op + external_potential
