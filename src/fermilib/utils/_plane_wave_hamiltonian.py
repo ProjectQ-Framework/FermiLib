@@ -219,7 +219,7 @@ def _fourier_transform_helper(hamiltonian,
             for indices_2 in grid.all_points_indices():
                 vec2 = vec_func_2(indices_2, grid)
                 spin = None if spinless else ladder_op_mode % 2
-                orbital = orbital_id(grid.length, indices_2, spin)
+                orbital = orbital_id(grid, indices_2, spin)
                 exp_index = phase_factor * 1.0j * numpy.dot(vec1, vec2)
                 if ladder_op_type == 1:
                     exp_index *= -1.0
