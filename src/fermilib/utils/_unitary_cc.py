@@ -18,7 +18,6 @@ import numpy
 
 from fermilib.ops import FermionOperator
 from fermilib.transforms import jordan_wigner
-from functools import partial
 
 import projectq
 import projectq.backends

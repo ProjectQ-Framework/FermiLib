@@ -24,7 +24,6 @@ import fermilib.utils
 from fermilib.utils._graph import (Graph, Node)
 from fermilib.utils._unitary_cc import *
 
-from projectq import MainEngine
 from projectq.ops import (All, Measure, TimeEvolution,
                           QubitOperator,
                           X)
