@@ -56,6 +56,54 @@ class FermionOperatorTest(unittest.TestCase):
         self.assertEqual(len(fermion_op.terms), 1)
         self.assertEqual(fermion_op.terms[loc_op], coefficient)
 
+    def test_identity_is_multiplicative_identity(self):
+        u = FermionOperator.identity()
+        f = FermionOperator(((0, 1), (5, 0), (6, 1)), 0.6j)
+        g = FermionOperator(((0, 0), (5, 0), (6, 1)), 0.3j)
+        h = f + g
+        self.assertTrue(f.isclose(u * f))
+        self.assertTrue(f.isclose(f * u))
+        self.assertTrue(g.isclose(u * g))
+        self.assertTrue(g.isclose(g * u))
+        self.assertTrue(h.isclose(u * h))
+        self.assertTrue(h.isclose(h * u))
+
+        u *= h
+        self.assertTrue(h.isclose(u))
+        self.assertFalse(f.isclose(u))
+
+        # Method always returns new instances.
+        self.assertFalse(FermionOperator.identity().isclose(u))
+
+    def test_zero_is_additive_identity(self):
+        o = FermionOperator.zero()
+        f = FermionOperator(((0, 1), (5, 0), (6, 1)), 0.6j)
+        g = FermionOperator(((0, 0), (5, 0), (6, 1)), 0.3j)
+        h = f + g
+        self.assertTrue(f.isclose(o + f))
+        self.assertTrue(f.isclose(f + o))
+        self.assertTrue(g.isclose(o + g))
+        self.assertTrue(g.isclose(g + o))
+        self.assertTrue(h.isclose(o + h))
+        self.assertTrue(h.isclose(h + o))
+
+        o += h
+        self.assertTrue(h.isclose(o))
+        self.assertFalse(f.isclose(o))
+
+        # Method always returns new instances.
+        self.assertFalse(FermionOperator.zero().isclose(o))
+
+    def test_zero_is_multiplicative_nil(self):
+        o = FermionOperator.zero()
+        u = FermionOperator.identity()
+        f = FermionOperator(((0, 1), (5, 0), (6, 1)), 0.6j)
+        g = FermionOperator(((0, 0), (5, 0), (6, 1)), 0.3j)
+        self.assertTrue(o.isclose(o * u))
+        self.assertTrue(o.isclose(o * f))
+        self.assertTrue(o.isclose(o * g))
+        self.assertTrue(o.isclose(o * (f + g)))
+
     def test_init_str(self):
         fermion_op = FermionOperator('0^ 5 12^', -1.)
         correct = ((0, 1), (5, 0), (12, 1))
