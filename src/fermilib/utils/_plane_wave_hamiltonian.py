@@ -165,23 +165,24 @@ def fourier_transform(hamiltonian, grid, spinless):
         c_v = \sqrt{1/N} \sum_m {a_m \exp(i k_v r_m)}
 
     Args:
-        hamiltonian: The hamiltonian in plane wave basis.
-        grid: The discretization to use.
-        spinless: Bool, whether to use the spinless model or not.
+        hamiltonian (FermionOperator): The hamiltonian in plane wave basis.
+        grid (Grid): The discretization to use.
+        spinless (bool): Whether to use the spinless model or not.
 
     Returns:
-        hamiltonian_t: An instance of the FermionOperator class.
+        FermionOperator: The fourier-transformed hamiltonian.
     """
     return _fourier_transform_helper(hamiltonian=hamiltonian,
                                      grid=grid,
                                      spinless=spinless,
-                                     factor=+1,
+                                     phase_factor=+1,
                                      vec_func_1=momentum_vector,
                                      vec_func_2=position_vector)
 
 
 def inverse_fourier_transform(hamiltonian, grid, spinless):
-    """Apply Fourier transform to change hamiltonian in plane wave dual basis.
+    """Apply inverse Fourier transform to change hamiltonian in plane wave dual
+    basis.
 
     .. math::
 
@@ -189,65 +190,57 @@ def inverse_fourier_transform(hamiltonian, grid, spinless):
         a_v = \sqrt{1/N} \sum_m {c_m \exp(-i k_v r_m)}
 
     Args:
-        hamiltonian: The hamiltonian in plane wave dual basis.
-        grid: The discretization to use.
-        spinless: Bool, whether to use the spinless model or not.
+        hamiltonian (FermionOperator):
+            The hamiltonian in plane wave dual basis.
+        grid (Grid): The discretization to use.
+        spinless (bool): Whether to use the spinless model or not.
 
     Returns:
-        hamiltonian_t: An instance of the FermionOperator class.
+        FermionOperator: The inverse-fourier-transformed hamiltonian.
     """
+
     return _fourier_transform_helper(hamiltonian=hamiltonian,
                                      grid=grid,
                                      spinless=spinless,
-                                     factor=-1,
+                                     phase_factor=-1,
                                      vec_func_1=position_vector,
                                      vec_func_2=momentum_vector)
 
 
-def _fourier_transform_helper(hamiltonian, grid, spinless,
-                              factor, vec_func_1, vec_func_2):
-    hamiltonian_t = None
+def _fourier_transform_helper(hamiltonian,
+                              grid,
+                              spinless,
+                              phase_factor,
+                              vec_func_1,
+                              vec_func_2):
+    hamiltonian_t = FermionOperator.zero()
+    normalize_factor = numpy.sqrt(1.0 / float(grid.num_points()))
 
     for term in hamiltonian.terms:
-        transformed_term = None
-        for ladder_operator in term:
-            indices_1 = grid_indices(ladder_operator[0], grid, spinless)
-            vec_1 = vec_func_1(indices_1, grid)
-            new_basis = None
+        transformed_term = FermionOperator.identity()
+        for ladder_op_mode, ladder_op_type in term:
+            indices_1 = grid_indices(ladder_op_mode, grid, spinless)
+            vec1 = vec_func_1(indices_1, grid)
+            new_basis = FermionOperator.zero()
             for indices_2 in grid.all_points_indices():
-                vec_2 = vec_func_2(indices_2, grid)
-                if spinless:
-                    spin = None
-                else:
-                    spin = ladder_operator[0] % 2
+                vec2 = vec_func_2(indices_2, grid)
+                spin = None if spinless else ladder_op_mode % 2
                 orbital = orbital_id(grid, indices_2, spin)
-                exp_index = factor * 1.0j * numpy.dot(vec_1, vec_2)
-                if ladder_operator[1] == 1:
+                exp_index = phase_factor * 1.0j * numpy.dot(vec1, vec2)
+                if ladder_op_type == 1:
                     exp_index *= -1.0
 
-                element = FermionOperator(((orbital, ladder_operator[1]),),
+                element = FermionOperator(((orbital, ladder_op_type),),
                                           numpy.exp(exp_index))
-                if new_basis is None:
-                    new_basis = element
-                else:
-                    new_basis += element
+                new_basis += element
 
-            new_basis *= numpy.sqrt(1.0/float(grid.num_points()))
-
-            if transformed_term is None:
-                transformed_term = new_basis
-            else:
-                transformed_term *= new_basis
-        if transformed_term is None:
-            continue
+            new_basis *= normalize_factor
+            transformed_term *= new_basis
 
         # Coefficient.
         transformed_term *= hamiltonian.terms[term]
 
-        if hamiltonian_t is None:
-            hamiltonian_t = transformed_term
-        else:
-            hamiltonian_t += transformed_term
+        hamiltonian_t += transformed_term
 
     return hamiltonian_t
 
