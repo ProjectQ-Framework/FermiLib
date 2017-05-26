@@ -26,6 +26,7 @@ from fermilib.utils._plane_wave_hamiltonian import (
     inverse_fourier_transform,
     plane_wave_u_operator,
     dual_basis_u_operator,
+    jordan_wigner_dual_basis_hamiltonian,
 )
 
 
@@ -88,6 +89,19 @@ class PlaneWaveHamiltonianTest(unittest.TestCase):
                 diff = numpy.amax(numpy.absolute(
                     h_plane_wave_spectrum - h_dual_basis_spectrum))
                 self.assertAlmostEqual(diff, 0)
+
+    def test_jordan_wigner_dual_basis_hamiltonian(self):
+        grid = Grid(dimensions=2, length=3, scale=1.)
+        spinless = True
+        geometry = [('H', (0, 0)), ('H', (0.5, 0.8))]
+
+        fermion_hamiltonian = plane_wave_hamiltonian(grid, geometry, spinless,
+                                                     False)
+        qubit_hamiltonian = jordan_wigner(fermion_hamiltonian)
+
+        test_hamiltonian = jordan_wigner_dual_basis_hamiltonian(grid, geometry,
+                                                                spinless)
+        self.assertTrue(test_hamiltonian.isclose(qubit_hamiltonian))
 
 
 # Run test.
