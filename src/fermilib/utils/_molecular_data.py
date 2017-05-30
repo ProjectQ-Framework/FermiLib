@@ -222,7 +222,7 @@ class MolecularData(object):
         ccsd_amplitudes: Molecular operator holding coupled cluster amplitude.
     """
     def __init__(self, geometry=None, basis=None, multiplicity=None,
-                 charge=0, description="", filename=""):
+                 charge=0, description="", filename="", data_directory=None):
         """Initialize molecular metadata which defines class.
 
         Args:
@@ -241,6 +241,8 @@ class MolecularData(object):
                 (e.g. 0.7414).
             filename: An optional string giving name of file.
                 If filename is not provided, one is generated automatically.
+            data_directory: Optional data directory to change from default
+                data directory specified in config file.
         """
         # Check appropriate data as been provided and autoload if requested.
         if ((geometry is None) or
@@ -277,7 +279,10 @@ class MolecularData(object):
                 filename = filename[:(len(filename) - 5)]
             self.filename = filename
         else:
-            self.filename = DATA_DIRECTORY + '/' + self.name
+            if data_directory is None:
+                self.filename = DATA_DIRECTORY + '/' + self.name
+            else:
+                self.filename = data_directory + '/' + self.name
 
         # Attributes generated automatically by class.
         self.n_atoms = len(geometry)
