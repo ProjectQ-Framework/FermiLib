@@ -104,7 +104,9 @@ class Graph:
             node_id2(int): Index of second node on edge
         """
         if node_id1 >= self.node_count() or node_id2 >= self.node_count():
-            raise IndexError("Node ID out of range for graph")
+            raise IndexError("Node ID out of range for graph.")
+        if node_id1 == node_id2:
+            raise IndexError("Error, self-loops not supported.")
 
         self.neighbors[node_id1].add(self.node_uids[node_id2])
         self.neighbors[node_id2].add(self.node_uids[node_id1])
@@ -189,8 +191,9 @@ class Graph:
         if node_id1 == node_id2:
             return [node_id1]
 
-        previous = [None] * self.node_count()
-        distances = [None] * self.node_count()
+        # Initialize two arrays for backtracking the shortest path found
+        previous = [None] * self.node_count()  # Tracks the moves
+        distances = [None] * self.node_count()  # Records distance to nodes
         distances[node_id1] = 0
 
         node_queue = queue.LifoQueue()
@@ -201,6 +204,9 @@ class Graph:
             if next_id == node_id2:
                 break  # Success
             new_distance = distances[next_id] + 1
+            # On each iteration, check if going to a neighbor node was
+            # shortest path to that node, if so, add that node to the queue
+            # and record distance and path that is being taken.
             for uid in self.neighbors[next_id]:
                 if ((distances[self.uid_to_index[uid]] is None) or
                         (distances[self.uid_to_index[uid]] > new_distance)):
