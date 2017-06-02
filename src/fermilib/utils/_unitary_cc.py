@@ -11,7 +11,6 @@
 #   limitations under the License.
 
 """Module to create and manipulate unitary coupled cluster operators."""
-from __future__ import absolute_import
 
 import itertools
 import numpy
@@ -134,10 +133,10 @@ def uccsd_singlet_operator(packed_amplitudes,
         return i * n_occupied + j
 
     def t2_ind(i, j, k, l):
-        return i * n_occupied * n_virtual * n_occupied \
-            + j * n_virtual * n_occupied \
-            + k * n_occupied \
-            + l
+        return (i * n_occupied * n_virtual * n_occupied +
+                j * n_virtual * n_occupied +
+                k * n_occupied +
+                l)
 
     uccsd_generator = FermionOperator()
 
@@ -208,9 +207,8 @@ def uccsd_singlet_evolution(packed_amplitudes, n_qubits, n_electrons,
     qubit_generator.compress()
 
     # Allocate wavefunction and act evolution on gate according to compilation
-    evolution_operator = projectq.ops.\
-        TimeEvolution(time=1.,
-                      hamiltonian=qubit_generator)
+    evolution_operator = (
+        projectq.ops.TimeEvolution(time=1., hamiltonian=qubit_generator))
 
     return evolution_operator
 
@@ -236,8 +234,9 @@ def _identify_non_commuting(cmd):
         for term in hamiltonian.terms:
             test_op = projectq.ops.QubitOperator(term, hamiltonian.terms[term])
             for other in hamiltonian.terms:
-                other_op = projectq.\
-                    ops.QubitOperator(other, hamiltonian.terms[other])
+                other_op = (
+                    projectq.ops.QubitOperator(other,
+                                               hamiltonian.terms[other]))
                 commutator = test_op * other_op - other_op * test_op
                 if not commutator.isclose(id_op,
                                           rel_tol=1e-9,
@@ -257,11 +256,15 @@ def _non_adjacent_filter(self, cmd, qubit_graph, flip=False):
         cmd(projectq.command): Command to be checked for decomposition into
             additional swap gates.
         qubit_graph(Graph): Graph object specifying connectivity of
-            qubits. The values of the nodes of this graph are qubits or
-            weak qubit references.
+            qubits. The values of the nodes of this graph are unique qubit ids.
         flip(Bool): Flip for switching if identifying a gate is in this class
             by true or false.  Designed to meet the specification of ProjectQ
             InstructionFilter and DecompositionRule with one function.
+
+    Returns:
+        bool: When flip is False, this returns True when a 2 qubit command
+            acts on non-adjacent qubits or when it acts only on a single qubit.
+            This is reversed when flip is used.
 
     """
     if qubit_graph is None:
@@ -291,8 +294,7 @@ def _direct_graph_swap(cmd, qubit_graph):
         cmd(projectq.command): A command from ProjectQ that needs to be
             broken down due to non-adjacent terms
         qubit_graph(Graph): Graph object specifying connectivity of qubits.
-            The values of the nodes of this graph are qubits or weak qubit
-            references.
+            The values of the nodes of this graph are unique qubit ids
     """
     total_qubits = (cmd.control_qubits +
                     [item for qureg in cmd.qubits for item in qureg])
@@ -354,8 +356,9 @@ def _first_order_trotter(cmd):
     with projectq.meta.Control(eng, cmd.control_qubits):
         # First order Trotter splitting
             for term in hamiltonian.terms:
-                ind_operator = projectq.\
-                    ops.QubitOperator(term, hamiltonian.terms[term])
+                ind_operator = (projectq.
+                                ops.
+                                QubitOperator(term, hamiltonian.terms[term]))
                 projectq.ops.TimeEvolution(time, ind_operator) | qureg
 
 
@@ -393,32 +396,33 @@ def uccsd_trotter_engine(compiler_backend=projectq.backends.Simulator(),
             or alternatively print a gate sequence, e.g. using
             projectq.backends.CommandPrinter()
         qubit_graph(Graph): Graph object specifying connectivity of qubits.
-            The values of the nodes of this graph are qubits or weak qubit
-            references.  If None, all-to-all connectivity is assumed.
+            The values of the nodes of this unique qubit ids.  If None,
+            all-to-all connectivity is assumed.
 
     Returns:
         projectq.cengine that is the compiler engine set up with these
             rules and decompostions.
     """
-    rule_set = \
-        projectq.cengines. \
-        DecompositionRuleSet(modules=[projectq.setups.decompositions])
+    rule_set = (
+        projectq.cengines.
+        DecompositionRuleSet(modules=[projectq.setups.decompositions]))
 
     # Set rules for splitting non-commuting operators
-    trotter_rule_set = projectq.cengines. \
-        DecompositionRule(gate_class=projectq.ops.TimeEvolution,
-                          gate_decomposer=_first_order_trotter,
-                          gate_recognizer=_identify_non_commuting)
+    trotter_rule_set = (projectq.cengines.DecompositionRule(
+        gate_class=projectq.ops.TimeEvolution,
+        gate_decomposer=_first_order_trotter,
+        gate_recognizer=_identify_non_commuting))
     rule_set.add_decomposition_rule(trotter_rule_set)
 
     # Set rules for 2 qubit gates that act on non-adjacent qubits
     if qubit_graph is not None:
-        connectivity_rule_set = projectq.cengines.\
-            DecompositionRule(gate_class=projectq.ops.NOT.__class__,
-                              gate_decomposer=(lambda x: _direct_graph_swap(
-                                  x, qubit_graph)),
-                              gate_recognizer=(lambda x: _non_adjacent_filter(
-                                  None, x, qubit_graph, True)))
+        connectivity_rule_set = (
+            projectq.cengines.DecompositionRule(
+                gate_class=projectq.ops.NOT.__class__,
+                gate_decomposer=(lambda x: _direct_graph_swap(x, qubit_graph)),
+                gate_recognizer=(lambda x: _non_adjacent_filter(None, x,
+                                                                qubit_graph,
+                                                                True))))
         rule_set.add_decomposition_rule(connectivity_rule_set)
 
     # Build the full set of engines that will be applied to qubits
@@ -433,7 +437,7 @@ def uccsd_trotter_engine(compiler_backend=projectq.backends.Simulator(),
                             projectq.cengines.LocalOptimizer(5)]
 
     # Start the compiler engine with these rules
-    compiler_engine = projectq.\
-        MainEngine(backend=compiler_backend,
-                   engine_list=compiler_engine_list)
+    compiler_engine = (
+        projectq.MainEngine(backend=compiler_backend,
+                            engine_list=compiler_engine_list))
     return compiler_engine
