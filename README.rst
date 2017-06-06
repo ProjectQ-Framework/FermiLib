@@ -20,7 +20,7 @@ Getting started
 ---------------
 
 To start using FermiLib, simply follow the installation instructions in the `intro <http://fermilib.readthedocs.io/en/latest/intro.html>`__. There, you will also find `code examples <http://fermilib.readthedocs.io/en/latest/examples.html>`__. Also, make sure to check out the `ProjectQ
-website <http://www.projectq.ch>`__ and the detailed `code documentation <http://fermilib.readthedocs.io/en/latest/fermilib.html>`__. Moreover, take a look at the available `plugins <http://http://projectq.ch/code-and-docs/#Fermilib>`__ for FermiLib.
+website <http://www.projectq.ch>`__ and the detailed `code documentation <http://fermilib.readthedocs.io/en/latest/fermilib.html>`__. Moreover, take a look at the available `plugins <http://projectq.ch/code-and-docs/#Fermilib>`__ for FermiLib.
 
 How to contribute
 -----------------
