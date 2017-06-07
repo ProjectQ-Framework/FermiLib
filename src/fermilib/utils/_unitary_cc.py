@@ -32,18 +32,23 @@ def uccsd_operator(single_amplitudes, double_amplitudes, anti_hermitian=True):
     """Create a fermionic operator that is the generator of uccsd.
 
     This a the most straight-forward method to generate UCCSD operators,
-    however it is slightly inefficient.  In particular, it parameterizes
-    all possible exictations, so it represents a generalized unitary coupled
+    however it is slightly inefficient. In particular, it parameterizes
+    all possible excitations, so it represents a generalized unitary coupled
     cluster ansatz, but also does not explicitly enforce the uniqueness
-    in paramterization, so it is redundant. For example there will be a linear
+    in parametrization, so it is redundant. For example there will be a linear
     dependency in the ansatz of single_amplitudes[i,j] and
     single_amplitudes[j,i].
 
     Args:
-        single_amplitudes(ndarray): [NxN] array storing single excitation
-            amplitudes corresponding to t[i,j] * (a_i^\dagger a_j + H.C.)
-        double_amplitudes(ndarray): [NxNxNxN] array storing double excitation
+        single_amplitudes(list or ndarray): list of lists with each sublist
+            storing a list of indices followed by single excitation amplitudes
+            i.e. [[[i,j],t_ij], ...] OR [NxN] array storing single excitation
             amplitudes corresponding to
+            t[i,j] * (a_i^\dagger a_j + H.C.)
+        double_amplitudes(list or ndarray): list of lists with each sublist
+            storing a list of indices followed by double excitation amplitudes
+            i.e. [[[i,j,k,l],t_ijkl], ...] OR [NxNxNxN] array storing double
+            excitation amplitudes corresponding to
             t[i,j,k,l] * (a_i^\dagger a_j a_k^\dagger a_l + H.C.)
         anti_hermitian(Bool): Flag to generate only normal CCSD operator
             rather than unitary variant, primarily for testing
@@ -52,32 +57,59 @@ def uccsd_operator(single_amplitudes, double_amplitudes, anti_hermitian=True):
         uccsd_generator(FermionOperator): Anti-hermitian fermion operator that
         is the generator for the uccsd wavefunction.
     """
-    n_orbitals = single_amplitudes.shape[0]
-    assert(n_orbitals == double_amplitudes.shape[0])
+
     uccsd_generator = FermionOperator()
 
-    # Add single excitations
-    for i, j in itertools.product(range(n_orbitals), repeat=2):
-        if single_amplitudes[i, j] == 0.:
-            continue
-        uccsd_generator += FermionOperator(((i, 1), (j, 0)),
-                                           single_amplitudes[i, j])
-        if anti_hermitian:
-            uccsd_generator += FermionOperator(((j, 1), (i, 0)),
-                                               -single_amplitudes[i, j])
+    # Re-format inputs (ndarrays to lists) if necessary
+    if isinstance(single_amplitudes, numpy.ndarray) or isinstance(double_amplitudes, numpy.ndarray):
+        single_amplitudes, double_amplitudes = convert_amplitude_format(single_amplitudes,
+                                                                        double_amplitudes)
 
-        # Add double excitations
-    for i, j, k, l in itertools.product(range(n_orbitals), repeat=4):
-        if double_amplitudes[i, j, k, l] == 0.:
-            continue
+    # Add single excitations
+    for (i, j), t_ij in single_amplitudes:
+        i, j = int(i), int(j)
+        uccsd_generator += FermionOperator(((i, 1), (j, 0)), t_ij)
+        if anti_hermitian:
+            uccsd_generator += FermionOperator(((j, 1), (i, 0)), -t_ij)
+
+    # Add double excitations
+    for (i, j, k, l), t_ijkl in double_amplitudes:
+        i, j, k, l = int(i), int(j), int(k), int(l)
         uccsd_generator += FermionOperator(
-            ((i, 1), (j, 0), (k, 1), (l, 0)),
-            double_amplitudes[i, j, k, l])
+            ((i, 1), (j, 0), (k, 1), (l, 0)), t_ijkl)
         if anti_hermitian:
             uccsd_generator += FermionOperator(
-                ((l, 1), (k, 0), (j, 1), (i, 0)),
-                -double_amplitudes[i, j, k, l])
+                ((l, 1), (k, 0), (j, 1), (i, 0)), -t_ijkl)
     return uccsd_generator
+
+
+def convert_amplitude_format(single_amplitudes, double_amplitudes):
+    """Re-format single_amplitudes and double_amplitudes from ndarrays to lists.
+
+        Args:
+        single_amplitudes(ndarray): [NxN] array storing single excitation
+            amplitudes corresponding to t[i,j] * (a_i^\dagger a_j + H.C.)
+        double_amplitudes(ndarray): [NxNxNxN] array storing double excitation
+            amplitudes corresponding to
+            t[i,j,k,l] * (a_i^\dagger a_j a_k^\dagger a_l + H.C.)
+
+        Returns:
+        single_amplitudes_list(list): list of lists with each sublist storing
+            a list of indices followed by single excitation amplitudes
+            i.e. [[[i,j],t_ij], ...]
+        double_amplitudes_list(list): list of lists with each sublist storing
+            a list of indices followed by double excitation amplitudes
+            i.e. [[[i,j,k,l],t_ijkl], ...]
+    """
+    single_amplitudes_list, double_amplitudes_list = [], []
+
+    for i, j in zip(*single_amplitudes.nonzero()):
+        single_amplitudes_list.append([[i, j], single_amplitudes[i, j]])
+
+    for i, j, k, l in zip(*double_amplitudes.nonzero()):
+        double_amplitudes_list.append([[i, j, k, l],
+                                      double_amplitudes[i, j, k, l]])
+    return single_amplitudes_list, double_amplitudes_list
 
 
 def uccsd_singlet_paramsize(n_qubits, n_electrons):
