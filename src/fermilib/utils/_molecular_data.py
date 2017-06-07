@@ -304,6 +304,7 @@ class MolecularData(object):
         # Attributes generated from integrals.
         self.orbital_overlaps = None
         self.one_body_integrals = None
+        self.two_body_integrals = None
 
         # Attributes generated from MP2 calculation.
         self.mp2_energy = None
@@ -311,10 +312,12 @@ class MolecularData(object):
         # Attributes generated from CISD calculation.
         self.cisd_energy = None
         self.cisd_one_rdm = None
+        self.cisd_two_rdm = None
 
         # Attributes generated from exact diagonalization.
         self.fci_energy = None
         self.fci_one_rdm = None
+        self.fci_two_rdm = None
 
         # Attributes generated from CCSD calculation.
         self.ccsd_energy = None
@@ -371,19 +374,26 @@ class MolecularData(object):
             f["one_body_integrals"] = (self.one_body_integrals if
                                        self.one_body_integrals is
                                        not None else False)
+            f["two_body_integrals"] = (self.two_body_integrals if
+                                       self.two_body_integrals is
+                                       not None else False)
             # Save attributes generated from MP2 calculation.
             f["mp2_energy"] = (self.mp2_energy if
                                self.mp2_energy is not None else False)
             # Save attributes generated from CISD calculation.
             f["cisd_energy"] = (self.cisd_energy if
                                 self.cisd_energy is not None else False)
-            f["cisd_one_rmd"] = (self.cisd_one_rdm if
+            f["cisd_one_rdm"] = (self.cisd_one_rdm if
                                  self.cisd_one_rdm is not None else False)
+            f["cisd_two_rdm"] = (self.cisd_two_rdm if
+                                 self.cisd_two_rdm is not None else False)
             # Save attributes generated from exact diagonalization.
             f["fci_energy"] = (self.fci_energy if
                                self.fci_energy is not None else False)
             f["fci_one_rdm"] = (self.fci_one_rdm if
                                 self.fci_one_rdm is not None else False)
+            f["fci_two_rdm"] = (self.fci_two_rdm if
+                                self.fci_two_rdm is not None else False)
             # Save attributes generated from CCSD calculation.
             f["ccsd_energy"] = (self.ccsd_energy if
                                 self.ccsd_energy is not None else False)
@@ -448,7 +458,7 @@ class MolecularData(object):
             # Load attributes generated from CISD calculation.
             d_9 = f["cisd_energy"][...]
             self.cisd_energy = d_9 if d_9.dtype.num != 0 else None
-            d_10 = f["cisd_one_rmd"][...]
+            d_10 = f["cisd_one_rdm"][...]
             self.cisd_one_rdm = d_10 if d_10.dtype.num != 0 else None
             # Load attributes generated from exact diagonalization.
             d_11 = f["fci_energy"][...]
@@ -489,12 +499,14 @@ class MolecularData(object):
         # Make sure integrals have been computed.
         if self.hf_energy is None:
             raise MissingCalculationError(
-                'Missing file {}. Run SCF before loading integrals.'.format(
-                    self.filename + '_eri.npy'))
+                'Missing SCF in {}, run before loading integrals.'.format(
+                    self.filename))
 
         # Get integrals and return.
-        two_body_integrals = numpy.load(self.filename + '_eri.npy')
-        return self.one_body_integrals, two_body_integrals
+        with h5py.File("{}.hdf5".format(self.filename), "r") as f:
+            tmp = f["two_body_integrals"][...]
+            self.two_body_integrals = tmp if tmp.dtype.num != 0 else None
+        return self.one_body_integrals, self.two_body_integrals
 
     def get_active_space_integrals(self, active_space_start,
                                    active_space_stop=None):
@@ -645,22 +657,23 @@ class MolecularData(object):
         if use_fci:
             if self.fci_energy is None:
                 raise MissingCalculationError(
-                    'Missing {}. '.format(
-                        self.filename + '_fci_rdm.npy') +
+                    'Missing FCI RDM in {}'.format(self.filename) +
                     'Run FCI calculation before loading FCI RDMs.')
             else:
-                rdm_name = self.filename + '_fci_rdm.npy'
+                rdm_name = "fci_two_rdm"
                 one_rdm = self.fci_one_rdm
         else:
             if self.cisd_energy is None:
                 raise MissingCalculationError(
-                    'Missing {}. '.format(
-                        self.filename + '_cisd_rdm.npy') +
+                    'Missing CISD RDM in {}'.format(self.filename) +
                     'Run CISD calculation before loading CISD RDMs.')
             else:
-                rdm_name = self.filename + '_cisd_rdm.npy'
+                rdm_name = "cisd_two_rdm"
                 one_rdm = self.cisd_one_rdm
-        two_rdm = numpy.load(rdm_name)
+
+        with h5py.File("{}.hdf5".format(self.filename), "r") as f:
+            tmp = f[rdm_name][...]
+            two_rdm = self.two_rdm = tmp if tmp.dtype.num != 0 else None
 
         # Truncate.
         one_rdm[numpy.absolute(one_rdm) < EQ_TOLERANCE] = 0.
