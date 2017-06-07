@@ -11,7 +11,6 @@
 #   limitations under the License.
 
 """Module to create and manipulate unitary coupled cluster operators."""
-from __future__ import absolute_import
 
 import itertools
 import numpy
@@ -26,6 +25,7 @@ import projectq.meta
 import projectq.ops
 import projectq.setups
 import projectq.setups.decompositions
+import projectq.types
 
 
 def uccsd_operator(single_amplitudes, double_amplitudes, anti_hermitian=True):
@@ -133,10 +133,10 @@ def uccsd_singlet_operator(packed_amplitudes,
         return i * n_occupied + j
 
     def t2_ind(i, j, k, l):
-        return i * n_occupied * n_virtual * n_occupied \
-            + j * n_virtual * n_occupied \
-            + k * n_occupied \
-            + l
+        return (i * n_occupied * n_virtual * n_occupied +
+                j * n_virtual * n_occupied +
+                k * n_occupied +
+                l)
 
     uccsd_generator = FermionOperator()
 
@@ -207,9 +207,8 @@ def uccsd_singlet_evolution(packed_amplitudes, n_qubits, n_electrons,
     qubit_generator.compress()
 
     # Allocate wavefunction and act evolution on gate according to compilation
-    evolution_operator = projectq.ops.\
-        TimeEvolution(time=1.,
-                      hamiltonian=qubit_generator)
+    evolution_operator = (
+        projectq.ops.TimeEvolution(time=1., hamiltonian=qubit_generator))
 
     return evolution_operator
 
@@ -235,14 +234,109 @@ def _identify_non_commuting(cmd):
         for term in hamiltonian.terms:
             test_op = projectq.ops.QubitOperator(term, hamiltonian.terms[term])
             for other in hamiltonian.terms:
-                other_op = projectq.\
-                    ops.QubitOperator(other, hamiltonian.terms[other])
+                other_op = (
+                    projectq.ops.QubitOperator(other,
+                                               hamiltonian.terms[other]))
                 commutator = test_op * other_op - other_op * test_op
                 if not commutator.isclose(id_op,
                                           rel_tol=1e-9,
                                           abs_tol=1e-9):
                     return True
     return False
+
+
+def _non_adjacent_filter(self, cmd, qubit_graph, flip=False):
+    """A ProjectQ filter to identify when swaps are needed on a graph
+
+    This flags any gates that act on two non-adjacent qubits with respect to
+    the qubit_graph that has been given
+
+    Args:
+        self(Dummy): Dummy parameter to meet function specification.
+        cmd(projectq.command): Command to be checked for decomposition into
+            additional swap gates.
+        qubit_graph(Graph): Graph object specifying connectivity of
+            qubits. The values of the nodes of this graph are unique qubit ids.
+        flip(Bool): Flip for switching if identifying a gate is in this class
+            by true or false.  Designed to meet the specification of ProjectQ
+            InstructionFilter and DecompositionRule with one function.
+
+    Returns:
+        bool: When flip is False, this returns True when a 2 qubit command
+            acts on non-adjacent qubits or when it acts only on a single qubit.
+            This is reversed when flip is used.
+
+    """
+    if qubit_graph is None:
+        return True ^ flip
+
+    total_qubits = (cmd.control_qubits +
+                    [item for qureg in cmd.qubits for item in qureg])
+
+    # Check for non-connected gate on 2 qubits
+    if ((len(total_qubits) == 1) or
+            (len(total_qubits) == 2 and
+             qubit_graph.is_adjacent(
+                 qubit_graph.find_index(total_qubits[0].id),
+                 qubit_graph.find_index(total_qubits[1].id)))):
+        return True ^ flip
+    return False ^ flip
+
+
+def _direct_graph_swap(cmd, qubit_graph):
+    """Define a naive direct swap sequence to respect qubit_graph connectivity
+
+    Uses the connectivity of qubit_graph to find the shortest path between
+    two non-adjacent qubits, and swaps/unswaps qubits appropriately.  Baseline
+    for more sophisticated algorithms
+
+    Args:
+        cmd(projectq.command): A command from ProjectQ that needs to be
+            broken down due to non-adjacent terms
+        qubit_graph(Graph): Graph object specifying connectivity of qubits.
+            The values of the nodes of this graph are unique qubit ids
+    """
+    total_qubits = (cmd.control_qubits +
+                    [item for qureg in cmd.qubits for item in qureg])
+
+    gate = cmd.gate
+    engine = cmd.engine
+    graph_path = qubit_graph.shortest_path(
+        qubit_graph.find_index(total_qubits[0].id),
+        qubit_graph.find_index(total_qubits[1].id))
+    swap_path = [(graph_path[i], graph_path[i + 1])
+                 for i in range(len(graph_path) - 2)]
+
+    # SWAP qubit 1 into position adjacent to qubit 2
+    for pair in swap_path:
+        projectq.ops.Swap | (projectq.types.
+                             WeakQubitRef(engine,
+                                          qubit_graph.nodes[pair[0]].value),
+                             projectq.types.
+                             WeakQubitRef(engine,
+                                          qubit_graph.nodes[pair[1]].value))
+
+    # Perform original gate
+    if len(cmd.control_qubits) > 0:
+        projectq.ops.C(gate) | (projectq.types.
+                                WeakQubitRef(engine,
+                                             qubit_graph.
+                                             nodes[graph_path[-2]].value),
+                                total_qubits[1])
+    else:
+        gate | (projectq.types.
+                WeakQubitRef(engine,
+                             qubit_graph.nodes[graph_path[-2]].value),
+                total_qubits[1])
+
+    # Reverse the swaps to put qubits back in place
+    for pair in reversed(swap_path):
+        projectq.ops.Swap | (projectq.types.
+                             WeakQubitRef(engine,
+                                          qubit_graph.nodes[pair[0]].value),
+                             projectq.types.
+                             WeakQubitRef(engine,
+                                          qubit_graph.nodes[pair[1]].value))
 
 
 def _first_order_trotter(cmd):
@@ -253,7 +347,7 @@ def _first_order_trotter(cmd):
 
     Args:
         cmd(projectq.command): A command from ProjectQ that needs to be
-            factorized due to non-commuting terms
+            factorized due to non-commuting time evolution terms
     """
     qureg = cmd.qubits
     eng = cmd.engine
@@ -262,8 +356,9 @@ def _first_order_trotter(cmd):
     with projectq.meta.Control(eng, cmd.control_qubits):
         # First order Trotter splitting
             for term in hamiltonian.terms:
-                ind_operator = projectq.\
-                    ops.QubitOperator(term, hamiltonian.terms[term])
+                ind_operator = (projectq.
+                                ops.
+                                QubitOperator(term, hamiltonian.terms[term]))
                 projectq.ops.TimeEvolution(time, ind_operator) | qureg
 
 
@@ -287,7 +382,8 @@ def _two_gate_filter(self, cmd):
     return False
 
 
-def uccsd_trotter_engine(compiler_backend=projectq.backends.Simulator()):
+def uccsd_trotter_engine(compiler_backend=projectq.backends.Simulator(),
+                         qubit_graph=None):
     """Define a ProjectQ compiler engine that is common for use with UCCSD
 
     This defines a ProjectQ compiler engine that decomposes time evolution
@@ -299,26 +395,49 @@ def uccsd_trotter_engine(compiler_backend=projectq.backends.Simulator()):
             circuit compiler, so that it may either simulate gates numerically
             or alternatively print a gate sequence, e.g. using
             projectq.backends.CommandPrinter()
+        qubit_graph(Graph): Graph object specifying connectivity of qubits.
+            The values of the nodes of this unique qubit ids.  If None,
+            all-to-all connectivity is assumed.
 
     Returns:
         projectq.cengine that is the compiler engine set up with these
             rules and decompostions.
     """
-    rule_set = \
-        projectq.cengines. \
-        DecompositionRuleSet(modules=[projectq.setups.decompositions])
-    trotter_rule_set = projectq.cengines. \
-        DecompositionRule(gate_class=projectq.ops.TimeEvolution,
-                          gate_decomposer=_first_order_trotter,
-                          gate_recognizer=_identify_non_commuting)
+    rule_set = (
+        projectq.cengines.
+        DecompositionRuleSet(modules=[projectq.setups.decompositions]))
+
+    # Set rules for splitting non-commuting operators
+    trotter_rule_set = (projectq.cengines.DecompositionRule(
+        gate_class=projectq.ops.TimeEvolution,
+        gate_decomposer=_first_order_trotter,
+        gate_recognizer=_identify_non_commuting))
     rule_set.add_decomposition_rule(trotter_rule_set)
+
+    # Set rules for 2 qubit gates that act on non-adjacent qubits
+    if qubit_graph is not None:
+        connectivity_rule_set = (
+            projectq.cengines.DecompositionRule(
+                gate_class=projectq.ops.NOT.__class__,
+                gate_decomposer=(lambda x: _direct_graph_swap(x, qubit_graph)),
+                gate_recognizer=(lambda x: _non_adjacent_filter(None, x,
+                                                                qubit_graph,
+                                                                True))))
+        rule_set.add_decomposition_rule(connectivity_rule_set)
+
+    # Build the full set of engines that will be applied to qubits
     replacer = projectq.cengines.AutoReplacer(rule_set)
+    compiler_engine_list = [replacer,
+                            projectq.
+                            cengines.
+                            InstructionFilter(
+                                lambda x, y:
+                                (_non_adjacent_filter(x, y, qubit_graph) and
+                                 _two_gate_filter(x, y))),
+                            projectq.cengines.LocalOptimizer(5)]
 
     # Start the compiler engine with these rules
-    compiler_engine = projectq.\
-        MainEngine(backend=compiler_backend,
-                   engine_list=[replacer,
-                                projectq.
-                                cengines.InstructionFilter(_two_gate_filter),
-                                projectq.cengines.LocalOptimizer(3)])
+    compiler_engine = (
+        projectq.MainEngine(backend=compiler_backend,
+                            engine_list=compiler_engine_list))
     return compiler_engine
