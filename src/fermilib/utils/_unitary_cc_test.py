@@ -16,7 +16,6 @@ from __future__ import absolute_import
 
 import unittest
 from numpy.random import randn
-from scipy.sparse import dok_matrix, csr_matrix
 
 import fermilib
 import fermilib.ops
@@ -197,7 +196,6 @@ class UnitaryCC(unittest.TestCase):
 
     def test_sparse_uccsd_operator_list_inputs(self):
         """Test list inputs to uccsd_operator that are sparse"""
-        test_orbitals = 30
         sparse_single_amplitudes = [[[3, 5], 0.12345],
                                     [[12, 4], 0.44313]]
         sparse_double_amplitudes = [[[0, 12, 6, 2], 0.3434],

@@ -64,8 +64,8 @@ def uccsd_operator(single_amplitudes, double_amplitudes, anti_hermitian=True):
     if (isinstance(single_amplitudes, numpy.ndarray) or
             isinstance(double_amplitudes, numpy.ndarray)):
         single_amplitudes, double_amplitudes = convert_amplitude_format(
-                                                    single_amplitudes,
-                                                    double_amplitudes)
+            single_amplitudes,
+            double_amplitudes)
 
     # Add single excitations
     for (i, j), t_ij in single_amplitudes:
