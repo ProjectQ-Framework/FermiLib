@@ -356,7 +356,7 @@ class MolecularData(object):
             # Save description:
             f["description"] = numpy.string_(self.description)
             # Save name:
-            f["name"] = self.name
+            f["name"] = numpy.string_(self.name)
             # Save n_atoms:
             f["n_atoms"] = self.n_atoms
             # Save atoms:
@@ -439,7 +439,7 @@ class MolecularData(object):
             # Load description:
             self.description = str(f["description"][...])
             # Load name:
-            self.name = str(f["name"][...])
+            self.name = numpy.string_(f["name"][...])
             # Load n_atoms:
             self.n_atoms = int(f["n_atoms"][...])
             # Load atoms:
