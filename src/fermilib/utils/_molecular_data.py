@@ -324,7 +324,22 @@ class MolecularData(object):
         self.ccsd_amplitudes = None
 
     def save(self):
-        "Method to save the class under a systematic name."
+        """Method to save the class under a systematic name."""
+
+        # Load two body integrals/rdms from file before re-saving, since
+        # they aren't loaded by default
+        if (os.path.isfile("{}.hdf5".format(self.filename))):
+            if (self.one_body_integrals is not None and
+                    self.two_body_integrals is None):
+                self.one_body_integrals, self.two_body_integrals = (
+                    self.get_integrals())
+            if self.cisd_one_rdm is not None and self.cisd_two_rdm is None:
+                rdm = self.get_molecular_rdm()
+                self.cisd_two_rdm = rdm.two_body_tensor
+            if self.fci_one_rdm is not None and self.fci_two_rdm is None:
+                rdm = self.get_molecular_rdm(use_fci=True)
+                self.fci_two_rdm = rdm.two_body_tensor
+
         with h5py.File("{}.hdf5".format(self.filename), "w") as f:
             # Save geometry (atoms and positions need to be separate):
             d_geom = f.create_group("geometry")

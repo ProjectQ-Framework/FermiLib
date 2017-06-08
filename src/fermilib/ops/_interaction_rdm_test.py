@@ -26,7 +26,8 @@ class InteractionRDMTest(unittest.TestCase):
         geometry = [('H', (0., 0., 0.)), ('H', (0., 0., 0.7414))]
         basis = 'sto-3g'
         multiplicity = 1
-        filename = os.path.join(THIS_DIRECTORY, 'data', 'H2_sto-3g_singlet')
+        filename = os.path.join(THIS_DIRECTORY, 'data',
+                                'H2_sto-3g_singlet_0.7414')
         self.molecule = MolecularData(
             geometry, basis, multiplicity, filename=filename)
         self.molecule.load()
