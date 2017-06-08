@@ -70,7 +70,7 @@ class PlaneWaveHamiltonianTest(unittest.TestCase):
         self.assertTrue(normal_ordered(h_dual_basis_t).isclose(
             normal_ordered(h_plane_wave)))
 
-    def test_plane_wave_hamiltonian_integration(self):
+    def test_plane_wave_hamiltonian_same_spectrum_integration(self):
         length_set = [3, 4]
         spinless_set = [True, False]
         geometry = [('H', (0,)), ('H', (0.8,))]

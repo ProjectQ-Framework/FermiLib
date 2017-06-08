@@ -625,18 +625,38 @@ class FermionOperatorTest(unittest.TestCase):
         op = FermionOperator() * 2
         self.assertTrue(op.is_normal_ordered())
 
+    def test_is_normal_ordered_empty_with_key(self):
+        op = FermionOperator() * 2
+        self.assertTrue(op.is_normal_ordered(key_array=[2, 3, 1]))
+
     def test_is_normal_ordered_number(self):
         op = FermionOperator('2^ 2') * -1j
         self.assertTrue(op.is_normal_ordered())
 
+    def test_is_normal_ordered_number_with_key(self):
+        op = FermionOperator('2^ 2') * -1j
+        self.assertTrue(op.is_normal_ordered(key_array=[2, 3, 1]))
+
     def test_is_normal_ordered_reversed(self):
         self.assertFalse(FermionOperator('2 2^').is_normal_ordered())
+
+    def test_is_normal_ordered_reversed_with_key(self):
+        self.assertFalse(FermionOperator('2 2^').is_normal_ordered(
+            key_array=[2, 3, 1]))
 
     def test_is_normal_ordered_create(self):
         self.assertTrue(FermionOperator('11^').is_normal_ordered())
 
     def test_is_normal_ordered_annihilate(self):
         self.assertTrue(FermionOperator('0').is_normal_ordered())
+
+    def test_is_normal_ordered_create_with_key(self):
+        self.assertTrue(FermionOperator('11^').is_normal_ordered(
+            key_array=[2, 3, 1, 11, 7, 9, 10, 6, 2, 4, 0, 5, 8]))
+
+    def test_is_normal_ordered_annihilate_with_key(self):
+        self.assertTrue(FermionOperator('0').is_normal_ordered(
+            key_array=[2, 3, 1, 11, 7, 9, 10, 6, 2, 4, 0, 5]))
 
     def test_is_normal_ordered_long_not(self):
         self.assertFalse(FermionOperator('0 5^ 3^ 2^ 1^').is_normal_ordered())
@@ -647,6 +667,26 @@ class FermionOperatorTest(unittest.TestCase):
     def test_is_normal_ordered_long_descending(self):
         self.assertTrue(FermionOperator('5^ 3^ 2^ 1^ 0').is_normal_ordered())
 
+    def test_is_normal_ordered_long_not_with_key(self):
+        self.assertFalse(FermionOperator('0 5^ 3^ 2^ 1^').is_normal_ordered(
+            key_array=[8, 2, 3, 4, 5, 6]))
+
+    def test_is_normal_ordered_outoforder_with_key(self):
+        self.assertFalse(FermionOperator('0 1').is_normal_ordered(
+            key_array=[2, 3]))
+
+    def test_is_normal_ordered_outoforder_but_ordered_by_key(self):
+        self.assertTrue(FermionOperator('0 1').is_normal_ordered(
+            key_array=[3, 2]))
+
+    def test_is_normal_ordered_long_descending_with_key(self):
+        self.assertTrue(FermionOperator('5^ 3^ 2^ 1^ 0').is_normal_ordered(
+            key_array=[7, 2, 4, 5, 6, 8]))
+
+    def test_is_normal_ordered_long_outoforder_but_descending_with_key(self):
+        self.assertTrue(FermionOperator('5^ 2^ 1^ 3^ 0').is_normal_ordered(
+            key_array=[7, 4, 5, 3, 2, 6]))
+
     def test_is_normal_ordered_multi(self):
         op = FermionOperator('4 3 2^ 2') + FermionOperator('1 2')
         self.assertFalse(op.is_normal_ordered())
@@ -655,9 +695,26 @@ class FermionOperatorTest(unittest.TestCase):
         op = FermionOperator('4 3 2 1') + FermionOperator('3 2')
         self.assertTrue(op.is_normal_ordered())
 
+    def test_is_normal_ordered_multi_with_key(self):
+        op = FermionOperator('4 3 2^ 2') + FermionOperator('1 2')
+        self.assertFalse(op.is_normal_ordered(key_array=[0, 1, 4, 6, 7]))
+
+    def test_is_normal_ordered_multiorder_with_key(self):
+        op = FermionOperator('4 3 2 1') + FermionOperator('3 2')
+        self.assertTrue(op.is_normal_ordered(key_array=[1, 2, 3, 4, 5]))
+
+    def test_is_normal_ordered_multiorder_outoforder_but_ordered_by_key(self):
+        op = FermionOperator('4 2 3 1') + FermionOperator('2 3')
+        self.assertTrue(op.is_normal_ordered(key_array=[9, 2, 5, 4, 7]))
+
     def test_normal_ordered_single_term(self):
         op = FermionOperator('4 3 2 1') + FermionOperator('3 2')
         self.assertTrue(op.isclose(normal_ordered(op)))
+
+    def test_normal_ordered_single_term_by_reversed_key(self):
+        op = FermionOperator('1 2 3 4') + FermionOperator('2 3')
+        self.assertTrue(op.isclose(normal_ordered(
+            op, key_array=[5, 4, 3, 2, 1])))
 
     def test_normal_ordered_two_term(self):
         op_b = FermionOperator(((2, 0), (4, 0), (2, 1)), -88.)
@@ -666,9 +723,21 @@ class FermionOperatorTest(unittest.TestCase):
                     FermionOperator(((2, 1), (4, 0), (2, 0)), 88.))
         self.assertTrue(normal_ordered_b.isclose(expected))
 
+    def test_normal_ordered_two_term_with_key(self):
+        op_b = FermionOperator(((4, 0), (2, 0), (2, 1)), -88.)
+        normal_ordered_b = normal_ordered(op_b, key_array=[5, 4, 3, 2, 1])
+        expected = (FermionOperator(((4, 0),), -88.) +
+                    FermionOperator(((2, 1), (2, 0), (4, 0)), 88.))
+        self.assertTrue(normal_ordered_b.isclose(expected))
+
     def test_normal_ordered_number(self):
         number_op2 = FermionOperator(((2, 1), (2, 0)))
         self.assertTrue(number_op2.isclose(normal_ordered(number_op2)))
+
+    def test_normal_ordered_number_with_key(self):
+        number_op2 = FermionOperator(((2, 1), (2, 0)))
+        self.assertTrue(number_op2.isclose(
+            normal_ordered(number_op2, key_array=[2, 1, 0])))
 
     def test_normal_ordered_number_reversed(self):
         n_term_rev2 = FermionOperator(((2, 0), (2, 1)))
@@ -709,6 +778,12 @@ class FermionOperatorTest(unittest.TestCase):
         self.assertTrue(op_132.isclose(normal_ordered(-op_123)))
         self.assertTrue(op_132.isclose(normal_ordered(op_132)))
         self.assertTrue(op_132.isclose(normal_ordered(op_321)))
+
+    def test_normal_ordered_long_key(self):
+        op = FermionOperator(((0, 1), (1, 1), (2, 1), (3, 1), (3, 0)))
+        expected = FermionOperator(((2, 1), (3, 1), (0, 1), (1, 1), (3, 0)))
+        self.assertTrue(expected.isclose(
+            normal_ordered(op, key_array=[1, 0, 3, 2])))
 
     def test_is_molecular_term_FermionOperator(self):
         op = FermionOperator()

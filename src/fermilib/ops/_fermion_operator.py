@@ -51,7 +51,7 @@ def number_operator(n_orbitals, orbital=None, coefficient=1.):
     return operator
 
 
-def normal_ordered_term(term, coefficient):
+def normal_ordered_term(term, coefficient, key_array=None):
     """Return a normal ordered FermionOperator corresponding to single term.
 
     Args:
@@ -75,6 +75,15 @@ def normal_ordered_term(term, coefficient):
         at most a constant number of times in the original term, the
         runtime of this method is exponential in the number of qubits.
     """
+    from fermilib.utils import count_qubits
+
+    if not key_array:
+        n_qubits = 0
+        for ladder_operator in term:
+            if ladder_operator[0] + 1 > n_qubits:
+                n_qubits = ladder_operator[0] + 1
+        key_array = range(n_qubits)
+
     # Iterate from left to right across operators and reorder to normal
     # form. Swap terms operators into correct position by moving from
     # left to right across ladder operators.
@@ -93,7 +102,7 @@ def normal_ordered_term(term, coefficient):
 
                 # Replace a a^\dagger with 1 - a^\dagger a
                 # if indices are the same.
-                if right_operator[0] == left_operator[0]:
+                if key_array[right_operator[0]] == key_array[left_operator[0]]:
                     new_term = term[:(j - 1)] + term[(j + 1)::]
 
                     # Recursively add the processed new term.
@@ -104,11 +113,12 @@ def normal_ordered_term(term, coefficient):
             elif right_operator[1] == left_operator[1]:
 
                 # If same two operators are repeated, evaluate to zero.
-                if right_operator[0] == left_operator[0]:
+                if key_array[right_operator[0]] == key_array[left_operator[0]]:
                     return ordered_term
 
                 # Swap if same ladder type but lower index on left.
-                elif right_operator[0] > left_operator[0]:
+                elif (key_array[right_operator[0]] >
+                      key_array[left_operator[0]]):
                     term[j - 1] = right_operator
                     term[j] = left_operator
                     coefficient *= -1
@@ -118,7 +128,7 @@ def normal_ordered_term(term, coefficient):
     return ordered_term
 
 
-def normal_ordered(fermion_operator):
+def normal_ordered(fermion_operator, key_array=None):
     """Compute and return the normal ordered form of a FermionOperator.
 
     In our convention, normal ordering implies terms are ordered
@@ -130,9 +140,14 @@ def normal_ordered(fermion_operator):
         at most a constant number of times in the original term, the
         runtime of this method is exponential in the number of qubits.
     """
+    from fermilib.utils import count_qubits
+
+    if not key_array:
+        key_array = range(count_qubits(fermion_operator))
+
     ordered_operator = FermionOperator()
     for term, coefficient in fermion_operator.terms.items():
-        ordered_operator += normal_ordered_term(term, coefficient)
+        ordered_operator += normal_ordered_term(term, coefficient, key_array)
     return ordered_operator
 
 
@@ -300,13 +315,18 @@ class FermionOperator(object):
                 new_terms[term] = coeff
         self.terms = new_terms
 
-    def is_normal_ordered(self):
+    def is_normal_ordered(self, key_array=None):
         """Return whether or not term is in normal order.
 
         In our convention, normal ordering implies terms are ordered
         from highest tensor factor (on left) to lowest (on right). Also,
         ladder operators come first.
         """
+        from fermilib.utils import count_qubits
+
+        if not key_array:
+            key_array = range(count_qubits(self))
+
         for term in self.terms:
             for i in range(1, len(term)):
                 for j in range(i, 0, -1):
@@ -315,7 +335,8 @@ class FermionOperator(object):
                     if right_operator[1] and not left_operator[1]:
                         return False
                     elif (right_operator[1] == left_operator[1] and
-                          right_operator[0] >= left_operator[0]):
+                          (key_array[right_operator[0]] >=
+                           key_array[left_operator[0]])):
                         return False
         return True
 
