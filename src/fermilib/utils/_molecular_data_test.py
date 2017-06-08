@@ -36,7 +36,7 @@ class MolecularDataTest(unittest.TestCase):
 
     def test_name_molecule(self):
         charge = 0
-        correct_name = 'H2_sto-3g_singlet_0.7414'
+        correct_name = str('H2_sto-3g_singlet_0.7414')
         computed_name = name_molecule(self.geometry,
                                       self.basis,
                                       self.multiplicity,

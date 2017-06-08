@@ -428,18 +428,18 @@ class MolecularData(object):
             # Load geometry:
             for atom, pos in zip(f["geometry/atoms"][...],
                                  f["geometry/positions"][...]):
-                geometry.append((numpy.string_(atom), list(pos)))
+                geometry.append((atom.tobytes().decode('utf-8'), list(pos)))
             self.geometry = geometry
             # Load basis:
-            self.basis = numpy.string_(f["basis"][...])
+            self.basis = f["basis"][...].tobytes().decode('utf-8')
             # Load multiplicity:
             self.multiplicity = int(f["multiplicity"][...])
             # Load charge:
             self.charge = int(f["charge"][...])
             # Load description:
-            self.description = numpy.string_(f["description"][...])
+            self.description = f["description"][...].tobytes().decode('utf-8')
             # Load name:
-            self.name = numpy.string_(f["name"][...])
+            self.name = f["name"][...].tobytes().decode('utf-8')
             # Load n_atoms:
             self.n_atoms = int(f["n_atoms"][...])
             # Load atoms:
