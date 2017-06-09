@@ -27,7 +27,6 @@ from fermilib.utils import *
 class LiHIntegrationTest(unittest.TestCase):
 
     def setUp(self):
-
         # Set up molecule.
         geometry = [('Li', (0., 0., 0.)), ('H', (0., 0., 1.45))]
         basis = 'sto-3g'
