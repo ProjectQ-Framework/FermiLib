@@ -39,10 +39,12 @@ class LiHIntegrationTest(unittest.TestCase):
 
         # Get molecular Hamiltonian.
         self.molecular_hamiltonian = self.molecule.get_molecular_hamiltonian()
-        self.molecular_hamiltonian_no_core = self.molecule.\
+        self.molecular_hamiltonian_no_core = (
+            self.molecule.
             get_molecular_hamiltonian(occupied_indices=[0],
-                                      active_indices=
-                                      range(1, self.molecule.n_orbitals))
+                                      active_indices=range(1,
+                                                           self.molecule.
+                                                           n_orbitals)))
 
         # Get FCI RDM.
         self.fci_rdm = self.molecule.get_molecular_rdm(use_fci=1)
