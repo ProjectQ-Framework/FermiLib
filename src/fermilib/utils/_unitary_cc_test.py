@@ -168,6 +168,52 @@ class UnitaryCC(unittest.TestCase):
         All(Measure) | wavefunction
         self.assertAlmostEqual(energy, -1.13727017463)
 
+    def test_sparse_uccsd_operator_numpy_inputs(self):
+        """Test numpy ndarray inputs to uccsd_operator that are sparse"""
+        test_orbitals = 30
+        sparse_single_amplitudes = numpy.zeros((test_orbitals, test_orbitals))
+        sparse_double_amplitudes = numpy.zeros((test_orbitals, test_orbitals,
+                                                test_orbitals, test_orbitals))
+
+        sparse_single_amplitudes[3, 5] = 0.12345
+        sparse_single_amplitudes[12, 4] = 0.44313
+
+        sparse_double_amplitudes[0, 12, 6, 2] = 0.3434
+        sparse_double_amplitudes[1, 4, 6, 13] = -0.23423
+
+        generator = uccsd_operator(sparse_single_amplitudes,
+                                   sparse_double_amplitudes)
+
+        test_generator = (0.12345 * FermionOperator("3^ 5") +
+                          (-0.12345) * FermionOperator("5^ 3") +
+                          0.44313 * FermionOperator("12^ 4") +
+                          (-0.44313) * FermionOperator("4^ 12") +
+                          0.3434 * FermionOperator("0^ 12 6^ 2") +
+                          (-0.3434) * FermionOperator("2^ 6 12^ 0") +
+                          (-0.23423) * FermionOperator("1^ 4 6^ 13") +
+                          0.23423 * FermionOperator("13^ 6 4^ 1"))
+        self.assertTrue(test_generator.isclose(generator))
+
+    def test_sparse_uccsd_operator_list_inputs(self):
+        """Test list inputs to uccsd_operator that are sparse"""
+        sparse_single_amplitudes = [[[3, 5], 0.12345],
+                                    [[12, 4], 0.44313]]
+        sparse_double_amplitudes = [[[0, 12, 6, 2], 0.3434],
+                                    [[1, 4, 6, 13], -0.23423]]
+
+        generator = uccsd_operator(sparse_single_amplitudes,
+                                   sparse_double_amplitudes)
+
+        test_generator = (0.12345 * FermionOperator("3^ 5") +
+                          (-0.12345) * FermionOperator("5^ 3") +
+                          0.44313 * FermionOperator("12^ 4") +
+                          (-0.44313) * FermionOperator("4^ 12") +
+                          0.3434 * FermionOperator("0^ 12 6^ 2") +
+                          (-0.3434) * FermionOperator("2^ 6 12^ 0") +
+                          (-0.23423) * FermionOperator("1^ 4 6^ 13") +
+                          0.23423 * FermionOperator("13^ 6 4^ 1"))
+        self.assertTrue(test_generator.isclose(generator))
+
 # Run test.
 if __name__ == '__main__':
     unittest.main()
