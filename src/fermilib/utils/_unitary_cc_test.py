@@ -16,6 +16,7 @@ from __future__ import absolute_import
 
 import unittest
 from numpy.random import randn
+import itertools
 
 import fermilib
 import fermilib.ops
