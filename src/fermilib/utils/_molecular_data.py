@@ -523,18 +523,21 @@ class MolecularData(object):
             self.two_body_integrals = tmp if tmp.dtype.num != 0 else None
         return self.one_body_integrals, self.two_body_integrals
 
-    def get_active_space_integrals(self, active_space_start,
-                                   active_space_stop=None):
-        """Restricts a molecule at a spatial orbital level to the active space
-        defined by active_space=[start,stop]. Note that one_body_integrals and
-        two_body_integrals must be defined in an orthonormal basis set, which
-        is typically the case when defining an active space.
+    def get_active_space_integrals(self,
+                                   occupied_indices=None,
+                                   active_indices=None):
+        """Restricts a molecule at a spatial orbital level to an active space
+
+        This active space may be defined by a list of active indices and
+            doubly occupied indices. Note that one_body_integrals and
+            two_body_integrals must be defined
+            n an orthonormal basis set.
 
         Args:
-            active_space_start(int): spatial orbital index defining active
-                space start.
-            active_space_stop(int): spatial orbital index defining active
-                space stop.
+            occupied_indices(list): A list of spatial orbital indices
+                indicating which orbitals should be considered doubly occupied.
+            active_indices(list): A list of spatial orbital indices indicating
+                which orbitals should be considered active.
 
         Returns:
             tuple: Tuple with the following entries:
@@ -548,62 +551,63 @@ class MolecularData(object):
             **two_body_integrals_new**: two-electron integrals over active
             space.
         """
+        # Fix data type for a few edge cases
+        occupied_indices = [] if occupied_indices is None else occupied_indices
+        if (len(active_indices) < 1):
+            raise ValueError('Some active indices required for reduction.')
+
         # Get integrals.
         one_body_integrals, two_body_integrals = self.get_integrals()
-        n_orbitals = one_body_integrals.shape[0]
-        if active_space_stop is None:
-            active_space_stop = n_orbitals
 
         # Determine core constant
         core_constant = 0.0
-        for i in range(active_space_start):
+        for i in occupied_indices:
             core_constant += 2 * one_body_integrals[i, i]
-            for j in range(active_space_start):
+            for j in occupied_indices:
                 core_constant += (2 * two_body_integrals[i, j, j, i] -
                                   two_body_integrals[i, j, i, j])
 
         # Modified one electron integrals
         one_body_integrals_new = numpy.copy(one_body_integrals)
-        for u in range(active_space_start, active_space_stop):
-            for v in range(active_space_start, active_space_stop):
-                for i in range(active_space_start):
+        for u in active_indices:
+            for v in active_indices:
+                for i in occupied_indices:
                     one_body_integrals_new[u, v] += (
                         2 * two_body_integrals[i, u, v, i] -
                         two_body_integrals[i, u, i, v])
 
         # Restrict integral ranges and change M appropriately
         return (core_constant,
-                one_body_integrals_new[active_space_start: active_space_stop,
-                                       active_space_start: active_space_stop],
-                two_body_integrals[active_space_start: active_space_stop,
-                                   active_space_start: active_space_stop,
-                                   active_space_start: active_space_stop,
-                                   active_space_start: active_space_stop])
+                one_body_integrals_new[numpy.ix_(active_indices,
+                                                 active_indices)],
+                two_body_integrals[numpy.ix_(active_indices,
+                                             active_indices,
+                                             active_indices,
+                                             active_indices)])
 
     def get_molecular_hamiltonian(self,
-                                  active_space_start=None,
-                                  active_space_stop=None):
+                                  occupied_indices=None,
+                                  active_indices=None):
         """Output arrays of the second quantized Hamiltonian coefficients.
 
         Args:
             rotation_matrix: A square numpy array or matrix having dimensions
                 of n_orbitals by n_orbitals. Assumed real and invertible.
-            active_space_start: An optional int giving the first orbital
-                in the active space.
-            active_space stop: An optional int giving the last orbital
-                in the active space.
+            occupied_indices(list): A list of spatial orbital indices
+                indicating which orbitals should be considered doubly occupied.
+            active_indices(list): A list of spatial orbital indices indicating
+                which orbitals should be considered active.
 
         Returns:
             molecular_hamiltonian: An instance of the MolecularOperator class.
         """
         # Get active space integrals.
-        if active_space_start is None:
+        if occupied_indices is None and active_indices is None:
             one_body_integrals, two_body_integrals = self.get_integrals()
             constant = self.nuclear_repulsion
         else:
             core_adjustment, one_body_integrals, two_body_integrals = self.\
-                get_active_space_integrals(
-                    active_space_start, active_space_stop)
+                get_active_space_integrals(occupied_indices, active_indices)
             constant = self.nuclear_repulsion + core_adjustment
         n_qubits = 2 * one_body_integrals.shape[0]
 

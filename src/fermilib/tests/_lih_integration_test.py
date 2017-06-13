@@ -27,20 +27,24 @@ from fermilib.utils import *
 class LiHIntegrationTest(unittest.TestCase):
 
     def setUp(self):
-
         # Set up molecule.
         geometry = [('Li', (0., 0., 0.)), ('H', (0., 0., 1.45))]
         basis = 'sto-3g'
         multiplicity = 1
-        filename = os.path.join(THIS_DIRECTORY, 'data', 'H1-Li1_sto-3g_singlet')
+        filename = os.path.join(THIS_DIRECTORY, 'data',
+                                'H1-Li1_sto-3g_singlet_1.45')
         self.molecule = MolecularData(
             geometry, basis, multiplicity, filename=filename)
         self.molecule.load()
 
         # Get molecular Hamiltonian.
         self.molecular_hamiltonian = self.molecule.get_molecular_hamiltonian()
-        self.molecular_hamiltonian_no_core = self.molecule.\
-            get_molecular_hamiltonian(active_space_start=1)
+        self.molecular_hamiltonian_no_core = (
+            self.molecule.
+            get_molecular_hamiltonian(occupied_indices=[0],
+                                      active_indices=range(1,
+                                                           self.molecule.
+                                                           n_orbitals)))
 
         # Get FCI RDM.
         self.fci_rdm = self.molecule.get_molecular_rdm(use_fci=1)
