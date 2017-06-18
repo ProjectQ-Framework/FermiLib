@@ -224,8 +224,8 @@ def momentum_potential_operator(grid, spinless=False):
                         orbital_c = orbital_id(grid, shifted_indices_c, spin_b)
 
                         # Add interaction term.
-                        if (orbital_a != orbital_b) and \
-                                (orbital_c != orbital_d):
+                        if ((orbital_a != orbital_b) and
+                                (orbital_c != orbital_d)):
                             operators = ((orbital_a, 1), (orbital_b, 1),
                                          (orbital_c, 0), (orbital_d, 0))
                             operator += FermionOperator(operators, coefficient)
@@ -439,8 +439,9 @@ def jordan_wigner_position_jellium(grid, spinless=False):
             for k_indices in grid.all_points_indices():
                 momenta = momentum_vector(k_indices, grid)
                 if momenta.any():
-                    term_coefficient += prefactor * momenta.dot(momenta) * \
-                        numpy.cos(momenta.dot(differences))
+                    term_coefficient += (prefactor *
+                                         momenta.dot(momenta) *
+                                         numpy.cos(momenta.dot(differences)))
 
             # Add term.
             z_string = tuple((i, 'Z') for i in range(p + 1, q))

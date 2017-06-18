@@ -151,8 +151,8 @@ def jordan_wigner_two_body(p, q, r, s):
     elif len(set([p, q, r, s])) == 4:
 
         # Loop through different operators which act on each tensor factor.
-        for operator_p, operator_q, operator_r in \
-                itertools.product(['X', 'Y'], repeat=3):
+        for operator_p, operator_q, operator_r in itertools.product(
+                ['X', 'Y'], repeat=3):
             if [operator_p, operator_q, operator_r].count('X') % 2:
                 operator_s = 'X'
             else:
