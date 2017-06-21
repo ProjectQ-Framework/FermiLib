@@ -115,5 +115,14 @@ class GetSparseOperatorQubitTest(unittest.TestCase):
                          [0, 3, 5, 6, 9, 10, 12, 15])
 
 
+class GetSparseOperatorFermionTest(unittest.TestCase):
+
+    def test_sparse_matrix_zero_n_qubit(self):
+        sparse_operator = get_sparse_operator(FermionOperator.zero(), 4)
+        sparse_operator.eliminate_zeros()
+        self.assertEqual(len(list(sparse_operator.data)), 0)
+        self.assertEqual(sparse_operator.shape, (16, 16))
+
+
 if __name__ == '__main__':
     unittest.main()
