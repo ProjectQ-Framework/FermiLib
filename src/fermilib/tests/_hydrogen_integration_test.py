@@ -193,7 +193,7 @@ class HydrogenIntegrationTest(unittest.TestCase):
 
         # Confirm expectation on qubit Hamiltonian using reverse JW matches.
         qubit_rdm = self.fci_rdm.get_qubit_expectations(self.qubit_hamiltonian)
-        qubit_energy = self.qubit_hamiltonian.terms[()]
+        qubit_energy = 0.0
         for term, expectation in qubit_rdm.terms.items():
             qubit_energy += expectation * self.qubit_hamiltonian.terms[term]
         self.assertAlmostEqual(qubit_energy, self.molecule.fci_energy)
