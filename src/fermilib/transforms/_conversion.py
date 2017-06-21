@@ -34,7 +34,7 @@ def get_sparse_operator(operator, n_qubits=None):
     if isinstance(operator, InteractionOperator):
         return get_sparse_interaction_operator(operator)
     elif isinstance(operator, FermionOperator):
-        return jordan_wigner_sparse(operator)
+        return jordan_wigner_sparse(operator, n_qubits)
     elif isinstance(operator, QubitOperator):
         if n_qubits is None:
             n_qubits = count_qubits(operator)
