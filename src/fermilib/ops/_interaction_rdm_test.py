@@ -39,7 +39,7 @@ class InteractionRDMTest(unittest.TestCase):
         qubit_operator = jordan_wigner(self.hamiltonian)
         qubit_expectations = self.rdm.get_qubit_expectations(qubit_operator)
 
-        test_energy = qubit_operator.terms[()]
+        test_energy = 0.0
         for qubit_term in qubit_expectations.terms:
             term_coefficient = qubit_operator.terms[qubit_term]
             test_energy += (term_coefficient *
