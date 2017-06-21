@@ -70,9 +70,11 @@ class InteractionRDM(InteractionTensor):
             InteractionRDMError: Invalid operator provided.
         """
         if isinstance(operator, QubitOperator):
-            expectation_value = 0.
-            for qubit_term in operator:
-                expectation += qubit_term_expectation(self, qubit_term)
+            expectation_op = self.get_qubit_expectations(operator)
+            expectation = 0.0
+            for qubit_term in operator.terms:
+                expectation += (operator.terms[qubit_term] *
+                                expectation_op.terms[qubit_term])
         elif isinstance(operator, InteractionOperator):
             expectation = operator.constant
             expectation += numpy.sum(self.one_body_tensor *
@@ -99,7 +101,6 @@ class InteractionRDM(InteractionTensor):
         """
         from fermilib.transforms import reverse_jordan_wigner
         qubit_operator_expectations = copy.deepcopy(qubit_operator)
-        del qubit_operator_expectations.terms[()]
         for qubit_term in qubit_operator_expectations.terms:
             expectation = 0.
 
