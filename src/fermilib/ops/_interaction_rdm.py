@@ -35,7 +35,6 @@ class InteractionRDM(InteractionTensor):
         one_body_tensor: The expectation values <a^\dagger_p a_q>.
         two_body_tensor: The expectation values
             <a^\dagger_p a^\dagger_q a_r a_s>.
-        n_qubits: An int giving the number of qubits.
     """
 
     def __init__(self, one_body_tensor, two_body_tensor):
@@ -106,7 +105,7 @@ class InteractionRDM(InteractionTensor):
 
             # Map qubits back to fermions.
             reversed_fermion_operators = reverse_jordan_wigner(
-                QubitOperator(qubit_term), self.n_qubits)
+                QubitOperator(qubit_term))
             reversed_fermion_operators = normal_ordered(
                 reversed_fermion_operators)
 
