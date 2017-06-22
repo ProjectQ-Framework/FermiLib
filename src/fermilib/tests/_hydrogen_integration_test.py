@@ -31,7 +31,8 @@ class HydrogenIntegrationTest(unittest.TestCase):
         geometry = [('H', (0., 0., 0.)), ('H', (0., 0., 0.7414))]
         basis = 'sto-3g'
         multiplicity = 1
-        filename = os.path.join(THIS_DIRECTORY, 'data', 'H2_sto-3g_singlet')
+        filename = os.path.join(THIS_DIRECTORY, 'data',
+                                'H2_sto-3g_singlet_0.7414')
         self.molecule = MolecularData(
             geometry, basis, multiplicity, filename=filename)
         self.molecule.load()
@@ -192,7 +193,7 @@ class HydrogenIntegrationTest(unittest.TestCase):
 
         # Confirm expectation on qubit Hamiltonian using reverse JW matches.
         qubit_rdm = self.fci_rdm.get_qubit_expectations(self.qubit_hamiltonian)
-        qubit_energy = self.qubit_hamiltonian.terms[()]
+        qubit_energy = 0.0
         for term, expectation in qubit_rdm.terms.items():
             qubit_energy += expectation * self.qubit_hamiltonian.terms[term]
         self.assertAlmostEqual(qubit_energy, self.molecule.fci_energy)
@@ -271,9 +272,6 @@ class HydrogenIntegrationTest(unittest.TestCase):
         expected_ccsd_energy = ccsd_state_l.getH().dot(
             self.hamiltonian_matrix.dot(ccsd_state_r))[0, 0]
         self.assertAlmostEqual(expected_ccsd_energy, self.molecule.fci_energy)
-
-    def test_version(self):
-        self.assertEqual(__version__, '0.1a0')
 
 
 if __name__ == '__main__':

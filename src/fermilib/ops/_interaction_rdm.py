@@ -35,7 +35,6 @@ class InteractionRDM(InteractionTensor):
         one_body_tensor: The expectation values <a^\dagger_p a_q>.
         two_body_tensor: The expectation values
             <a^\dagger_p a^\dagger_q a_r a_s>.
-        n_qubits: An int giving the number of qubits.
     """
 
     def __init__(self, one_body_tensor, two_body_tensor):
@@ -70,9 +69,11 @@ class InteractionRDM(InteractionTensor):
             InteractionRDMError: Invalid operator provided.
         """
         if isinstance(operator, QubitOperator):
-            expectation_value = 0.
-            for qubit_term in operator:
-                expectation += qubit_term_expectation(self, qubit_term)
+            expectation_op = self.get_qubit_expectations(operator)
+            expectation = 0.0
+            for qubit_term in operator.terms:
+                expectation += (operator.terms[qubit_term] *
+                                expectation_op.terms[qubit_term])
         elif isinstance(operator, InteractionOperator):
             expectation = operator.constant
             expectation += numpy.sum(self.one_body_tensor *
@@ -99,13 +100,12 @@ class InteractionRDM(InteractionTensor):
         """
         from fermilib.transforms import reverse_jordan_wigner
         qubit_operator_expectations = copy.deepcopy(qubit_operator)
-        del qubit_operator_expectations.terms[()]
         for qubit_term in qubit_operator_expectations.terms:
             expectation = 0.
 
             # Map qubits back to fermions.
             reversed_fermion_operators = reverse_jordan_wigner(
-                QubitOperator(qubit_term), self.n_qubits)
+                QubitOperator(qubit_term))
             reversed_fermion_operators = normal_ordered(
                 reversed_fermion_operators)
 

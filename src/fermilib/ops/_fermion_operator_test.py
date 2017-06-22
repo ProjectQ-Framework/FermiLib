@@ -56,11 +56,63 @@ class FermionOperatorTest(unittest.TestCase):
         self.assertEqual(len(fermion_op.terms), 1)
         self.assertEqual(fermion_op.terms[loc_op], coefficient)
 
+    def test_identity_is_multiplicative_identity(self):
+        u = FermionOperator.identity()
+        f = FermionOperator(((0, 1), (5, 0), (6, 1)), 0.6j)
+        g = FermionOperator(((0, 0), (5, 0), (6, 1)), 0.3j)
+        h = f + g
+        self.assertTrue(f.isclose(u * f))
+        self.assertTrue(f.isclose(f * u))
+        self.assertTrue(g.isclose(u * g))
+        self.assertTrue(g.isclose(g * u))
+        self.assertTrue(h.isclose(u * h))
+        self.assertTrue(h.isclose(h * u))
+
+        u *= h
+        self.assertTrue(h.isclose(u))
+        self.assertFalse(f.isclose(u))
+
+        # Method always returns new instances.
+        self.assertFalse(FermionOperator.identity().isclose(u))
+
+    def test_zero_is_additive_identity(self):
+        o = FermionOperator.zero()
+        f = FermionOperator(((0, 1), (5, 0), (6, 1)), 0.6j)
+        g = FermionOperator(((0, 0), (5, 0), (6, 1)), 0.3j)
+        h = f + g
+        self.assertTrue(f.isclose(o + f))
+        self.assertTrue(f.isclose(f + o))
+        self.assertTrue(g.isclose(o + g))
+        self.assertTrue(g.isclose(g + o))
+        self.assertTrue(h.isclose(o + h))
+        self.assertTrue(h.isclose(h + o))
+
+        o += h
+        self.assertTrue(h.isclose(o))
+        self.assertFalse(f.isclose(o))
+
+        # Method always returns new instances.
+        self.assertFalse(FermionOperator.zero().isclose(o))
+
+    def test_zero_is_multiplicative_nil(self):
+        o = FermionOperator.zero()
+        u = FermionOperator.identity()
+        f = FermionOperator(((0, 1), (5, 0), (6, 1)), 0.6j)
+        g = FermionOperator(((0, 0), (5, 0), (6, 1)), 0.3j)
+        self.assertTrue(o.isclose(o * u))
+        self.assertTrue(o.isclose(o * f))
+        self.assertTrue(o.isclose(o * g))
+        self.assertTrue(o.isclose(o * (f + g)))
+
     def test_init_str(self):
         fermion_op = FermionOperator('0^ 5 12^', -1.)
         correct = ((0, 1), (5, 0), (12, 1))
         self.assertIn(correct, fermion_op.terms)
         self.assertEqual(fermion_op.terms[correct], -1.0)
+
+    def test_merges_multiple_whitespace(self):
+        fermion_op = FermionOperator('        \n ')
+        self.assertEqual(fermion_op.terms, {(): 1})
 
     def test_init_str_identity(self):
         fermion_op = FermionOperator('')
@@ -68,15 +120,15 @@ class FermionOperatorTest(unittest.TestCase):
 
     def test_init_bad_term(self):
         with self.assertRaises(ValueError):
-            fermion_op = FermionOperator(list())
+            _ = FermionOperator(list())
 
     def test_init_bad_coefficient(self):
         with self.assertRaises(ValueError):
-            fermion_op = FermionOperator('0^', "0.5")
+            _ = FermionOperator('0^', "0.5")
 
     def test_init_bad_action_str(self):
-        with self.assertRaises(ValueError):
-            fermion_op = FermionOperator('0-')
+        with self.assertRaises(FermionOperatorError):
+            _ = FermionOperator('0-')
 
     def test_init_bad_action_tuple(self):
         with self.assertRaises(ValueError):
@@ -84,15 +136,15 @@ class FermionOperatorTest(unittest.TestCase):
 
     def test_init_bad_tuple(self):
         with self.assertRaises(ValueError):
-            fermion_op = FermionOperator(((0, 1, 1),))
+            _ = FermionOperator(((0, 1, 1),))
 
     def test_init_bad_str(self):
-        with self.assertRaises(ValueError):
-            fermion_op = FermionOperator('^')
+        with self.assertRaises(FermionOperatorError):
+            _ = FermionOperator('^')
 
     def test_init_bad_mode_num(self):
         with self.assertRaises(FermionOperatorError):
-            fermion_op = FermionOperator('-1^')
+            _ = FermionOperator('-1^')
 
     def test_FermionOperator(self):
         op = FermionOperator((), 3.)
@@ -423,7 +475,7 @@ class FermionOperatorTest(unittest.TestCase):
     def test_add_bad_addend(self):
         op = FermionOperator((), 1.0)
         with self.assertRaises(TypeError):
-            op = op + "0.5"
+            _ = op + "0.5"
 
     def test_sub(self):
         term_a = ((1, 1), (3, 1), (8, 1))
@@ -442,7 +494,7 @@ class FermionOperatorTest(unittest.TestCase):
     def test_sub_bad_subtrahend(self):
         op = FermionOperator((), 1.0)
         with self.assertRaises(TypeError):
-            op = op - "0.5"
+            _ = op - "0.5"
 
     def test_isub_different_term(self):
         term_a = ((1, 1), (3, 1), (8, 0))
@@ -464,7 +516,7 @@ class FermionOperatorTest(unittest.TestCase):
 
     def test_neg(self):
         op = FermionOperator(((1, 1), (3, 1), (8, 1)), 0.5)
-        -op
+        _ = -op
         # out of place
         self.assertTrue(op.isclose(FermionOperator(((1, 1), (3, 1), (8, 1)),
                                                    0.5)))

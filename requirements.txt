@@ -3,4 +3,4 @@ numpy>=1.11.0
 pytest>=3.0
 h5py
 future
-projectq>=0.3.0
+projectq>=0.3.1

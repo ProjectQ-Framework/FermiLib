@@ -222,7 +222,7 @@ class MolecularData(object):
         ccsd_amplitudes: Molecular operator holding coupled cluster amplitude.
     """
     def __init__(self, geometry=None, basis=None, multiplicity=None,
-                 charge=0, description="", filename=""):
+                 charge=0, description="", filename="", data_directory=None):
         """Initialize molecular metadata which defines class.
 
         Args:
@@ -241,6 +241,8 @@ class MolecularData(object):
                 (e.g. 0.7414).
             filename: An optional string giving name of file.
                 If filename is not provided, one is generated automatically.
+            data_directory: Optional data directory to change from default
+                data directory specified in config file.
         """
         # Check appropriate data as been provided and autoload if requested.
         if ((geometry is None) or
@@ -277,7 +279,10 @@ class MolecularData(object):
                 filename = filename[:(len(filename) - 5)]
             self.filename = filename
         else:
-            self.filename = DATA_DIRECTORY + '/' + self.name
+            if data_directory is None:
+                self.filename = DATA_DIRECTORY + '/' + self.name
+            else:
+                self.filename = data_directory + '/' + self.name
 
         # Attributes generated automatically by class.
         self.n_atoms = len(geometry)
@@ -299,6 +304,7 @@ class MolecularData(object):
         # Attributes generated from integrals.
         self.orbital_overlaps = None
         self.one_body_integrals = None
+        self.two_body_integrals = None
 
         # Attributes generated from MP2 calculation.
         self.mp2_energy = None
@@ -306,17 +312,34 @@ class MolecularData(object):
         # Attributes generated from CISD calculation.
         self.cisd_energy = None
         self.cisd_one_rdm = None
+        self.cisd_two_rdm = None
 
         # Attributes generated from exact diagonalization.
         self.fci_energy = None
         self.fci_one_rdm = None
+        self.fci_two_rdm = None
 
         # Attributes generated from CCSD calculation.
         self.ccsd_energy = None
         self.ccsd_amplitudes = None
 
     def save(self):
-        "Method to save the class under a systematic name."
+        """Method to save the class under a systematic name."""
+
+        # Load two body integrals/rdms from file before re-saving, since
+        # they aren't loaded by default
+        if (os.path.isfile("{}.hdf5".format(self.filename))):
+            if (self.one_body_integrals is not None and
+                    self.two_body_integrals is None):
+                self.one_body_integrals, self.two_body_integrals = (
+                    self.get_integrals())
+            if self.cisd_one_rdm is not None and self.cisd_two_rdm is None:
+                rdm = self.get_molecular_rdm()
+                self.cisd_two_rdm = rdm.two_body_tensor
+            if self.fci_one_rdm is not None and self.fci_two_rdm is None:
+                rdm = self.get_molecular_rdm(use_fci=True)
+                self.fci_two_rdm = rdm.two_body_tensor
+
         with h5py.File("{}.hdf5".format(self.filename), "w") as f:
             # Save geometry (atoms and positions need to be separate):
             d_geom = f.create_group("geometry")
@@ -333,7 +356,7 @@ class MolecularData(object):
             # Save description:
             f["description"] = numpy.string_(self.description)
             # Save name:
-            f["name"] = self.name
+            f["name"] = numpy.string_(self.name)
             # Save n_atoms:
             f["n_atoms"] = self.n_atoms
             # Save atoms:
@@ -366,19 +389,26 @@ class MolecularData(object):
             f["one_body_integrals"] = (self.one_body_integrals if
                                        self.one_body_integrals is
                                        not None else False)
+            f["two_body_integrals"] = (self.two_body_integrals if
+                                       self.two_body_integrals is
+                                       not None else False)
             # Save attributes generated from MP2 calculation.
             f["mp2_energy"] = (self.mp2_energy if
                                self.mp2_energy is not None else False)
             # Save attributes generated from CISD calculation.
             f["cisd_energy"] = (self.cisd_energy if
                                 self.cisd_energy is not None else False)
-            f["cisd_one_rmd"] = (self.cisd_one_rdm if
+            f["cisd_one_rdm"] = (self.cisd_one_rdm if
                                  self.cisd_one_rdm is not None else False)
+            f["cisd_two_rdm"] = (self.cisd_two_rdm if
+                                 self.cisd_two_rdm is not None else False)
             # Save attributes generated from exact diagonalization.
             f["fci_energy"] = (self.fci_energy if
                                self.fci_energy is not None else False)
             f["fci_one_rdm"] = (self.fci_one_rdm if
                                 self.fci_one_rdm is not None else False)
+            f["fci_two_rdm"] = (self.fci_two_rdm if
+                                self.fci_two_rdm is not None else False)
             # Save attributes generated from CCSD calculation.
             f["ccsd_energy"] = (self.ccsd_energy if
                                 self.ccsd_energy is not None else False)
@@ -398,18 +428,18 @@ class MolecularData(object):
             # Load geometry:
             for atom, pos in zip(f["geometry/atoms"][...],
                                  f["geometry/positions"][...]):
-                geometry.append((str(atom), list(pos)))
+                geometry.append((atom.tobytes().decode('utf-8'), list(pos)))
             self.geometry = geometry
             # Load basis:
-            self.basis = str(f["basis"][...])
+            self.basis = f["basis"][...].tobytes().decode('utf-8')
             # Load multiplicity:
             self.multiplicity = int(f["multiplicity"][...])
             # Load charge:
             self.charge = int(f["charge"][...])
             # Load description:
-            self.description = str(f["description"][...])
+            self.description = f["description"][...].tobytes().decode('utf-8')
             # Load name:
-            self.name = str(f["name"][...])
+            self.name = f["name"][...].tobytes().decode('utf-8')
             # Load n_atoms:
             self.n_atoms = int(f["n_atoms"][...])
             # Load atoms:
@@ -443,7 +473,7 @@ class MolecularData(object):
             # Load attributes generated from CISD calculation.
             d_9 = f["cisd_energy"][...]
             self.cisd_energy = d_9 if d_9.dtype.num != 0 else None
-            d_10 = f["cisd_one_rmd"][...]
+            d_10 = f["cisd_one_rdm"][...]
             self.cisd_one_rdm = d_10 if d_10.dtype.num != 0 else None
             # Load attributes generated from exact diagonalization.
             d_11 = f["fci_energy"][...]
@@ -484,25 +514,30 @@ class MolecularData(object):
         # Make sure integrals have been computed.
         if self.hf_energy is None:
             raise MissingCalculationError(
-                'Missing file {}. Run SCF before loading integrals.'.format(
-                    self.filename + '_eri.npy'))
+                'Missing SCF in {}, run before loading integrals.'.format(
+                    self.filename))
 
         # Get integrals and return.
-        two_body_integrals = numpy.load(self.filename + '_eri.npy')
-        return self.one_body_integrals, two_body_integrals
+        with h5py.File("{}.hdf5".format(self.filename), "r") as f:
+            tmp = f["two_body_integrals"][...]
+            self.two_body_integrals = tmp if tmp.dtype.num != 0 else None
+        return self.one_body_integrals, self.two_body_integrals
 
-    def get_active_space_integrals(self, active_space_start,
-                                   active_space_stop=None):
-        """Restricts a molecule at a spatial orbital level to the active space
-        defined by active_space=[start,stop]. Note that one_body_integrals and
-        two_body_integrals must be defined in an orthonormal basis set, which
-        is typically the case when defining an active space.
+    def get_active_space_integrals(self,
+                                   occupied_indices=None,
+                                   active_indices=None):
+        """Restricts a molecule at a spatial orbital level to an active space
+
+        This active space may be defined by a list of active indices and
+            doubly occupied indices. Note that one_body_integrals and
+            two_body_integrals must be defined
+            n an orthonormal basis set.
 
         Args:
-            active_space_start(int): spatial orbital index defining active
-                space start.
-            active_space_stop(int): spatial orbital index defining active
-                space stop.
+            occupied_indices(list): A list of spatial orbital indices
+                indicating which orbitals should be considered doubly occupied.
+            active_indices(list): A list of spatial orbital indices indicating
+                which orbitals should be considered active.
 
         Returns:
             tuple: Tuple with the following entries:
@@ -516,62 +551,63 @@ class MolecularData(object):
             **two_body_integrals_new**: two-electron integrals over active
             space.
         """
+        # Fix data type for a few edge cases
+        occupied_indices = [] if occupied_indices is None else occupied_indices
+        if (len(active_indices) < 1):
+            raise ValueError('Some active indices required for reduction.')
+
         # Get integrals.
         one_body_integrals, two_body_integrals = self.get_integrals()
-        n_orbitals = one_body_integrals.shape[0]
-        if active_space_stop is None:
-            active_space_stop = n_orbitals
 
         # Determine core constant
         core_constant = 0.0
-        for i in range(active_space_start):
+        for i in occupied_indices:
             core_constant += 2 * one_body_integrals[i, i]
-            for j in range(active_space_start):
+            for j in occupied_indices:
                 core_constant += (2 * two_body_integrals[i, j, j, i] -
                                   two_body_integrals[i, j, i, j])
 
         # Modified one electron integrals
         one_body_integrals_new = numpy.copy(one_body_integrals)
-        for u in range(active_space_start, active_space_stop):
-            for v in range(active_space_start, active_space_stop):
-                for i in range(active_space_start):
+        for u in active_indices:
+            for v in active_indices:
+                for i in occupied_indices:
                     one_body_integrals_new[u, v] += (
                         2 * two_body_integrals[i, u, v, i] -
                         two_body_integrals[i, u, i, v])
 
         # Restrict integral ranges and change M appropriately
         return (core_constant,
-                one_body_integrals_new[active_space_start: active_space_stop,
-                                       active_space_start: active_space_stop],
-                two_body_integrals[active_space_start: active_space_stop,
-                                   active_space_start: active_space_stop,
-                                   active_space_start: active_space_stop,
-                                   active_space_start: active_space_stop])
+                one_body_integrals_new[numpy.ix_(active_indices,
+                                                 active_indices)],
+                two_body_integrals[numpy.ix_(active_indices,
+                                             active_indices,
+                                             active_indices,
+                                             active_indices)])
 
     def get_molecular_hamiltonian(self,
-                                  active_space_start=None,
-                                  active_space_stop=None):
+                                  occupied_indices=None,
+                                  active_indices=None):
         """Output arrays of the second quantized Hamiltonian coefficients.
 
         Args:
             rotation_matrix: A square numpy array or matrix having dimensions
                 of n_orbitals by n_orbitals. Assumed real and invertible.
-            active_space_start: An optional int giving the first orbital
-                in the active space.
-            active_space stop: An optional int giving the last orbital
-                in the active space.
+            occupied_indices(list): A list of spatial orbital indices
+                indicating which orbitals should be considered doubly occupied.
+            active_indices(list): A list of spatial orbital indices indicating
+                which orbitals should be considered active.
 
         Returns:
             molecular_hamiltonian: An instance of the MolecularOperator class.
         """
         # Get active space integrals.
-        if active_space_start is None:
+        if occupied_indices is None and active_indices is None:
             one_body_integrals, two_body_integrals = self.get_integrals()
             constant = self.nuclear_repulsion
         else:
             core_adjustment, one_body_integrals, two_body_integrals = self.\
-                get_active_space_integrals(
-                    active_space_start, active_space_stop)
+                get_active_space_integrals(occupied_indices, active_indices)
             constant = self.nuclear_repulsion + core_adjustment
         n_qubits = 2 * one_body_integrals.shape[0]
 
@@ -640,22 +676,23 @@ class MolecularData(object):
         if use_fci:
             if self.fci_energy is None:
                 raise MissingCalculationError(
-                    'Missing {}. '.format(
-                        self.filename + '_fci_rdm.npy') +
+                    'Missing FCI RDM in {}'.format(self.filename) +
                     'Run FCI calculation before loading FCI RDMs.')
             else:
-                rdm_name = self.filename + '_fci_rdm.npy'
+                rdm_name = "fci_two_rdm"
                 one_rdm = self.fci_one_rdm
         else:
             if self.cisd_energy is None:
                 raise MissingCalculationError(
-                    'Missing {}. '.format(
-                        self.filename + '_cisd_rdm.npy') +
+                    'Missing CISD RDM in {}'.format(self.filename) +
                     'Run CISD calculation before loading CISD RDMs.')
             else:
-                rdm_name = self.filename + '_cisd_rdm.npy'
+                rdm_name = "cisd_two_rdm"
                 one_rdm = self.cisd_one_rdm
-        two_rdm = numpy.load(rdm_name)
+
+        with h5py.File("{}.hdf5".format(self.filename), "r") as f:
+            tmp = f[rdm_name][...]
+            two_rdm = self.two_rdm = tmp if tmp.dtype.num != 0 else None
 
         # Truncate.
         one_rdm[numpy.absolute(one_rdm) < EQ_TOLERANCE] = 0.

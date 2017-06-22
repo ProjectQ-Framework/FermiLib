@@ -28,19 +28,20 @@ class MolecularDataTest(unittest.TestCase):
         self.geometry = [('H', (0., 0., 0.)), ('H', (0., 0., 0.7414))]
         self.basis = 'sto-3g'
         self.multiplicity = 1
-        filename = os.path.join(THIS_DIRECTORY, 'data', 'H2_sto-3g_singlet')
+        filename = os.path.join(THIS_DIRECTORY, 'data',
+                                'H2_sto-3g_singlet_0.7414')
         self.molecule = MolecularData(
             self.geometry, self.basis, self.multiplicity, filename=filename)
         self.molecule.load()
 
     def test_name_molecule(self):
         charge = 0
-        correct_name = 'H2_sto-3g_singlet'
+        correct_name = str('H2_sto-3g_singlet_0.7414')
         computed_name = name_molecule(self.geometry,
                                       self.basis,
                                       self.multiplicity,
                                       charge,
-                                      description=None)
+                                      description="0.7414")
         self.assertEqual(correct_name, computed_name)
         self.assertEqual(correct_name, self.molecule.name)
 
@@ -85,26 +86,49 @@ class MolecularDataTest(unittest.TestCase):
         molecule.orbital_energies = [5, 6, 7, 8]
         molecule.orbital_overlaps = [1, 2, 3, 4]
         molecule.one_body_integrals = [5, 6, 7, 8]
+        molecule.two_body_integrals = [5, 6, 7, 8]
         molecule.mp2_energy = -12.
         molecule.cisd_energy = 32.
         molecule.cisd_one_rdm = numpy.arange(10)
+        molecule.cisd_two_rdm = numpy.arange(10)
         molecule.fci_energy = 232.
         molecule.fci_one_rdm = numpy.arange(11)
+        molecule.fci_two_rdm = numpy.arange(11)
         molecule.ccsd_energy = 88.
 
         # Save molecule.
         molecule.save()
 
-        # Change attributes and load.
-        molecule.ccsd_energy = -2.232
+        try:
+            # Change attributes and load.
+            molecule.ccsd_energy = -2.232
 
-        # Load molecule.
-        new_molecule = MolecularData(filename=filename)
-        molecule.load()
+            # Load molecule.
+            new_molecule = MolecularData(filename=filename)
+            molecule.load()
 
-        # Check CCSD energy.
-        self.assertAlmostEqual(new_molecule.ccsd_energy, molecule.ccsd_energy)
-        self.assertAlmostEqual(molecule.ccsd_energy, 88.)
+            # Tests re-load functionality
+            molecule.save()
+
+            # Check CCSD energy.
+            self.assertAlmostEqual(new_molecule.ccsd_energy,
+                                   molecule.ccsd_energy)
+            self.assertAlmostEqual(molecule.ccsd_energy, 88.)
+        finally:
+            os.remove(filename + '.hdf5')
+
+    def test_active_space(self):
+        """Test simple active space truncation features"""
+
+        # Start w/ no truncation
+        core_const, one_body_integrals, two_body_integrals = (
+            self.molecule.get_active_space_integrals(active_indices=[0, 1]))
+
+        self.assertAlmostEqual(core_const, 0.0)
+        self.assertAlmostEqual(scipy.linalg.norm(one_body_integrals -
+                               self.molecule.one_body_integrals), 0.0)
+        self.assertAlmostEqual(scipy.linalg.norm(two_body_integrals -
+                               self.molecule.two_body_integrals), 0.0)
 
     def test_energies(self):
         self.assertAlmostEqual(self.molecule.hf_energy, -1.1167, places=4)

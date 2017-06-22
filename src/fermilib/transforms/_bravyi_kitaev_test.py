@@ -190,8 +190,7 @@ class BravyiKitaevTransformTest(unittest.TestCase):
         jw_spectrum = eigenspectrum(jw_qubit_operator)
         bk_spectrum = eigenspectrum(bk_qubit_operator)
         self.assertAlmostEqual(0., numpy.amax(numpy.absolute(jw_spectrum -
-                                                             bk_spectrum)),
-                                                             places=5)
+                                              bk_spectrum)), places=5)
 
 
 if __name__ == '__main__':
