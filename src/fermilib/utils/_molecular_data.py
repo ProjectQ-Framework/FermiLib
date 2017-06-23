@@ -609,6 +609,7 @@ class MolecularData(object):
             core_adjustment, one_body_integrals, two_body_integrals = self.\
                 get_active_space_integrals(occupied_indices, active_indices)
             constant = self.nuclear_repulsion + core_adjustment
+
         n_qubits = 2 * one_body_integrals.shape[0]
 
         # Initialize Hamiltonian coefficients.
