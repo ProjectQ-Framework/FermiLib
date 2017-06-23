@@ -337,10 +337,6 @@ def jellium_model(grid, spinless=False, momentum_space=True):
     Returns:
         FermionOperator: The Hamiltonian of the model.
     """
-    if grid.length & 1 == 0 and grid.length & (grid.length - 1):
-        raise OrbitalSpecificationError(
-            'Must use an odd number or a power of 2 for momentum modes.')
-
     if momentum_space:
         hamiltonian = momentum_kinetic_operator(grid, spinless)
         hamiltonian += momentum_potential_operator(grid, spinless)
