@@ -53,5 +53,3 @@ from ._unitary_cc import (uccsd_operator,
                           uccsd_trotter_engine,
                           uccsd_singlet_operator,
                           uccsd_singlet_paramsize)
-
-

@@ -224,8 +224,8 @@ def momentum_potential_operator(grid, spinless=False):
                         orbital_c = orbital_id(grid, shifted_indices_c, spin_b)
 
                         # Add interaction term.
-                        if (orbital_a != orbital_b) and \
-                                (orbital_c != orbital_d):
+                        if ((orbital_a != orbital_b) and
+                                (orbital_c != orbital_d)):
                             operators = ((orbital_a, 1), (orbital_b, 1),
                                          (orbital_c, 0), (orbital_d, 0))
                             operator += FermionOperator(operators, coefficient)
@@ -337,10 +337,6 @@ def jellium_model(grid, spinless=False, momentum_space=True):
     Returns:
         FermionOperator: The Hamiltonian of the model.
     """
-    if grid.length & 1 == 0 and grid.length & (grid.length - 1):
-        raise OrbitalSpecificationError(
-            'Must use an odd number or a power of 2 for momentum modes.')
-
     if momentum_space:
         hamiltonian = momentum_kinetic_operator(grid, spinless)
         hamiltonian += momentum_potential_operator(grid, spinless)
@@ -439,8 +435,9 @@ def jordan_wigner_position_jellium(grid, spinless=False):
             for k_indices in grid.all_points_indices():
                 momenta = momentum_vector(k_indices, grid)
                 if momenta.any():
-                    term_coefficient += prefactor * momenta.dot(momenta) * \
-                        numpy.cos(momenta.dot(differences))
+                    term_coefficient += (prefactor *
+                                         momenta.dot(momenta) *
+                                         numpy.cos(momenta.dot(differences)))
 
             # Add term.
             z_string = tuple((i, 'Z') for i in range(p + 1, q))

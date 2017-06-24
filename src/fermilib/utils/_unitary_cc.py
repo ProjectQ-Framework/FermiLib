@@ -209,6 +209,34 @@ def uccsd_singlet_operator(packed_amplitudes,
     return uccsd_generator
 
 
+def uccsd_evolution(fermion_generator, fermion_transform=jordan_wigner):
+    """Create a ProjectQ evolution operator for a UCCSD circuit
+
+    Args:
+        fermion_generator(FermionOperator): UCCSD generator to evolve.
+        fermion_transform(fermilib.transform): The transformation that
+            defines the mapping from Fermions to QubitOperator.
+
+    Returns:
+        evoution_operator(projectq.ops.TimeEvolution): The unitary operator
+            that constructs the UCCSD state.
+    """
+
+    # Transform generator to qubits
+    qubit_generator = fermion_transform(fermion_generator)
+
+    # Cast to real part only for compatibility with current ProjectQ routine
+    for key in qubit_generator.terms:
+        qubit_generator.terms[key] = float(qubit_generator.terms[key].imag)
+    qubit_generator.compress()
+
+    # Allocate wavefunction and act evolution on gate according to compilation
+    evolution_operator = (
+        projectq.ops.TimeEvolution(time=1., hamiltonian=qubit_generator))
+
+    return evolution_operator
+
+
 def uccsd_singlet_evolution(packed_amplitudes, n_qubits, n_electrons,
                             fermion_transform=jordan_wigner):
     """Create a ProjectQ evolution operator for a UCCSD singlet circuit
@@ -232,17 +260,9 @@ def uccsd_singlet_evolution(packed_amplitudes, n_qubits, n_electrons,
     fermion_generator = uccsd_singlet_operator(packed_amplitudes,
                                                n_qubits,
                                                n_electrons)
-    # Transform generator to qubits
-    qubit_generator = fermion_transform(fermion_generator)
 
-    # Cast to real part only for compatibility with current ProjectQ routine
-    for key in qubit_generator.terms:
-        qubit_generator.terms[key] = float(qubit_generator.terms[key].imag)
-    qubit_generator.compress()
-
-    # Allocate wavefunction and act evolution on gate according to compilation
-    evolution_operator = (
-        projectq.ops.TimeEvolution(time=1., hamiltonian=qubit_generator))
+    evolution_operator = uccsd_evolution(fermion_generator,
+                                         fermion_transform)
 
     return evolution_operator
 
@@ -417,7 +437,7 @@ def _two_gate_filter(self, cmd):
 
 
 def uccsd_trotter_engine(compiler_backend=projectq.backends.Simulator(),
-                         qubit_graph=None):
+                         qubit_graph=None, opt_size=None):
     """Define a ProjectQ compiler engine that is common for use with UCCSD
 
     This defines a ProjectQ compiler engine that decomposes time evolution
@@ -432,6 +452,8 @@ def uccsd_trotter_engine(compiler_backend=projectq.backends.Simulator(),
         qubit_graph(Graph): Graph object specifying connectivity of qubits.
             The values of the nodes of this unique qubit ids.  If None,
             all-to-all connectivity is assumed.
+        opt_size(int): Number for ProjectQ local optimizer to determine size
+            of blocks optimized over.
 
     Returns:
         projectq.cengine that is the compiler engine set up with these
@@ -467,8 +489,9 @@ def uccsd_trotter_engine(compiler_backend=projectq.backends.Simulator(),
                             InstructionFilter(
                                 lambda x, y:
                                 (_non_adjacent_filter(x, y, qubit_graph) and
-                                 _two_gate_filter(x, y))),
-                            projectq.cengines.LocalOptimizer(5)]
+                                 _two_gate_filter(x, y)))]
+    if opt_size is not None:
+        compiler_engine_list.append(projectq.cengines.LocalOptimizer(opt_size))
 
     # Start the compiler engine with these rules
     compiler_engine = (
