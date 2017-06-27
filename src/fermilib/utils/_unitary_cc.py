@@ -437,7 +437,7 @@ def _two_gate_filter(self, cmd):
 
 
 def uccsd_trotter_engine(compiler_backend=projectq.backends.Simulator(),
-                         qubit_graph=None):
+                         qubit_graph=None, opt_size=None):
     """Define a ProjectQ compiler engine that is common for use with UCCSD
 
     This defines a ProjectQ compiler engine that decomposes time evolution
@@ -452,6 +452,8 @@ def uccsd_trotter_engine(compiler_backend=projectq.backends.Simulator(),
         qubit_graph(Graph): Graph object specifying connectivity of qubits.
             The values of the nodes of this unique qubit ids.  If None,
             all-to-all connectivity is assumed.
+        opt_size(int): Number for ProjectQ local optimizer to determine size
+            of blocks optimized over.
 
     Returns:
         projectq.cengine that is the compiler engine set up with these
@@ -487,8 +489,9 @@ def uccsd_trotter_engine(compiler_backend=projectq.backends.Simulator(),
                             InstructionFilter(
                                 lambda x, y:
                                 (_non_adjacent_filter(x, y, qubit_graph) and
-                                 _two_gate_filter(x, y))),
-                            projectq.cengines.LocalOptimizer(5)]
+                                 _two_gate_filter(x, y)))]
+    if opt_size is not None:
+        compiler_engine_list.append(projectq.cengines.LocalOptimizer(opt_size))
 
     # Start the compiler engine with these rules
     compiler_engine = (

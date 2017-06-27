@@ -122,7 +122,7 @@ class MolecularDataTest(unittest.TestCase):
 
         # Start w/ no truncation
         core_const, one_body_integrals, two_body_integrals = (
-            self.molecule.get_active_space_integrals(active_space_start=0))
+            self.molecule.get_active_space_integrals(active_indices=[0, 1]))
 
         self.assertAlmostEqual(core_const, 0.0)
         self.assertAlmostEqual(scipy.linalg.norm(one_body_integrals -

@@ -276,12 +276,13 @@ Below, we load MolecularData from a saved calculation of LiH. We then obtain an 
 	active_space_stop = 3
 	
 	# Generate and populate instance of MolecularData.
-	molecule = MolecularData(geometry, basis, multiplicity)
+	molecule = MolecularData(geometry, basis, multiplicity, description=\"1.45\")
 	molecule.load()
 	
 	# Get the Hamiltonian in an active space.
 	molecular_hamiltonian = molecule.get_molecular_hamiltonian(
-	    active_space_start, active_space_stop)
+	    occupied_indices=range(active_space_start),
+            active_indices=range(active_space_start, active_space_stop))
 	
 	# Map operator to fermions and qubits.
 	fermion_hamiltonian = get_fermion_operator(molecular_hamiltonian)
@@ -347,7 +348,7 @@ Here we load :math:`H_2` from a precomputed molecule file found in the test data
 
 	# Load the molecule.
 	import os
-	filename = os.path.join(DATA_DIRECTORY, 'H2_sto-3g_singlet')
+	filename = os.path.join(DATA_DIRECTORY, 'H2_sto-3g_singlet_0.7414')
 	molecule = MolecularData(filename=filename)
 	
 	# Use a Jordan-Wigner encoding, and compress to remove 0 imaginary components
