@@ -45,6 +45,14 @@ class MolecularDataTest(unittest.TestCase):
         self.assertEqual(correct_name, computed_name)
         self.assertEqual(correct_name, self.molecule.name)
 
+    def test_invalid_multiplicity(self):
+        geometry = [('H', (0., 0., 0.)), ('H', (0., 0., 0.7414))]
+        basis = 'sto-3g'
+        multiplicity = -1
+        with self.assertRaises(MoleculeNameError):
+            molecule = MolecularData(
+                geometry, basis, multiplicity)
+
     def test_geometry_from_file(self):
         water_geometry = [('O', (0., 0., 0.)),
                           ('H', (0.757, 0.586, 0.)),
