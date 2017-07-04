@@ -49,6 +49,9 @@ class PlaneWaveHamiltonianTest(unittest.TestCase):
         self.assertAlmostEqual(
             three_d_test, n_particles * (4. * numpy.pi / 3. *
                                          wigner_seitz_radius ** 3.))
+        with self.assertRaises(ValueError):
+            wigner_seitz_length_scale(
+                wigner_seitz_radius, n_particles, 4)
 
     def test_fourier_transform(self):
         grid = Grid(dimensions=1, scale=1.5, length=3)
