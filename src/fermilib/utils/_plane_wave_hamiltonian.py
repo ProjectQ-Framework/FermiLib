@@ -43,7 +43,7 @@ def wigner_seitz_length_scale(wigner_seitz_radius, n_particles, dimension):
     if not isinstance(dimension, int) or dimension < 1:
         raise ValueError('System dimension must be a positive integer.')
 
-    half_dimension = dimension / 2
+    half_dimension = dimension // 2
     if dimension % 2:
         volume_per_particle = (2 * numpy.math.factorial(half_dimension) *
                                (4 * numpy.pi) ** half_dimension /
