@@ -26,6 +26,36 @@ from fermilib.utils._molecular_data import periodic_hash_table
 from projectq.ops import QubitOperator
 
 
+def wigner_seitz_length_scale(wigner_seitz_radius, n_particles, dimension):
+    """Function to give length_scale associated with Wigner-Seitz radius.
+
+    Args:
+        wigner_seitz_radius (float): The radius per particle in atomic units.
+        n_particles (int): The number of particles in the simulation cell.
+        dimension (int): The dimension of the system.
+
+    Returns:
+        length_scale (float): The length scale for the simulation.
+
+    Raises:
+        ValueError: System dimension must be 1, 2 or 3.
+    """
+    if dimension == 1:
+        volume_per_particle = 2. * numpy.pi * wigner_seitz_radius
+        length_scale = volume_per_particle * float(n_particles)
+    elif dimension == 2:
+        volume_per_particle = numpy.pi * wigner_seitz_radius ** 2.
+        volume = volume_per_particle * float(n_particles)
+        length_scale = volume ** (1. / 2.)
+    elif dimension == 3:
+        volume_per_particle = (4. * numpy.pi / 3.) * wigner_seitz_radius ** 3.
+        volume = volume_per_particle * float(n_particles)
+        length_scale = volume ** (1. / 3.)
+    else:
+        raise ValueError('System dimension must be 1, 2 or 3.')
+    return length_scale
+
+
 def dual_basis_u_operator(grid, geometry, spinless):
     """Return the external potential operator in plane wave dual basis.
 

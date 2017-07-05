@@ -27,10 +27,31 @@ from fermilib.utils._plane_wave_hamiltonian import (
     plane_wave_u_operator,
     dual_basis_u_operator,
     jordan_wigner_dual_basis_hamiltonian,
+    wigner_seitz_length_scale,
 )
 
 
 class PlaneWaveHamiltonianTest(unittest.TestCase):
+
+    def test_wigner_seitz_radius(self):
+        wigner_seitz_radius = 3.17
+        n_particles = 20
+        one_d_test = wigner_seitz_length_scale(
+            wigner_seitz_radius, n_particles, 1)
+        self.assertAlmostEqual(
+            one_d_test, n_particles * 2. * numpy.pi * wigner_seitz_radius)
+        two_d_test = wigner_seitz_length_scale(
+            wigner_seitz_radius, n_particles, 2) ** 2.
+        self.assertAlmostEqual(
+            two_d_test, n_particles * numpy.pi * wigner_seitz_radius ** 2.)
+        three_d_test = wigner_seitz_length_scale(
+            wigner_seitz_radius, n_particles, 3) ** 3.
+        self.assertAlmostEqual(
+            three_d_test, n_particles * (4. * numpy.pi / 3. *
+                                         wigner_seitz_radius ** 3.))
+        with self.assertRaises(ValueError):
+            wigner_seitz_length_scale(
+                wigner_seitz_radius, n_particles, 4)
 
     def test_fourier_transform(self):
         grid = Grid(dimensions=1, scale=1.5, length=3)
