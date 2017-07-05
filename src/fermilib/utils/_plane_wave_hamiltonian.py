@@ -38,21 +38,25 @@ def wigner_seitz_length_scale(wigner_seitz_radius, n_particles, dimension):
         length_scale (float): The length scale for the simulation.
 
     Raises:
-        ValueError: System dimension must be 1, 2 or 3.
+        ValueError: System dimension must be a positive integer.
     """
-    if dimension == 1:
-        volume_per_particle = 2. * numpy.pi * wigner_seitz_radius
-        length_scale = volume_per_particle * float(n_particles)
-    elif dimension == 2:
-        volume_per_particle = numpy.pi * wigner_seitz_radius ** 2.
-        volume = volume_per_particle * float(n_particles)
-        length_scale = volume ** (1. / 2.)
-    elif dimension == 3:
-        volume_per_particle = (4. * numpy.pi / 3.) * wigner_seitz_radius ** 3.
-        volume = volume_per_particle * float(n_particles)
-        length_scale = volume ** (1. / 3.)
+    if not isinstance(dimension, int) or dimension < 1:
+        raise ValueError('System dimension must be a positive integer.')
+
+    half_dimension = dimension // 2
+    if dimension % 2:
+        volume_per_particle = (2 * numpy.math.factorial(half_dimension) *
+                               (4 * numpy.pi) ** half_dimension /
+                               numpy.math.factorial(dimension) *
+                               wigner_seitz_radius ** dimension)
     else:
-        raise ValueError('System dimension must be 1, 2 or 3.')
+        volume_per_particle = (numpy.pi ** half_dimension /
+                               numpy.math.factorial(half_dimension) *
+                               wigner_seitz_radius ** dimension)
+
+    volume = volume_per_particle * n_particles
+    length_scale = volume ** (1. / dimension)
+
     return length_scale
 
 
