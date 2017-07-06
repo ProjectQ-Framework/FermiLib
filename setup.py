@@ -26,10 +26,8 @@ requirements = [r.strip() for r in requirements]
 setup(
     name='fermilib',
     version=__version__,
-    author='Ryan Babbush, Jarrod McClean, Damian Steiger, Ian Kivlichan, '
-           'Thomas Haener, Vojtech Havlicek, Matthew Neeley, Wei Sun',
-    author_email='ryanbabbush@gmail.com, jarrod.mcc@gmail.com, '
-                 'fermilib@projectq.ch',
+    author='FermiLib developers',
+    author_email='fermilib@projectq.ch',
     url='http://www.projectq.ch',
     description=('FermiLib - '
                  'An open source package for analyzing, compiling and '
