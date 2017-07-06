@@ -43,7 +43,7 @@ class MissingCalculationError(Exception):
     pass
 
 
-# Functions to change from Bohr to Angstroms and back.
+# Functions to change from Bohr to angstroms and back.
 def bohr_to_angstroms(distance):
     return 0.529177 * distance
 
@@ -98,7 +98,7 @@ def name_molecule(geometry,
     Args:
         geometry: A list of tuples giving the coordinates of each atom.
             example is [('H', (0, 0, 0)), ('H', (0, 0, 0.7414))].
-            Distances in Angstrom. Use atomic symbols to specify atoms.
+            Distances in angstrom. Use atomic symbols to specify atoms.
         basis: A string giving the basis set. An example is 'cc-pvtz'.
         multiplicity: An integer giving the spin multiplicity.
         charge: An integer giving the total molecular charge.
@@ -167,7 +167,7 @@ def geometry_from_file(file_name):
     Returns:
         geometry: A list of tuples giving the coordinates of each atom.
             example is [('H', (0, 0, 0)), ('H', (0, 0, 0.7414))].
-            Distances in Angstrom. Use atomic symbols to specify atoms.
+            Distances in angstrom. Use atomic symbols to specify atoms.
     """
     geometry = []
     with open(file_name, 'r') as stream:
@@ -228,7 +228,7 @@ class MolecularData(object):
         Args:
             geometry: A list of tuples giving the coordinates of each atom.
                 An example is [('H', (0, 0, 0)), ('H', (0, 0, 0.7414))].
-                Distances in Angstrom. Use atomic symbols to
+                Distances in angstrom. Use atomic symbols to
                 specify atoms. Only optional if loading from file.
             basis: A string giving the basis set. An example is 'cc-pvtz'.
                 Only optional if loading from file.
