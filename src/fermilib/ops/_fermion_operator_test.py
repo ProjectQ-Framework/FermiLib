@@ -146,6 +146,10 @@ class FermionOperatorTest(unittest.TestCase):
         with self.assertRaises(FermionOperatorError):
             _ = FermionOperator('-1^')
 
+    def test_init_invalid_tensor_factor(self):
+        with self.assertRaises(FermionOperatorError):
+            _ = FermionOperator(((-2, 1), (1, 0)))
+
     def test_FermionOperator(self):
         op = FermionOperator((), 3.)
         self.assertTrue(op.isclose(FermionOperator(()) * 3.))
@@ -621,6 +625,15 @@ class FermionOperatorTest(unittest.TestCase):
                  FermionOperator('2^ 2', -0.1j))
         self.assertTrue(op_hc.isclose(hermitian_conjugated(op)))
 
+    def test_compress_terms(self):
+        op = (FermionOperator('3^ 1', 0.3 + 3e-11j) +
+              FermionOperator('2^ 3', 5e-10) +
+              FermionOperator('1^ 3', 1e-3))
+        op_compressed = (FermionOperator('3^ 1', 0.3) +
+                         FermionOperator('1^ 3', 1e-3))
+        op.compress(1e-7)
+        self.assertTrue(op_compressed.isclose(op))
+
     def test_is_normal_ordered_empty(self):
         op = FermionOperator() * 2
         self.assertTrue(op.is_normal_ordered())
@@ -743,6 +756,8 @@ class FermionOperatorTest(unittest.TestCase):
         self.assertEqual(str(op), "0.5 [1^ 3 8^]")
         op2 = FermionOperator((), 2)
         self.assertEqual(str(op2), "2 []")
+        op3 = FermionOperator()
+        self.assertEqual(str(op3), "0")
 
     def test_rep(self):
         op = FermionOperator(((1, 1), (3, 0), (8, 1)), 0.5)

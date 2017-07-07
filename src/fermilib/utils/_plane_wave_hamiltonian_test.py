@@ -27,10 +27,53 @@ from fermilib.utils._plane_wave_hamiltonian import (
     plane_wave_u_operator,
     dual_basis_u_operator,
     jordan_wigner_dual_basis_hamiltonian,
+    wigner_seitz_length_scale,
 )
 
 
 class PlaneWaveHamiltonianTest(unittest.TestCase):
+
+    def test_wigner_seitz_radius_1d(self):
+        wigner_seitz_radius = 3.17
+        n_particles = 20
+        one_d_test = wigner_seitz_length_scale(
+            wigner_seitz_radius, n_particles, 1)
+        self.assertAlmostEqual(
+            one_d_test, n_particles * 2. * wigner_seitz_radius)
+
+    def test_wigner_seitz_radius_2d(self):
+        wigner_seitz_radius = 0.5
+        n_particles = 3
+        two_d_test = wigner_seitz_length_scale(
+            wigner_seitz_radius, n_particles, 2) ** 2.
+        self.assertAlmostEqual(
+            two_d_test, n_particles * numpy.pi * wigner_seitz_radius ** 2.)
+
+    def test_wigner_seitz_radius_3d(self):
+        wigner_seitz_radius = 4.6
+        n_particles = 37
+        three_d_test = wigner_seitz_length_scale(
+            wigner_seitz_radius, n_particles, 3) ** 3.
+        self.assertAlmostEqual(
+            three_d_test, n_particles * (4. * numpy.pi / 3. *
+                                         wigner_seitz_radius ** 3.))
+
+    def test_wigner_seitz_radius_6d(self):
+        wigner_seitz_radius = 5.
+        n_particles = 42
+        six_d_test = wigner_seitz_length_scale(
+            wigner_seitz_radius, n_particles, 6) ** 6
+        self.assertAlmostEqual(
+            six_d_test, n_particles * (numpy.pi ** 3 / 6 *
+                                       wigner_seitz_radius ** 6))
+
+    def test_wigner_seitz_radius_bad_dimension_not_integer(self):
+        with self.assertRaises(ValueError):
+            wigner_seitz_length_scale(3, 2, dimension=4.2)
+
+    def test_wigner_seitz_radius_bad_dimension_not_positive(self):
+        with self.assertRaises(ValueError):
+            wigner_seitz_length_scale(3, 2, dimension=0)     
 
     def test_fourier_transform(self):
         grid = Grid(dimensions=1, scale=1.5, length=3)
