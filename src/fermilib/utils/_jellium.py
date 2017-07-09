@@ -234,18 +234,22 @@ def momentum_potential_operator(grid, spinless=False):
     return operator
 
 
-def position_kinetic_operator(grid, spinless=False):
-    """Return the kinetic operator in position space second quantization.
+def position_operator(grid, spinless=False, has_kinetic=True,
+                      has_potential=True):
+    """Return kinetic/potential operator in position space second quantization.
 
     Args:
         grid (Grid): The discretization to use.
         spinless (bool): Whether to use the spinless model or not.
+        has_kinetic (bool): Whether to include kinetic terms.
+        has_potential (bool): Whether to include potential terms.
 
     Returns:
         operator (FermionOperator)
     """
     # Initialize.
     n_points = grid.num_points()
+    position_prefactor = 2. * numpy.pi / grid.volume_scale()
     operator = FermionOperator()
     spins = [None] if spinless else [0, 1]
 
@@ -256,26 +260,58 @@ def position_kinetic_operator(grid, spinless=False):
             coordinates_b = position_vector(grid_indices_b, grid)
             differences = coordinates_b - coordinates_a
 
-            # Compute coefficient.
-            coefficient = 0.
+            # Compute coefficients.
+            kinetic_coefficient = 0.
+            potential_coefficient = 0.
             for momenta_indices in grid.all_points_indices():
                 momenta = momentum_vector(momenta_indices, grid)
-                if momenta.any():
-                    coefficient += (
-                        numpy.cos(momenta.dot(differences)) *
-                        momenta.dot(momenta) / (2. * float(n_points)))
+                momenta_squared = momenta.dot(momenta)
+                cos_difference = numpy.cos(momenta.dot(differences))
+                if momenta.any() == False:
+                    continue
+                if has_kinetic:
+                    kinetic_coefficient += (
+                        cos_difference * momenta_squared /
+                        (2. * float(n_points)))
+                if has_potential:
+                    potential_coefficient += (
+                        position_prefactor * cos_difference / momenta_squared)
 
             # Loop over spins and identify interacting orbitals.
+            orbital_a = {}
+            orbital_b = {}
             for spin in spins:
-                orbital_a = orbital_id(grid, grid_indices_a, spin)
-                orbital_b = orbital_id(grid, grid_indices_b, spin)
-
-                # Add interaction term.
-                operators = ((orbital_a, 1), (orbital_b, 0))
-                operator += FermionOperator(operators, coefficient)
+                orbital_a[spin] = orbital_id(grid, grid_indices_a, spin)
+                orbital_b[spin] = orbital_id(grid, grid_indices_b, spin)
+            if has_kinetic:
+                for spin in spins:
+                    operators = ((orbital_a[spin], 1), (orbital_b[spin], 0))
+                    operator += FermionOperator(operators, kinetic_coefficient)
+            if has_potential:
+                for sa in spins:
+                    for sb in spins:
+                        if orbital_a[sa] == orbital_b[sb]:
+                            continue
+                        operators = ((orbital_a[sa], 1), (orbital_a[sa], 0),
+                                     (orbital_b[sb], 1), (orbital_b[sb], 0))
+                        operator += FermionOperator(operators,
+                                                    potential_coefficient)
 
     # Return.
     return operator
+
+
+def position_kinetic_operator(grid, spinless=False):
+    """Return the kinetic operator in position space second quantization.
+
+    Args:
+        grid (Grid): The discretization to use.
+        spinless (bool): Whether to use the spinless model or not.
+
+    Returns:
+        operator (FermionOperator)
+    """
+    return position_operator(grid, spinless, True, False)
 
 
 def position_potential_operator(grid, spinless=False):
@@ -288,41 +324,7 @@ def position_potential_operator(grid, spinless=False):
     Returns:
         operator (FermionOperator)
     """
-    # Initialize.
-    volume = grid.volume_scale()
-    prefactor = 2. * numpy.pi / volume
-    operator = FermionOperator()
-    spins = [None] if spinless else [0, 1]
-
-    # Loop once through all lattice sites.
-    for grid_indices_a in grid.all_points_indices():
-        coordinates_a = position_vector(grid_indices_a, grid)
-        for grid_indices_b in grid.all_points_indices():
-            coordinates_b = position_vector(grid_indices_b, grid)
-            differences = coordinates_b - coordinates_a
-
-            # Compute coefficient.
-            coefficient = 0.
-            for momenta_indices in grid.all_points_indices():
-                momenta = momentum_vector(momenta_indices, grid)
-                if momenta.any():
-                    coefficient += (
-                        prefactor * numpy.cos(momenta.dot(differences)) /
-                        momenta.dot(momenta))
-
-            # Loop over spins and identify interacting orbitals.
-            for spin_a in spins:
-                orbital_a = orbital_id(grid, grid_indices_a, spin_a)
-                for spin_b in spins:
-                    orbital_b = orbital_id(grid, grid_indices_b, spin_b)
-
-                    # Add interaction term.
-                    if orbital_a != orbital_b:
-                        operators = ((orbital_a, 1), (orbital_a, 0),
-                                     (orbital_b, 1), (orbital_b, 0))
-                        operator += FermionOperator(operators, coefficient)
-
-    return operator
+    return position_operator(grid, spinless, False, True)
 
 
 def jellium_model(grid, spinless=False, momentum_space=True):
@@ -341,8 +343,7 @@ def jellium_model(grid, spinless=False, momentum_space=True):
         hamiltonian = momentum_kinetic_operator(grid, spinless)
         hamiltonian += momentum_potential_operator(grid, spinless)
     else:
-        hamiltonian = position_kinetic_operator(grid, spinless)
-        hamiltonian += position_potential_operator(grid, spinless)
+        hamiltonian = position_operator(grid, spinless)
     return hamiltonian
 
 
