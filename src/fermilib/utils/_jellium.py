@@ -256,9 +256,16 @@ def position_operator(grid, spinless=False, has_kinetic=True,
     # Compute vectors.
     position_vectors = {}
     momentum_vectors = {}
+    momenta_squared_dict = {}
+    orbital_ids = {}
     for indices in grid.all_points_indices():
         position_vectors[indices] = position_vector(indices, grid)
-        momentum_vectors[indices] = momentum_vector(indices, grid)
+        momenta = momentum_vector(indices, grid)
+        momentum_vectors[indices] = momenta
+        momenta_squared_dict[indices] = momenta.dot(momenta)
+        orbital_ids[indices] = {}
+        for spin in spins:
+            orbital_ids[indices][spin] = orbital_id(grid, indices, spin)
 
     # Loop once through all lattice sites.
     for grid_indices_a in grid.all_points_indices():
@@ -272,24 +279,24 @@ def position_operator(grid, spinless=False, has_kinetic=True,
             potential_coefficient = 0.
             for momenta_indices in grid.all_points_indices():
                 momenta = momentum_vectors[momenta_indices]
-                if momenta.any():
-                    momenta_squared = momenta.dot(momenta)
-                    cos_difference = numpy.cos(momenta.dot(differences))
-                    if has_kinetic:
-                        kinetic_coefficient += (
-                            cos_difference * momenta_squared /
-                            (2. * float(n_points)))
-                    if has_potential:
-                        potential_coefficient += (
-                            position_prefactor * cos_difference /
-                            momenta_squared)
+                momenta_squared = momenta_squared_dict[momenta_indices]
+                if momenta_squared == 0:
+                    continue
+                cos_difference = numpy.cos(momenta.dot(differences))
+                if has_kinetic:
+                    kinetic_coefficient += (
+                        cos_difference * momenta_squared /
+                        (2. * float(n_points)))
+                if has_potential:
+                    potential_coefficient += (
+                        position_prefactor * cos_difference / momenta_squared)
 
             # Loop over spins and identify interacting orbitals.
             orbital_a = {}
             orbital_b = {}
             for spin in spins:
-                orbital_a[spin] = orbital_id(grid, grid_indices_a, spin)
-                orbital_b[spin] = orbital_id(grid, grid_indices_b, spin)
+                orbital_a[spin] = orbital_ids[grid_indices_a][spin]
+                orbital_b[spin] = orbital_ids[grid_indices_b][spin]
             if has_kinetic:
                 for spin in spins:
                     operators = ((orbital_a[spin], 1), (orbital_b[spin], 0))
@@ -375,8 +382,11 @@ def jordan_wigner_position_jellium(grid, spinless=False):
 
     # Compute vectors.
     momentum_vectors = {}
+    momenta_squared_dict = {}
     for indices in grid.all_points_indices():
-        momentum_vectors[indices] = momentum_vector(indices, grid)
+        momenta = momentum_vector(indices, grid)
+        momentum_vectors[indices] = momenta
+        momenta_squared_dict[indices] = momenta.dot(momenta)
 
     # Compute the identity coefficient and the coefficient of local Z terms.
     identity_coefficient = 0.
@@ -421,17 +431,18 @@ def jordan_wigner_position_jellium(grid, spinless=False):
             term_coefficient = 0.
             for k_indices in grid.all_points_indices():
                 momenta = momentum_vectors[k_indices]
-                if momenta.any():
-                    momenta_squared = momenta.dot(momenta)
-                    cos_difference = numpy.cos(momenta.dot(difference))
+                momenta_squared = momenta_squared_dict[k_indices]
+                if momenta_squared == 0:
+                    continue
+                cos_difference = numpy.cos(momenta.dot(difference))
 
-                    zpzq_coefficient += (zz_prefactor * cos_difference /
-                                         momenta_squared)
+                zpzq_coefficient += (zz_prefactor * cos_difference /
+                                     momenta_squared)
 
-                    if skip_xzx_yzy:
-                        continue
-                    term_coefficient += (xzx_yzy_prefactor * cos_difference *
-                                         momenta_squared)
+                if skip_xzx_yzy:
+                    continue
+                term_coefficient += (xzx_yzy_prefactor * cos_difference *
+                                     momenta_squared)
 
             # Add ZZ term.
             qubit_term = QubitOperator(((p, 'Z'), (q, 'Z')), zpzq_coefficient)
