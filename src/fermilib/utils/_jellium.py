@@ -253,29 +253,36 @@ def position_operator(grid, spinless=False, has_kinetic=True,
     operator = FermionOperator()
     spins = [None] if spinless else [0, 1]
 
+    # Compute vectors.
+    position_vectors = {}
+    momentum_vectors = {}
+    for indices in grid.all_points_indices():
+        position_vectors[indices] = position_vector(indices, grid)
+        momentum_vectors[indices] = momentum_vector(indices, grid)
+
     # Loop once through all lattice sites.
     for grid_indices_a in grid.all_points_indices():
-        coordinates_a = position_vector(grid_indices_a, grid)
+        coordinates_a = position_vectors[grid_indices_a]
         for grid_indices_b in grid.all_points_indices():
-            coordinates_b = position_vector(grid_indices_b, grid)
+            coordinates_b = position_vectors[grid_indices_b]
             differences = coordinates_b - coordinates_a
 
             # Compute coefficients.
             kinetic_coefficient = 0.
             potential_coefficient = 0.
             for momenta_indices in grid.all_points_indices():
-                momenta = momentum_vector(momenta_indices, grid)
-                momenta_squared = momenta.dot(momenta)
-                cos_difference = numpy.cos(momenta.dot(differences))
-                if momenta.any() == False:
-                    continue
-                if has_kinetic:
-                    kinetic_coefficient += (
-                        cos_difference * momenta_squared /
-                        (2. * float(n_points)))
-                if has_potential:
-                    potential_coefficient += (
-                        position_prefactor * cos_difference / momenta_squared)
+                momenta = momentum_vectors[momenta_indices]
+                if momenta.any():
+                    momenta_squared = momenta.dot(momenta)
+                    cos_difference = numpy.cos(momenta.dot(differences))
+                    if has_kinetic:
+                        kinetic_coefficient += (
+                            cos_difference * momenta_squared /
+                            (2. * float(n_points)))
+                    if has_potential:
+                        potential_coefficient += (
+                            position_prefactor * cos_difference /
+                            momenta_squared)
 
             # Loop over spins and identify interacting orbitals.
             orbital_a = {}
@@ -366,11 +373,16 @@ def jordan_wigner_position_jellium(grid, spinless=False):
         n_qubits = 2 * n_orbitals
     hamiltonian = QubitOperator()
 
+    # Compute vectors.
+    momentum_vectors = {}
+    for indices in grid.all_points_indices():
+        momentum_vectors[indices] = momentum_vector(indices, grid)
+
     # Compute the identity coefficient and the coefficient of local Z terms.
     identity_coefficient = 0.
     z_coefficient = 0.
     for k_indices in grid.all_points_indices():
-        momenta = momentum_vector(k_indices, grid)
+        momenta = momentum_vectors[k_indices]
         if momenta.any():
             momenta_squared = momenta.dot(momenta)
             identity_coefficient += momenta_squared / 2.
@@ -408,7 +420,7 @@ def jordan_wigner_position_jellium(grid, spinless=False):
             zpzq_coefficient = 0.
             term_coefficient = 0.
             for k_indices in grid.all_points_indices():
-                momenta = momentum_vector(k_indices, grid)
+                momenta = momentum_vectors[k_indices]
                 if momenta.any():
                     momenta_squared = momenta.dot(momenta)
                     cos_difference = numpy.cos(momenta.dot(difference))
