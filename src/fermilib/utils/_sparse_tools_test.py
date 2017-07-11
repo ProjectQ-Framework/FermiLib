@@ -15,6 +15,7 @@ from __future__ import absolute_import
 
 import numpy
 from scipy.sparse import csc_matrix
+from scipy.linalg import eigh, norm
 import unittest
 
 from fermilib.ops import FermionOperator
@@ -47,6 +48,42 @@ class SparseOperatorTest(unittest.TestCase):
         fermion_spectrum = sparse_eigenspectrum(fermion_sparse)
         self.assertAlmostEqual(0., numpy.amax(
             numpy.absolute(fermion_spectrum - qubit_spectrum)))
+
+    def test_jw_sparse_index(self):
+        """Test the indexing scheme for selecting specific particle numbers"""
+        expected = [1, 2]
+        calculated_indices = jw_number_indices(1, 2)
+        self.assertEqual(expected, calculated_indices)
+
+        expected = [3]
+        calculated_indices = jw_number_indices(2, 2)
+        self.assertEqual(expected, calculated_indices)
+
+    def test_jw_restrict_operator(self):
+        """Test the scheme for restricting JW encoded operators to number"""
+        # Make a Hamiltonian that cares mostly about number of electrons
+        n_qubits = 6
+        target_electrons = 3
+        penalty_const = 100.
+        number_operator = sum([FermionOperator(((i, 1), (i, 0)), 1.0) for i
+                              in range(n_qubits)], FermionOperator())
+        number_sparse = jordan_wigner_sparse(number_operator)
+        bias_operator = sum([FermionOperator(((i, 1), (i, 0)), i) for i
+                             in range(n_qubits)], FermionOperator())
+        bias_sparse = jordan_wigner_sparse(bias_operator)
+        hamiltonian_sparse = penalty_const * (
+            number_sparse - target_electrons *
+            scipy.sparse.identity(2**n_qubits)).dot(
+            number_sparse - target_electrons *
+            scipy.sparse.identity(2**n_qubits)) + bias_sparse
+
+        restricted_hamiltonian = jw_number_restrict_operator(
+            hamiltonian_sparse, target_electrons, n_qubits)
+        true_eigvals, _ = eigh(hamiltonian_sparse.A)
+        test_eigvals, _ = eigh(restricted_hamiltonian.A)
+
+        self.assertAlmostEqual(norm(true_eigvals[:20] - test_eigvals[:20]),
+                               0.0)
 
 
 class JordanWignerSparseTest(unittest.TestCase):
