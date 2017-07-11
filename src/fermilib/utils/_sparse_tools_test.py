@@ -20,6 +20,7 @@ import unittest
 
 from fermilib.ops import FermionOperator
 from fermilib.transforms import jordan_wigner, get_sparse_operator
+from fermilib.utils import Grid, jellium_model
 from fermilib.utils._sparse_tools import *
 
 
@@ -130,6 +131,26 @@ class SparseOperatorTest(unittest.TestCase):
         expected = csc_matrix(([-1, -1], ([7, 9], [9, 7])), shape=(dim, dim))
 
         self.assertTrue(numpy.allclose(interaction_restrict.A, expected.A))
+
+    def test_jw_restrict_jellium_ground_state_integration(self):
+        n_qubits = 4
+        grid = Grid(dimensions=1, length=n_qubits, scale=1.0)
+        jellium_hamiltonian = jordan_wigner_sparse(
+            jellium_model(grid, spinless=False))
+
+        number_operator = sum([FermionOperator(((i, 1), (i, 0))) for i
+                               # 2 * n_qubits because of spin
+                               in range(2 * n_qubits)], FermionOperator())
+        number_operator = jordan_wigner_sparse(number_operator)
+
+        restricted_number = jw_number_restrict_operator(number_operator, 2)
+        restricted_jellium_hamiltonian = jw_number_restrict_operator(
+            jellium_hamiltonian, 2)
+
+        energy, ground_state = get_ground_state(restricted_jellium_hamiltonian)
+
+        number_expectation = expectation(restricted_number, ground_state)
+        self.assertAlmostEqual(number_expectation, 2)
 
 
 class JordanWignerSparseTest(unittest.TestCase):

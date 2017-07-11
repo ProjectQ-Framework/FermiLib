@@ -305,7 +305,7 @@ def expectation(sparse_operator, state):
         A real float giving expectation value.
 
     Raises:
-        SparseOperatorError: Input state has invalid format.
+        ValueError: Input state has invalid format.
     """
     # Handle density matrix.
     if state.shape == sparse_operator.shape:
@@ -319,7 +319,7 @@ def expectation(sparse_operator, state):
 
     else:
         # Handle exception.
-        raise SparseOperatorError('Input state has invalid format.')
+        raise ValueError('Input state has invalid format.')
 
     # Return.
     return expectation
