@@ -29,7 +29,7 @@ matrix:
       apt:
         sources: ['ubuntu-toolchain-r-test']
         packages: ['gcc-4.9', 'g++-4.9']
-    env: CC=gcc-4.9 CXX=g++-4.9 PYTHON=3.5
+    env: CC=gcc-4.9 CXX=g++-4.9 PYTHON=3.6
 
 before_install:
   - pip$PY install --upgrade pip setuptools wheel
