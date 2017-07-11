@@ -18,7 +18,7 @@ from scipy.sparse import csc_matrix
 from scipy.linalg import eigh, norm
 import unittest
 
-from fermilib.ops import FermionOperator
+from fermilib.ops import FermionOperator, number_operator
 from fermilib.transforms import jordan_wigner, get_sparse_operator
 from fermilib.utils import Grid, jellium_model
 from fermilib.utils._sparse_tools import *
@@ -66,12 +66,8 @@ class SparseOperatorTest(unittest.TestCase):
         n_qubits = 6
         target_electrons = 3
         penalty_const = 100.
-        number_operator = sum([FermionOperator(((i, 1), (i, 0)), 1.0) for i
-                              in range(n_qubits)], FermionOperator())
-        number_sparse = jordan_wigner_sparse(number_operator)
-        bias_operator = sum([FermionOperator(((i, 1), (i, 0)), i) for i
-                             in range(n_qubits)], FermionOperator())
-        bias_sparse = jordan_wigner_sparse(bias_operator)
+        number_sparse = jordan_wigner_sparse(number_operator(n_qubits))
+        bias_sparse = jordan_wigner_sparse(number_operator(n_qubits))
         hamiltonian_sparse = penalty_const * (
             number_sparse - target_electrons *
             scipy.sparse.identity(2**n_qubits)).dot(
@@ -138,12 +134,10 @@ class SparseOperatorTest(unittest.TestCase):
         jellium_hamiltonian = jordan_wigner_sparse(
             jellium_model(grid, spinless=False))
 
-        number_operator = sum([FermionOperator(((i, 1), (i, 0))) for i
-                               # 2 * n_qubits because of spin
-                               in range(2 * n_qubits)], FermionOperator())
-        number_operator = jordan_wigner_sparse(number_operator)
+        #  2 * n_qubits because of spin
+        number_sparse = jordan_wigner_sparse(number_operator(2 * n_qubits))
 
-        restricted_number = jw_number_restrict_operator(number_operator, 2)
+        restricted_number = jw_number_restrict_operator(number_sparse, 2)
         restricted_jellium_hamiltonian = jw_number_restrict_operator(
             jellium_hamiltonian, 2)
 
