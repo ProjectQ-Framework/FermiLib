@@ -223,7 +223,7 @@ def jw_number_indices(n_electrons, n_qubits):
     return indices
 
 
-def jw_number_restrict_operator(operator, n_electrons, n_qubits):
+def jw_number_restrict_operator(operator, n_electrons, n_qubits=None):
     """Restrict a Jordan-Wigner encoded operator to a given particle number
 
     Args:
@@ -236,6 +236,9 @@ def jw_number_restrict_operator(operator, n_electrons, n_qubits):
         new_operator(ndarray or sparse): Numpy operator restricted to
             acting on states with the same particle number.
     """
+    if n_qubits is None:
+        n_qubits = int(numpy.log2(operator.shape[0]))
+
     select_indices = jw_number_indices(n_electrons, n_qubits)
     return operator[numpy.ix_(select_indices, select_indices)]
 

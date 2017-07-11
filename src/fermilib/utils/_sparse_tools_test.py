@@ -85,6 +85,52 @@ class SparseOperatorTest(unittest.TestCase):
         self.assertAlmostEqual(norm(true_eigvals[:20] - test_eigvals[:20]),
                                0.0)
 
+    def test_jw_restrict_operator_hopping_to_1_particle(self):
+        hop = FermionOperator('3^ 1') + FermionOperator('1^ 3')
+        hop_sparse = jordan_wigner_sparse(hop, n_qubits=4)
+        hop_restrict = jw_number_restrict_operator(hop_sparse, 1, n_qubits=4)
+        expected = csc_matrix(([1, 1], ([0, 2], [2, 0])), shape=(4, 4))
+
+        self.assertTrue(numpy.allclose(hop_restrict.A, expected.A))
+
+    def test_jw_restrict_operator_interaction_to_1_particle(self):
+        interaction = FermionOperator('3^ 2^ 4 1')
+        interaction_sparse = jordan_wigner_sparse(interaction, n_qubits=6)
+        interaction_restrict = jw_number_restrict_operator(
+            interaction_sparse, 1, n_qubits=6)
+        expected = csc_matrix(([], ([], [])), shape=(6, 6))
+
+        self.assertTrue(numpy.allclose(interaction_restrict.A, expected.A))
+
+    def test_jw_restrict_operator_interaction_to_2_particles(self):
+        interaction = (FermionOperator('3^ 2^ 4 1') +
+                       FermionOperator('4^ 1^ 3 2'))
+        interaction_sparse = jordan_wigner_sparse(interaction, n_qubits=6)
+        interaction_restrict = jw_number_restrict_operator(
+            interaction_sparse, 2, n_qubits=6)
+
+        dim = 6 * 5 / 2  # shape of new sparse array
+        # 3^ 2^ 4 1 maps 2**4 + 2 = 18 to 2**3 + 2**2 = 12 and vice versa;
+        # in the 2-particle subspace (1, 4) and (2, 3) are 7th and 9th.
+        expected = csc_matrix(([-1, -1], ([7, 9], [9, 7])), shape=(dim, dim))
+
+        self.assertTrue(numpy.allclose(interaction_restrict.A, expected.A))
+
+    def test_jw_restrict_operator_hopping_to_1_particle_default_nqubits(self):
+        interaction = (FermionOperator('3^ 2^ 4 1') +
+                       FermionOperator('4^ 1^ 3 2'))
+        interaction_sparse = jordan_wigner_sparse(interaction, n_qubits=6)
+        # n_qubits should default to 6
+        interaction_restrict = jw_number_restrict_operator(
+            interaction_sparse, 2)
+
+        dim = 6 * 5 / 2  # shape of new sparse array
+        # 3^ 2^ 4 1 maps 2**4 + 2 = 18 to 2**3 + 2**2 = 12 and vice versa;
+        # in the 2-particle subspace (1, 4) and (2, 3) are 7th and 9th.
+        expected = csc_matrix(([-1, -1], ([7, 9], [9, 7])), shape=(dim, dim))
+
+        self.assertTrue(numpy.allclose(interaction_restrict.A, expected.A))
+
 
 class JordanWignerSparseTest(unittest.TestCase):
 
