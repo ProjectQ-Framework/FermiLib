@@ -14,13 +14,17 @@ How to use it?
 --------------
 
 1. To use this image, you first need to install `Docker <https://www.docker.com/>`__.
-2. To build the Docker image, move the Dockerfile to your working directory. Then execute:
-   ```
-   docker build -t "fermiq_docker" .
-   ```
-3. To run the image (assuming you're still inside your working directory), execute with `YOUR_WORK_DIR` as the path to your working directory:
-   ```
-   docker run -it -v $(pwd):YOUR_WORK_DIR -w YOUR_WORK_DIR fermiq_docker
-   ```
 
-When you're done using the Docker image, you can execute `docker stop YOUR_CONTAINER_ID` or `docker kill YOUR_CONTAINER_ID` to stop your container (you can get your container ID by using the command `docker ps`). Finally, feel free to use this as a parent image to build a more customized image layer, perhaps containing the available plugins (`PySCF <https://github.com/ProjectQ-Framework/FermiLib-Plugin-PySCF>`__ or `Psi4 <https://github.com/ProjectQ-Framework/FermiLib-Plugin-Psi4>`__) for FermiLib.
+2. To build the Docker image, move the Dockerfile to your working directory. Then execute:
+
+.. code-block:: bash
+
+        docker build -t "fermiq_docker" .
+
+3. To run the image (assuming you're still inside your working directory), execute with `YOUR_WORK_DIR` as the path to your working directory:
+
+.. code-block:: bash
+
+        docker run -it -v $(pwd):YOUR_WORK_DIR -w YOUR_WORK_DIR fermiq_docker
+
+When you're done using the Docker image, you can execute :code:`docker stop YOUR_CONTAINER_ID` or :code:`docker kill YOUR_CONTAINER_ID` to stop your container (you can get your container ID by using the command :code:`docker ps`). Finally, feel free to use this as a parent image to build a more customized image layer, perhaps containing the available plugins (`PySCF <https://github.com/ProjectQ-Framework/FermiLib-Plugin-PySCF>`__ or `Psi4 <https://github.com/ProjectQ-Framework/FermiLib-Plugin-Psi4>`__) for FermiLib.
