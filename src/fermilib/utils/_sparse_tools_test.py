@@ -67,7 +67,9 @@ class SparseOperatorTest(unittest.TestCase):
         target_electrons = 3
         penalty_const = 100.
         number_sparse = jordan_wigner_sparse(number_operator(n_qubits))
-        bias_sparse = jordan_wigner_sparse(number_operator(n_qubits))
+        bias_sparse = jordan_wigner_sparse(
+            sum([FermionOperator(((i, 1), (i, 0)), 1.0) for i
+                 in range(n_qubits)], FermionOperator()))
         hamiltonian_sparse = penalty_const * (
             number_sparse - target_electrons *
             scipy.sparse.identity(2**n_qubits)).dot(
