@@ -18,9 +18,13 @@ import numpy
 from fermilib.config import *
 from fermilib.ops import FermionOperator
 from fermilib.utils._grid import Grid
-from fermilib.utils._jellium import (orbital_id, grid_indices, position_vector,
-                                     momentum_vector, jellium_model,
-                                     jordan_wigner_position_jellium)
+from fermilib.utils._jellium import (
+    grid_indices,
+    momentum_vector,
+    orbital_id,
+    position_vector,
+    jellium_model,
+    jordan_wigner_dual_basis_jellium)
 from fermilib.utils._molecular_data import periodic_hash_table
 
 from projectq.ops import QubitOperator
@@ -60,8 +64,8 @@ def wigner_seitz_length_scale(wigner_seitz_radius, n_particles, dimension):
     return length_scale
 
 
-def dual_basis_u_operator(grid, geometry, spinless):
-    """Return the external potential operator in plane wave dual basis.
+def dual_basis_external_potential_operator(grid, geometry, spinless):
+    """Return the external potential operator in the dual basis.
 
     Args:
         grid (Grid): The discretization to use.
@@ -105,7 +109,7 @@ def dual_basis_u_operator(grid, geometry, spinless):
     return operator
 
 
-def plane_wave_u_operator(grid, geometry, spinless):
+def plane_wave_external_potential_operator(grid, geometry, spinless):
     """Return the external potential operator in plane wave basis.
 
     Args:
@@ -183,9 +187,11 @@ def plane_wave_hamiltonian(grid, geometry=None,
             raise ValueError("Invalid nuclear element.")
 
     if momentum_space:
-        external_potential = plane_wave_u_operator(grid, geometry, spinless)
+        external_potential = plane_wave_external_potential_operator(
+            grid, geometry, spinless)
     else:
-        external_potential = dual_basis_u_operator(grid, geometry, spinless)
+        external_potential = dual_basis_external_potential_operator(
+            grid, geometry, spinless)
 
     return jellium_op + external_potential
 
@@ -292,7 +298,7 @@ def jordan_wigner_dual_basis_hamiltonian(grid, geometry=None, spinless=False):
     Returns:
         hamiltonian (QubitOperator)
     """
-    jellium_op = jordan_wigner_position_jellium(grid, spinless)
+    jellium_op = jordan_wigner_dual_basis_jellium(grid, spinless)
 
     if geometry is None:
         return jellium_op
