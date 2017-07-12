@@ -15,10 +15,12 @@ from __future__ import absolute_import
 
 import numpy
 from scipy.sparse import csc_matrix
+from scipy.linalg import eigh, norm
 import unittest
 
-from fermilib.ops import FermionOperator
+from fermilib.ops import FermionOperator, number_operator
 from fermilib.transforms import jordan_wigner, get_sparse_operator
+from fermilib.utils import Grid, jellium_model
 from fermilib.utils._sparse_tools import *
 
 
@@ -47,6 +49,104 @@ class SparseOperatorTest(unittest.TestCase):
         fermion_spectrum = sparse_eigenspectrum(fermion_sparse)
         self.assertAlmostEqual(0., numpy.amax(
             numpy.absolute(fermion_spectrum - qubit_spectrum)))
+
+    def test_jw_sparse_index(self):
+        """Test the indexing scheme for selecting specific particle numbers"""
+        expected = [1, 2]
+        calculated_indices = jw_number_indices(1, 2)
+        self.assertEqual(expected, calculated_indices)
+
+        expected = [3]
+        calculated_indices = jw_number_indices(2, 2)
+        self.assertEqual(expected, calculated_indices)
+
+    def test_jw_restrict_operator(self):
+        """Test the scheme for restricting JW encoded operators to number"""
+        # Make a Hamiltonian that cares mostly about number of electrons
+        n_qubits = 6
+        target_electrons = 3
+        penalty_const = 100.
+        number_sparse = jordan_wigner_sparse(number_operator(n_qubits))
+        bias_sparse = jordan_wigner_sparse(
+            sum([FermionOperator(((i, 1), (i, 0)), 1.0) for i
+                 in range(n_qubits)], FermionOperator()))
+        hamiltonian_sparse = penalty_const * (
+            number_sparse - target_electrons *
+            scipy.sparse.identity(2**n_qubits)).dot(
+            number_sparse - target_electrons *
+            scipy.sparse.identity(2**n_qubits)) + bias_sparse
+
+        restricted_hamiltonian = jw_number_restrict_operator(
+            hamiltonian_sparse, target_electrons, n_qubits)
+        true_eigvals, _ = eigh(hamiltonian_sparse.A)
+        test_eigvals, _ = eigh(restricted_hamiltonian.A)
+
+        self.assertAlmostEqual(norm(true_eigvals[:20] - test_eigvals[:20]),
+                               0.0)
+
+    def test_jw_restrict_operator_hopping_to_1_particle(self):
+        hop = FermionOperator('3^ 1') + FermionOperator('1^ 3')
+        hop_sparse = jordan_wigner_sparse(hop, n_qubits=4)
+        hop_restrict = jw_number_restrict_operator(hop_sparse, 1, n_qubits=4)
+        expected = csc_matrix(([1, 1], ([0, 2], [2, 0])), shape=(4, 4))
+
+        self.assertTrue(numpy.allclose(hop_restrict.A, expected.A))
+
+    def test_jw_restrict_operator_interaction_to_1_particle(self):
+        interaction = FermionOperator('3^ 2^ 4 1')
+        interaction_sparse = jordan_wigner_sparse(interaction, n_qubits=6)
+        interaction_restrict = jw_number_restrict_operator(
+            interaction_sparse, 1, n_qubits=6)
+        expected = csc_matrix(([], ([], [])), shape=(6, 6))
+
+        self.assertTrue(numpy.allclose(interaction_restrict.A, expected.A))
+
+    def test_jw_restrict_operator_interaction_to_2_particles(self):
+        interaction = (FermionOperator('3^ 2^ 4 1') +
+                       FermionOperator('4^ 1^ 3 2'))
+        interaction_sparse = jordan_wigner_sparse(interaction, n_qubits=6)
+        interaction_restrict = jw_number_restrict_operator(
+            interaction_sparse, 2, n_qubits=6)
+
+        dim = 6 * 5 / 2  # shape of new sparse array
+        # 3^ 2^ 4 1 maps 2**4 + 2 = 18 to 2**3 + 2**2 = 12 and vice versa;
+        # in the 2-particle subspace (1, 4) and (2, 3) are 7th and 9th.
+        expected = csc_matrix(([-1, -1], ([7, 9], [9, 7])), shape=(dim, dim))
+
+        self.assertTrue(numpy.allclose(interaction_restrict.A, expected.A))
+
+    def test_jw_restrict_operator_hopping_to_1_particle_default_nqubits(self):
+        interaction = (FermionOperator('3^ 2^ 4 1') +
+                       FermionOperator('4^ 1^ 3 2'))
+        interaction_sparse = jordan_wigner_sparse(interaction, n_qubits=6)
+        # n_qubits should default to 6
+        interaction_restrict = jw_number_restrict_operator(
+            interaction_sparse, 2)
+
+        dim = 6 * 5 / 2  # shape of new sparse array
+        # 3^ 2^ 4 1 maps 2**4 + 2 = 18 to 2**3 + 2**2 = 12 and vice versa;
+        # in the 2-particle subspace (1, 4) and (2, 3) are 7th and 9th.
+        expected = csc_matrix(([-1, -1], ([7, 9], [9, 7])), shape=(dim, dim))
+
+        self.assertTrue(numpy.allclose(interaction_restrict.A, expected.A))
+
+    def test_jw_restrict_jellium_ground_state_integration(self):
+        n_qubits = 4
+        grid = Grid(dimensions=1, length=n_qubits, scale=1.0)
+        jellium_hamiltonian = jordan_wigner_sparse(
+            jellium_model(grid, spinless=False))
+
+        #  2 * n_qubits because of spin
+        number_sparse = jordan_wigner_sparse(number_operator(2 * n_qubits))
+
+        restricted_number = jw_number_restrict_operator(number_sparse, 2)
+        restricted_jellium_hamiltonian = jw_number_restrict_operator(
+            jellium_hamiltonian, 2)
+
+        energy, ground_state = get_ground_state(restricted_jellium_hamiltonian)
+
+        number_expectation = expectation(restricted_number, ground_state)
+        self.assertAlmostEqual(number_expectation, 2)
 
 
 class JordanWignerSparseTest(unittest.TestCase):

@@ -14,6 +14,7 @@
 from __future__ import absolute_import
 
 from functools import reduce
+import itertools
 import numpy
 import numpy.linalg
 import scipy
@@ -198,6 +199,50 @@ def jw_hartree_fock_state(n_electrons, n_orbitals):
     return psi
 
 
+def jw_number_indices(n_electrons, n_qubits):
+    """Return the indices for n_electrons in n_qubits under JW encoding
+
+    Calculates the indices for all possible arrangements of n-electrons
+        within n-qubit orbitals when a Jordan-Wigner encoding is used.
+        Useful for restricting generic operators or vectors to a particular
+        particle number space when desired
+
+    Args:
+        n_electrons(int): Number of particles to restrict the operator to
+        n_qubits(int): Number of qubits defining the total state
+
+    Returns:
+        indices(list): List of indices in a 2^n length array that indicate
+            the indices of constant particle number within n_qubits
+            in a Jordan-Wigner encoding.
+
+    """
+    occupations = itertools.combinations(range(n_qubits), n_electrons)
+    indices = [sum([2**n for n in occupation])
+               for occupation in occupations]
+    return indices
+
+
+def jw_number_restrict_operator(operator, n_electrons, n_qubits=None):
+    """Restrict a Jordan-Wigner encoded operator to a given particle number
+
+    Args:
+        sparse_operator(ndarray or sparse): Numpy operator acting on
+            the space of n_qubits.
+        n_electrons(int): Number of particles to restrict the operator to
+        n_qubits(int): Number of qubits defining the total state
+
+    Returns:
+        new_operator(ndarray or sparse): Numpy operator restricted to
+            acting on states with the same particle number.
+    """
+    if n_qubits is None:
+        n_qubits = int(numpy.log2(operator.shape[0]))
+
+    select_indices = jw_number_indices(n_electrons, n_qubits)
+    return operator[numpy.ix_(select_indices, select_indices)]
+
+
 def get_density_matrix(states, probabilities):
     n_qubits = states[0].shape[0]
     density_matrix = scipy.sparse.csc_matrix(
@@ -260,7 +305,7 @@ def expectation(sparse_operator, state):
         A real float giving expectation value.
 
     Raises:
-        SparseOperatorError: Input state has invalid format.
+        ValueError: Input state has invalid format.
     """
     # Handle density matrix.
     if state.shape == sparse_operator.shape:
@@ -274,7 +319,7 @@ def expectation(sparse_operator, state):
 
     else:
         # Handle exception.
-        raise SparseOperatorError('Input state has invalid format.')
+        raise ValueError('Input state has invalid format.')
 
     # Return.
     return expectation

@@ -34,9 +34,10 @@ from ._operator_utils import (eigenspectrum, commutator,
 from ._plane_wave_hamiltonian import (dual_basis_external_potential_operator,
                                       inverse_fourier_transform,
                                       fourier_transform,
+                                      jordan_wigner_dual_basis_hamiltonian,
                                       plane_wave_hamiltonian,
                                       plane_wave_external_potential_operator,
-                                      jordan_wigner_dual_basis_hamiltonian)
+                                      wigner_seitz_length_scale)
 
 from ._sparse_tools import (expectation,
                             get_density_matrix,
