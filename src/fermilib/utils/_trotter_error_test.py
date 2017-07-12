@@ -144,6 +144,10 @@ class ErrorBoundTest(unittest.TestCase):
         self.assertTrue(numpy.allclose(matrix, expected),
                         ("Got " + str(matrix)))
 
+    def test_error_bound_qubit_tight_less_than_loose_integration(self):
+        terms = [QubitOperator('X1'), QubitOperator('Y1'), QubitOperator('Z1')]
+        self.assertLess(error_bound(terms, tight=True),
+                        error_bound(terms, tight=False))
 
 if __name__ == '__main__':
     unittest.main()
