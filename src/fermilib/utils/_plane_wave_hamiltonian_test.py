@@ -73,7 +73,7 @@ class PlaneWaveHamiltonianTest(unittest.TestCase):
 
     def test_wigner_seitz_radius_bad_dimension_not_positive(self):
         with self.assertRaises(ValueError):
-            wigner_seitz_length_scale(3, 2, dimension=0)     
+            wigner_seitz_length_scale(3, 2, dimension=0)
 
     def test_fourier_transform(self):
         grid = Grid(dimensions=1, scale=1.5, length=3)
