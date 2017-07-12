@@ -14,6 +14,7 @@
 from __future__ import absolute_import
 
 import numpy
+
 from projectq.ops import QubitOperator
 
 from fermilib.ops import FermionOperator
@@ -141,8 +142,8 @@ def momentum_vector(momentum_indices, grid):
     return 2. * numpy.pi * adjusted_vector / grid.scale
 
 
-def momentum_kinetic_operator(grid, spinless=False):
-    """Return the kinetic energy operator in momentum second quantization.
+def plane_wave_kinetic(grid, spinless=False):
+    """Return the kinetic energy operator in the plane wave basis.
 
     Args:
         grid (fermilib.utils.Grid): The discretization to use.
@@ -174,8 +175,8 @@ def momentum_kinetic_operator(grid, spinless=False):
     return operator
 
 
-def momentum_potential_operator(grid, spinless=False):
-    """Return the potential operator in momentum second quantization.
+def plane_wave_potential(grid, spinless=False):
+    """Return the potential operator in the plane wave basis.
 
     Args:
         grid (Grid): The discretization to use.
@@ -234,15 +235,15 @@ def momentum_potential_operator(grid, spinless=False):
     return operator
 
 
-def position_operator(grid, spinless=False, has_kinetic=True,
-                      has_potential=True):
-    """Return kinetic/potential operator in position space second quantization.
+def dual_basis_jellium_model(grid, spinless=False,
+                             kinetic=True, potential=True):
+    """Return jellium Hamiltonian in the dual basis of arXiv:1706.00023
 
     Args:
         grid (Grid): The discretization to use.
         spinless (bool): Whether to use the spinless model or not.
-        has_kinetic (bool): Whether to include kinetic terms.
-        has_potential (bool): Whether to include potential terms.
+        kinetic (bool): Whether to include kinetic terms.
+        potential (bool): Whether to include potential terms.
 
     Returns:
         operator (FermionOperator)
@@ -283,11 +284,11 @@ def position_operator(grid, spinless=False, has_kinetic=True,
                 if momenta_squared == 0:
                     continue
                 cos_difference = numpy.cos(momenta.dot(differences))
-                if has_kinetic:
+                if kinetic:
                     kinetic_coefficient += (
                         cos_difference * momenta_squared /
                         (2. * float(n_points)))
-                if has_potential:
+                if potential:
                     potential_coefficient += (
                         position_prefactor * cos_difference / momenta_squared)
 
@@ -297,11 +298,11 @@ def position_operator(grid, spinless=False, has_kinetic=True,
             for spin in spins:
                 orbital_a[spin] = orbital_ids[grid_indices_a][spin]
                 orbital_b[spin] = orbital_ids[grid_indices_b][spin]
-            if has_kinetic:
+            if kinetic:
                 for spin in spins:
                     operators = ((orbital_a[spin], 1), (orbital_b[spin], 0))
                     operator += FermionOperator(operators, kinetic_coefficient)
-            if has_potential:
+            if potential:
                 for sa in spins:
                     for sb in spins:
                         if orbital_a[sa] == orbital_b[sb]:
@@ -315,8 +316,8 @@ def position_operator(grid, spinless=False, has_kinetic=True,
     return operator
 
 
-def position_kinetic_operator(grid, spinless=False):
-    """Return the kinetic operator in position space second quantization.
+def dual_basis_kinetic(grid, spinless=False):
+    """Return the kinetic operator in the dual basis of arXiv:1706.00023.
 
     Args:
         grid (Grid): The discretization to use.
@@ -325,11 +326,11 @@ def position_kinetic_operator(grid, spinless=False):
     Returns:
         operator (FermionOperator)
     """
-    return position_operator(grid, spinless, True, False)
+    return dual_basis_jellium_model(grid, spinless, True, False)
 
 
-def position_potential_operator(grid, spinless=False):
-    """Return the potential operator in position space second quantization.
+def dual_basis_potential(grid, spinless=False):
+    """Return the potential operator in the dual basis of arXiv:1706.00023
 
     Args:
         grid (Grid): The discretization to use.
@@ -338,31 +339,31 @@ def position_potential_operator(grid, spinless=False):
     Returns:
         operator (FermionOperator)
     """
-    return position_operator(grid, spinless, False, True)
+    return dual_basis_jellium_model(grid, spinless, False, True)
 
 
-def jellium_model(grid, spinless=False, momentum_space=True):
+def jellium_model(grid, spinless=False, plane_wave=True):
     """Return jellium Hamiltonian as FermionOperator class.
 
     Args:
         grid (fermilib.utils.Grid): The discretization to use.
         spinless (bool): Whether to use the spinless model or not.
-        momentum_space (bool): Whether to return in momentum space (True)
+        plane_wave (bool): Whether to return in momentum space (True)
             or position space (False).
 
     Returns:
         FermionOperator: The Hamiltonian of the model.
     """
-    if momentum_space:
-        hamiltonian = momentum_kinetic_operator(grid, spinless)
-        hamiltonian += momentum_potential_operator(grid, spinless)
+    if plane_wave:
+        hamiltonian = plane_wave_kinetic(grid, spinless)
+        hamiltonian += plane_wave_potential(grid, spinless)
     else:
-        hamiltonian = position_operator(grid, spinless)
+        hamiltonian = dual_basis_jellium_model(grid, spinless)
     return hamiltonian
 
 
-def jordan_wigner_position_jellium(grid, spinless=False):
-    """Return the position space jellium Hamiltonian as QubitOperator.
+def jordan_wigner_dual_basis_jellium(grid, spinless=False):
+    """Return the jellium Hamiltonian as QubitOperator in the dual basis.
 
     Args:
         grid (Grid): The discretization to use.
