@@ -21,12 +21,12 @@ from fermilib.ops import normal_ordered
 from fermilib.transforms import jordan_wigner
 from fermilib.utils import eigenspectrum, Grid
 from fermilib.utils._plane_wave_hamiltonian import (
-    plane_wave_hamiltonian,
+    dual_basis_external_potential,
     fourier_transform,
     inverse_fourier_transform,
-    plane_wave_u_operator,
-    dual_basis_u_operator,
     jordan_wigner_dual_basis_hamiltonian,
+    plane_wave_external_potential,
+    plane_wave_hamiltonian,
     wigner_seitz_length_scale,
 )
 
@@ -73,7 +73,7 @@ class PlaneWaveHamiltonianTest(unittest.TestCase):
 
     def test_wigner_seitz_radius_bad_dimension_not_positive(self):
         with self.assertRaises(ValueError):
-            wigner_seitz_length_scale(3, 2, dimension=0)     
+            wigner_seitz_length_scale(3, 2, dimension=0)
 
     def test_fourier_transform(self):
         grid = Grid(dimensions=1, scale=1.5, length=3)
