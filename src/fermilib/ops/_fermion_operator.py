@@ -569,7 +569,7 @@ class FermionOperator(object):
         if not isinstance(subtrahend, FermionOperator):
             raise TypeError('Cannot subtract invalid type to FermionOperator.')
 
-        if len(self.terms) > len(subtrahend.terms):
+        if len(self.terms) <= len(subtrahend.terms):
             self *= -1
             self += subtrahend
             self *= -1
