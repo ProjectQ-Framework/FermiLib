@@ -514,7 +514,7 @@ class FermionOperator(object):
         """In-place method for += addition of FermionOperator.
 
         Args:
-            addend: A FermionOperator.
+            addend (FermionOperator): The operator to add.
 
         Returns:
             sum (FermionOperator): Mutated self.
@@ -548,16 +548,43 @@ class FermionOperator(object):
         summand += addend
         return summand
 
+    def __isub__(self, subtrahend):
+        """In-place method for -= subtraction of FermionOperator.
+
+        Args:
+            subtrahend (A FermionOperator): The operator to subtract.
+
+        Returns:
+            difference (FermionOperator): Mutated self.
+
+        Raises:
+            TypeError: Cannot subtract invalid type.
+        """
+        if isinstance(subtrahend, FermionOperator):
+            for term in subtrahend.terms:
+                if term in self.terms:
+                    if abs(self.terms[term] -
+                           subtrahend.terms[term]) < EQ_TOLERANCE:
+                        del self.terms[term]
+                    else:
+                        self.terms[term] -= subtrahend.terms[term]
+                else:
+                    self.terms[term] = -subtrahend.terms[term]
+        else:
+            raise TypeError('Cannot subtract invalid type.')
+        return self
+
     def __sub__(self, subtrahend):
         """
         Args:
             subtrahend (FermionOperator): The operator to subtract.
+
         Returns:
             difference (FermionOperator)
         """
-        if not isinstance(subtrahend, FermionOperator):
-            raise TypeError('Cannot subtract invalid type to FermionOperator.')
-        return self + (-1. * subtrahend)
+        minuend = copy.deepcopy(self)
+        minuend -= subtrahend
+        return minuend
 
     def __neg__(self):
         """
