@@ -131,7 +131,7 @@ def normal_ordered(fermion_operator):
         runtime of this method is exponential in the number of qubits.
     """
     ordered_operator = FermionOperator()
-    for term, coefficient in fermion_operator.terms.items():
+    for term, coefficient in iteritems(fermion_operator.terms):
         ordered_operator += normal_ordered_term(term, coefficient)
     return ordered_operator
 
@@ -558,6 +558,27 @@ class FermionOperator(object):
         if not isinstance(subtrahend, FermionOperator):
             raise TypeError('Cannot subtract invalid type to FermionOperator.')
         return self + (-1. * subtrahend)
+
+    def __isub__(self, subtrahend):
+        """
+        Args:
+            subtrahend (int|float|complex): The operator to subtract.
+        Returns:
+            difference (FermionOperator): Mutated self.
+        """
+        if not isinstance(subtrahend, FermionOperator):
+            raise TypeError('Cannot subtract invalid type to FermionOperator.')
+
+        if len(self.terms) <= len(subtrahend.terms):
+            self *= -1
+            self += subtrahend
+            self *= -1
+        else:
+            subtrahend *= -1
+            self += subtrahend
+            subtrahend *= -1
+
+        return self
 
     def __neg__(self):
         """
