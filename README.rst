@@ -25,7 +25,7 @@ website <http://www.projectq.ch>`__ and the detailed `code documentation <http:/
 Plugins
 -------
 
-In order to generate molecular hamiltonians in Gaussian basis sets and perform other complicated electronic structure calculations, one can install plugins. We currently support PySCF and Psi4, plugins for which can be found `here <http://projectq.ch/code-and-docs/#Fermilib>`__.
+In order to generate molecular hamiltonians in Gaussian basis sets and perform other complicated electronic structure calculations, one can install plugins. We currently support Psi4 (plugin `here <https://github.com/ProjectQ-Framework/FermiLib-Plugin-Psi4>`__, recommended) and PySCF (plugin `here <https://github.com/ProjectQ-Framework/FermiLib-Plugin-PySCF>`__).
 
 How to contribute
 -----------------
