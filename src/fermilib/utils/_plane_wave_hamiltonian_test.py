@@ -21,12 +21,12 @@ from fermilib.ops import normal_ordered
 from fermilib.transforms import jordan_wigner
 from fermilib.utils import eigenspectrum, Grid
 from fermilib.utils._plane_wave_hamiltonian import (
-    plane_wave_hamiltonian,
+    dual_basis_external_potential,
     fourier_transform,
     inverse_fourier_transform,
-    plane_wave_u_operator,
-    dual_basis_u_operator,
     jordan_wigner_dual_basis_hamiltonian,
+    plane_wave_external_potential,
+    plane_wave_hamiltonian,
     wigner_seitz_length_scale,
 )
 
