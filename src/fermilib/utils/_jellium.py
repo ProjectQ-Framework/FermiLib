@@ -154,10 +154,7 @@ def plane_wave_kinetic(grid, spinless=False):
     """
     # Initialize.
     operator = FermionOperator()
-    if spinless:
-        spins = [None]
-    else:
-        spins = [0, 1]
+    spins = [None] if spinless else [0, 1]
 
     # Loop once through all plane waves.
     for momenta_indices in grid.all_points_indices():
@@ -186,15 +183,34 @@ def plane_wave_potential(grid, spinless=False):
         operator (FermionOperator)
     """
     # Initialize.
-    volume = grid.volume_scale()
-    prefactor = 2. * numpy.pi / volume
+    prefactor = 2. * numpy.pi / grid.volume_scale()
     operator = FermionOperator((), 0.0)
     spins = [None] if spinless else [0, 1]
 
+    # Pre-Computations.
+    shifted_omega_indices_dict = {}
+    shifted_indices_minus_dict = {}
+    shifted_indices_plus_dict = {}
+    orbital_ids = {}
+    for indices_a in grid.all_points_indices():
+        shifted_omega_indices = [j - grid.length // 2 for j in indices_a]
+        shifted_omega_indices_dict[indices_a] = shifted_omega_indices
+        shifted_indices_minus_dict[indices_a] = {}
+        shifted_indices_plus_dict[indices_a] = {}
+        for indices_b in grid.all_points_indices():
+            shifted_indices_minus_dict[indices_a][indices_b] = tuple([
+                (indices_b[i] - shifted_omega_indices[i]) % grid.length
+                for i in range(grid.dimensions)])
+            shifted_indices_plus_dict[indices_a][indices_b] = tuple([
+                (indices_b[i] + shifted_omega_indices[i]) % grid.length
+                for i in range(grid.dimensions)])
+        orbital_ids[indices_a] = {}
+        for spin in spins:
+            orbital_ids[indices_a][spin] = orbital_id(grid, indices_a, spin)
+
     # Loop once through all plane waves.
     for omega_indices in grid.all_points_indices():
-        shifted_omega_indices = [index - grid.length // 2 for
-                                 index in omega_indices]
+        shifted_omega_indices = shifted_omega_indices_dict[omega_indices]
 
         # Get the momenta vectors.
         omega_momenta = momentum_vector(omega_indices, grid)
@@ -207,22 +223,19 @@ def plane_wave_potential(grid, spinless=False):
         coefficient = prefactor / omega_momenta.dot(omega_momenta)
 
         for grid_indices_a in grid.all_points_indices():
-            shifted_indices_d = [
-                (grid_indices_a[i] - shifted_omega_indices[i]) % grid.length
-                for i in range(grid.dimensions)]
+            shifted_indices_d = (
+                shifted_indices_minus_dict[omega_indices][grid_indices_a])
             for grid_indices_b in grid.all_points_indices():
-                shifted_indices_c = [
-                    (grid_indices_b[i] + shifted_omega_indices[i]) %
-                    grid.length
-                    for i in range(grid.dimensions)]
+                shifted_indices_c = (
+                    shifted_indices_plus_dict[omega_indices][grid_indices_b])
 
                 # Loop over spins.
                 for spin_a in spins:
-                    orbital_a = orbital_id(grid, grid_indices_a, spin_a)
-                    orbital_d = orbital_id(grid, shifted_indices_d, spin_a)
+                    orbital_a = orbital_ids[grid_indices_a][spin_a]
+                    orbital_d = orbital_ids[shifted_indices_d][spin_a]
                     for spin_b in spins:
-                        orbital_b = orbital_id(grid, grid_indices_b, spin_b)
-                        orbital_c = orbital_id(grid, shifted_indices_c, spin_b)
+                        orbital_b = orbital_ids[grid_indices_b][spin_b]
+                        orbital_c = orbital_ids[shifted_indices_c][spin_b]
 
                         # Add interaction term.
                         if ((orbital_a != orbital_b) and
@@ -254,7 +267,7 @@ def dual_basis_jellium_model(grid, spinless=False,
     operator = FermionOperator()
     spins = [None] if spinless else [0, 1]
 
-    # Compute vectors.
+    # Pre-Computations.
     position_vectors = {}
     momentum_vectors = {}
     momenta_squared_dict = {}
