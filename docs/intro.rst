@@ -57,3 +57,8 @@ To see a basic example with both fermionic and qubit operators as well as whethe
 This code creates the fermionic operator :math:`a^\dagger_2 a_0` and adds its Hermitian conjugate :math:`a^\dagger_0 a_2` to it. It then maps the resulting fermionic operator to qubit operators using two transforms included in FermiLib, the Jordan-Wigner and Bravyi-Kitaev transforms. Despite the different representations, these operators are iso-spectral. The example also shows some of the intuitive string methods included in FermiLib.
 
 Further examples can be found in the docs (`Examples` in the panel on the left) and in the FermiLib examples folder on `GitHub <https://github.com/ProjectQ-Framework/FermiLib/tree/master/examples/>`_.
+
+Plugins
+-------
+
+In order to generate molecular hamiltonians in Gaussian basis sets and perform other complicated electronic structure calculations, one can install plugins. We currently support PySCF and Psi4, plugins for which can be found `here <http://projectq.ch/code-and-docs/#Fermilib>`__.
