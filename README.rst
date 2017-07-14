@@ -41,6 +41,11 @@ Authors
 The first release of FermiLib (v0.1a0) was developed by `Ryan Babbush <https://research.google.com/pubs/RyanBabbush.html>`__, `Jarrod McClean <https://crd.lbl.gov/departments/computational-science/ccmc/staff/alvarez-fellows/jarrod-mcclean/>`__, `Damian S. Steiger <http://www.comp.phys.ethz.ch/people/person-detail.html?persid=165677>`__, `Ian D. Kivlichan <http://aspuru.chem.harvard.edu/ian-kivlichan/>`__, `Thomas
 Häner <http://www.comp.phys.ethz.ch/people/person-detail.html?persid=179208>`__, `Vojtech Havlicek <https://github.com/VojtaHavlicek>`__, `Matthew Neeley <https://maffoo.net/>`__, and `Wei Sun <https://github.com/Spaceenter>`__.
 
+Questions?
+----------
+
+Contact fermilib at projectq.ch.
+
 License
 -------
 
