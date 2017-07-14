@@ -20,7 +20,12 @@ Getting started
 ---------------
 
 To start using FermiLib, simply follow the installation instructions in the `intro <http://fermilib.readthedocs.io/en/latest/intro.html>`__. There, you will also find `code examples <http://fermilib.readthedocs.io/en/latest/examples.html>`__. Also, make sure to check out the `ProjectQ
-website <http://www.projectq.ch>`__ and the detailed `code documentation <http://fermilib.readthedocs.io/en/latest/fermilib.html>`__. Moreover, take a look at the available `plugins <http://projectq.ch/code-and-docs/#Fermilib>`__ for FermiLib.
+website <http://www.projectq.ch>`__ and the detailed `code documentation <http://fermilib.readthedocs.io/en/latest/fermilib.html>`__. Moreover, take a look at the available plugins for FermiLib.
+
+Plugins
+-------
+
+In order to generate molecular hamiltonians in Gaussian basis sets and perform other complicated electronic structure calculations, one can install plugins. We currently support PySCF and Psi4, plugins for which can be found `here <http://projectq.ch/code-and-docs/#Fermilib>`__.
 
 How to contribute
 -----------------
@@ -44,7 +49,7 @@ Häner <http://www.comp.phys.ethz.ch/people/person-detail.html?persid=179208>`__
 Questions?
 ----------
 
-Contact fermilib at projectq.ch.
+If you have any other questions, please contact fermilib at projectq.ch.
 
 License
 -------
