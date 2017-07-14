@@ -49,7 +49,7 @@ Häner <http://www.comp.phys.ethz.ch/people/person-detail.html?persid=179208>`__
 Questions?
 ----------
 
-If you have any other questions, please contact fermilib at projectq.ch.
+If you have any other questions, please contact fermilib@projectq.ch.
 
 License
 -------
