@@ -304,9 +304,9 @@ def jellium_error_bound(terms, indices=None, is_hopping_operator=None,
     """
     if tight:
         # Return the 1-norm of the error operator (upper bound on error).
-        return sum(numpy.absolute(
-            jellium_error_operator(terms, indices,
-                                   is_hopping_operator).terms.values()))
+        return numpy.sum(numpy.absolute(
+            list(jellium_error_operator(
+                terms, indices, is_hopping_operator).terms.values())))
 
     zero = FermionOperator()
     error = 0.0
