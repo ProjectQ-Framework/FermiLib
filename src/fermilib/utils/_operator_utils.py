@@ -118,13 +118,13 @@ def save_operator(operator, file_name=None, data_directory=None):
 
     Args:
         operator: An instance of FermionOperator or QubitOperator.
-        file_name: The name of the saved hdf5 file. If not provided, the unix
-            time when the saving happens will be used.
+        file_name: The name of the saved hdf5 file.
         data_directory: Optional data directory to change from default data
             directory specified in config file.
 
     Raises:
         OperatorUtilsError: Not saved, file already exists.
+        TypeError: Not implemented.
         TypeError: Operator of invalid type.
     """
     file_path = get_file_path(file_name, data_directory)
@@ -136,6 +136,9 @@ def save_operator(operator, file_name=None, data_directory=None):
         operator_type = "FermionOperator"
     elif isinstance(operator, QubitOperator):
         operator_type = "QubitOperator"
+    elif (isinstance(operator, InteractionOperator) or
+          isinstance(operator, InteractionRDM)):
+        raise TypeError('Not implemented.')
     else:
         raise TypeError('Operator of invalid type.')
 
@@ -143,7 +146,7 @@ def save_operator(operator, file_name=None, data_directory=None):
         f['operator_type'] = numpy.string_(operator_type)
         f['operator_terms'] = numpy.string_(json.dumps(
             [{'k': k, 'r': v.real, 'i': v.imag}
-                for k, v in operator.terms.iteritems()],
+                for k, v in operator.terms.items()],
             ensure_ascii=False).encode('utf8'))
 
 
@@ -151,8 +154,7 @@ def load_operator(file_name=None, data_directory=None):
     """Load FermionOperator or QubitOperator from hdf5 file.
 
     Args:
-        file_name: The name of the saved hdf5 file. If not provided, the unix
-            time when the saving happens will be used.
+        file_name: The name of the saved hdf5 file.
         data_directory: Optional data directory to change from default data
             directory specified in config file.
 
@@ -190,19 +192,21 @@ def get_file_path(file_name, data_directory):
     """Compute file_path for the hdf5 file that stores operator.
 
     Args:
-        file_name: The name of the saved hdf5 file. If not provided, the unix
-            time when the saving happens will be used.
+        file_name: The name of the saved hdf5 file.
         data_directory: Optional data directory to change from default data
             directory specified in config file.
 
     Returns:
         file_path (string): File path.
+
+    Raises:
+        OperatorUtilsError: File name is not provided.
     """
     if file_name:
         if file_name[-5:] != '.hdf5':
             file_name = file_name + ".hdf5"
     else:
-        file_name = str(int(time.time())) + ".hdf5"
+        raise OperatorUtilsError("File name is not provided.")
 
     if data_directory is None:
         file_path = DATA_DIRECTORY + '/' + file_name
