@@ -27,6 +27,9 @@ from ._jellium import (dual_basis_kinetic,
                        plane_wave_kinetic,
                        plane_wave_potential)
 
+from ._jellium_trotter_error import (jellium_error_bound,
+                                     jellium_error_operator)
+
 from ._molecular_data import MolecularData, periodic_table
 
 from ._operator_utils import (eigenspectrum, commutator,
