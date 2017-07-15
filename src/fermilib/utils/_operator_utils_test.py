@@ -14,12 +14,15 @@
 from __future__ import absolute_import
 
 import numpy
+import os
 import unittest
 
+from fermilib.config import *
 from fermilib.ops import *
 from fermilib.transforms import jordan_wigner, get_interaction_operator
 from fermilib.utils import (eigenspectrum, commutator,
-                            count_qubits, is_identity)
+                            count_qubits, is_identity,
+                            save_operator, load_operator, get_file_path)
 
 from projectq.ops import QubitOperator
 
@@ -81,6 +84,19 @@ class OperatorUtilsTest(unittest.TestCase):
     def test_commutator_operator_b_bad_type_raise_TypeError(self):
         with self.assertRaises(TypeError):
             commutator(self.qubit_operator, "hello")
+
+    def test_save_and_load_operators(self):
+        file_name = "test_file"
+        save_operator(self.fermion_operator, file_name)
+        loaded_fermion_operator = load_operator(file_name)
+        self.assertEqual(self.fermion_operator.terms,
+                         loaded_fermion_operator.terms)
+        os.remove(get_file_path(file_name, DATA_DIRECTORY))
+        save_operator(self.qubit_operator, file_name)
+        loaded_qubit_operator = load_operator(file_name)
+        self.assertEqual(self.qubit_operator.terms,
+                         loaded_qubit_operator.terms)
+        os.remove(get_file_path(file_name, DATA_DIRECTORY))
 
 
 if __name__ == '__main__':
