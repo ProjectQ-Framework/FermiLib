@@ -285,8 +285,8 @@ class ErrorBoundTest(unittest.TestCase):
 
     def test_error_bound_using_info(self):
         # Generate the Hamiltonian.
-        hamiltonian = dual_basis_dual_basis_jellium_hamiltonian(
-            grid_length=4, dimension=1)
+        hamiltonian = dual_basis_jellium_hamiltonian(grid_length=4,
+                                                     dimension=1)
 
         # Unpack result into terms, indices they act on, and whether they're
         # hopping operators.
@@ -362,13 +362,13 @@ class OrderedDualBasisTermsMoreInfoTest(unittest.TestCase):
         # Compute appropriate length scale.
         n_particles = n_qubits // inverse_filling_fraction
 
-        dual_basis_hamiltonian = dual_basis_jellium_hamiltonian(
+        hamiltonian = dual_basis_jellium_hamiltonian(
             grid_length, dimension, wigner_seitz_radius, n_particles)
 
         # Unpack result into terms, indices they act on, and whether they're
         # hopping operators.
         result = ordered_dual_basis_terms_grouped_by_type_with_info(
-            dual_basis_hamiltonian)
+            hamiltonian)
         terms, indices, is_hopping = result
 
         for i in range(len(terms)):
@@ -379,7 +379,7 @@ class OrderedDualBasisTermsMoreInfoTest(unittest.TestCase):
 
 
 class OrderedDualBasisTermsNoInfoTest(unittest.TestCase):
-    def test_all_terms_in_dual_basis_hamiltonian(self):
+    def test_all_terms_in_dual_basis_jellium_hamiltonian(self):
         grid_length = 4
         dimension = 1
 
@@ -434,9 +434,8 @@ class OrderedDualBasisTermsNoInfoTest(unittest.TestCase):
         length_scale = wigner_seitz_length_scale(
             wigner_seitz_radius, n_particles, dimension)
 
-        dual_basis_hamiltonian = dual_basis_jellium_hamiltonian(
-            grid_length, dimension)
-        terms = ordered_dual_basis_terms_no_info(dual_basis_hamiltonian)
+        hamiltonian = dual_basis_jellium_hamiltonian(grid_length, dimension)
+        terms = ordered_dual_basis_terms_no_info(hamiltonian)
         terms_total = sum(terms, FermionOperator.zero())
 
         grid = Grid(dimension, grid_length, length_scale)
