@@ -114,29 +114,29 @@ class SaveLoadOperatorTest(unittest.TestCase):
                          loaded_qubit_operator.terms)
         os.remove(get_file_path(file_name, DATA_DIRECTORY))
 
-        def test_save_and_load_operators_errors(self):
-            file_name = "test_file"
+    def test_save_and_load_operators_errors(self):
+        file_name = "test_file"
 
-            with self.assertRaises(OperatorUtilsError):
-                save_operator("invalid_operator_type")
-            with self.assertRaises(OperatorUtilsError):
-                save_operator(self.fermion_operator)
+        with self.assertRaises(OperatorUtilsError):
+            save_operator("invalid_operator_type")
+        with self.assertRaises(OperatorUtilsError):
+            save_operator(self.fermion_operator)
 
+        save_operator(self.fermion_operator, file_name)
+        with self.assertRaises(OperatorUtilsError):
             save_operator(self.fermion_operator, file_name)
-            with self.assertRaises(OperatorUtilsError):
-                save_operator(self.fermion_operator, file_name)
-            os.remove(get_file_path(file_name, DATA_DIRECTORY))
+        os.remove(get_file_path(file_name, DATA_DIRECTORY))
 
-            constant = 100.0
-            one_body = numpy.zeros((self.n_qubits, self.n_qubits), float)
-            two_body = numpy.zeros((self.n_qubits, self.n_qubits,
-                                    self.n_qubits, self.n_qubits), float)
-            one_body[1, 1] = 10.0
-            two_body[1, 2, 3, 4] = 12.0
-            interaction_operator = InteractionOperator(
-                constant, one_body, two_body)
-            with self.assertRaises(TypeError):
-                save_operator(interaction_operator, file_name)
+        constant = 100.0
+        one_body = numpy.zeros((self.n_qubits, self.n_qubits), float)
+        two_body = numpy.zeros((self.n_qubits, self.n_qubits,
+                                self.n_qubits, self.n_qubits), float)
+        one_body[1, 1] = 10.0
+        two_body[1, 2, 3, 4] = 12.0
+        interaction_operator = InteractionOperator(
+            constant, one_body, two_body)
+        with self.assertRaises(TypeError):
+            save_operator(interaction_operator, file_name)
 
 
 class CommutatorTest(unittest.TestCase):

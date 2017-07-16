@@ -480,8 +480,9 @@ def ordered_dual_basis_terms_no_info(dual_basis_hamiltonian):
     return terms
 
 
-def jellium_hamiltonian(grid_length, dimension=3, wigner_seitz_radius=10.,
-                        n_particles=None, spinless=True):
+def dual_basis_jellium_hamiltonian(
+    grid_length, dimension=3, wigner_seitz_radius=10., n_particles=None,
+    spinless=True):
     """Return the jellium Hamiltonian with the given parameters.
 
     Args:
