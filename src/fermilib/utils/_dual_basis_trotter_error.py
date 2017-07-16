@@ -512,21 +512,3 @@ def jellium_hamiltonian(grid_length, dimension=3, wigner_seitz_radius=10.,
     hamiltonian = normal_ordered(hamiltonian)
     hamiltonian.compress()
     return hamiltonian
-
-if __name__ == '__main__':
-    import time
-
-    dimension = 1
-    wigner_seitz_radius = 10.0
-
-    for i in range(8, 9):
-        hamiltonian = jellium_hamiltonian(i, dimension)
-        terms = ordered_dual_basis_terms_no_info(hamiltonian)
-
-        print len(terms), 'terms in the Hamiltonian'
-
-        start = time.time()
-        print 'For %iD jellium with length' % dimension, i
-        print dual_basis_error_bound(terms, jellium_only=True)
-        print time.time() - start
-        print
