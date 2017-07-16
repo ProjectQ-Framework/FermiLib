@@ -94,6 +94,7 @@ class OperatorUtilsTest(unittest.TestCase):
 
 class SaveLoadOperatorTest(unittest.TestCase):
     def setUp(self):
+        self.n_qubits = 5
         self.fermion_term = FermionOperator('1^ 2^ 3 4', -3.17)
         self.fermion_operator = self.fermion_term + hermitian_conjugated(
             self.fermion_term)
