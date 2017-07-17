@@ -259,8 +259,6 @@ class JelliumTest(unittest.TestCase):
                         zpzq = ((min(p, q), 'Z'), (max(p, q), 'Z'))
                         if zpzq in qubit_potential.terms:
                             potential_coefficient = qubit_potential.terms[zpzq]
-                        else:
-                            potential_coefficient = 0.
 
                         for indices_c in grid.all_points_indices():
                             momenta = momentum_vector(indices_c, grid)
@@ -294,14 +292,7 @@ class JelliumTest(unittest.TestCase):
         n_qubits = count_qubits(qubit_hamiltonian)
         if spinless:
             paper_n_terms = 1 - .5 * n_qubits + 1.5 * (n_qubits ** 2)
-        else:
-            paper_n_terms = 1 - .5 * n_qubits + n_qubits ** 2
 
         num_nonzeros = sum(1 for coeff in qubit_hamiltonian.terms.values() if
                            coeff != 0.0)
         self.assertTrue(num_nonzeros <= paper_n_terms)
-
-
-# Run test.
-if __name__ == '__main__':
-    unittest.main()

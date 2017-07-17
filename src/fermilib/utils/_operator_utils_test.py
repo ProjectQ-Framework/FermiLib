@@ -57,6 +57,10 @@ class OperatorUtilsTest(unittest.TestCase):
         self.assertEqual(self.n_qubits,
                          count_qubits(self.interaction_operator))
 
+    def test_n_qubits_bad_type(self):
+        with self.assertRaises(TypeError):
+            count_qubits('twelve')
+
     def test_eigenspectrum(self):
         fermion_eigenspectrum = eigenspectrum(self.fermion_operator)
         qubit_eigenspectrum = eigenspectrum(self.qubit_operator)
@@ -90,6 +94,10 @@ class OperatorUtilsTest(unittest.TestCase):
 
     def test_not_is_identity_zero_qubitoperator(self):
         self.assertFalse(is_identity(QubitOperator()))
+
+    def test_is_identity_bad_type(self):
+        with self.assertRaises(TypeError):
+            is_identity('eleven')
 
 
 class SaveLoadOperatorTest(unittest.TestCase):
@@ -138,6 +146,10 @@ class SaveLoadOperatorTest(unittest.TestCase):
             constant, one_body, two_body)
         with self.assertRaises(TypeError):
             save_operator(interaction_operator, file_name)
+
+    def test_save_bad_type(self):
+        with self.assertRaises(TypeError):
+            save_operator('ping', 'somewhere')
 
 
 class CommutatorTest(unittest.TestCase):
@@ -203,7 +215,3 @@ class CommutatorTest(unittest.TestCase):
     def test_commutator_not_same_type(self):
         with self.assertRaises(TypeError):
             commutator(self.fermion_operator, self.qubit_operator)
-
-
-if __name__ == '__main__':
-    unittest.main()

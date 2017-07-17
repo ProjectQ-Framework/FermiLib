@@ -19,7 +19,7 @@ import numpy
 
 from fermilib.ops import normal_ordered
 from fermilib.transforms import jordan_wigner
-from fermilib.utils import eigenspectrum, Grid
+from fermilib.utils import eigenspectrum, Grid, jellium_model
 from fermilib.utils._plane_wave_hamiltonian import (
     dual_basis_external_potential,
     fourier_transform,
@@ -133,6 +133,22 @@ class PlaneWaveHamiltonianTest(unittest.TestCase):
                     h_plane_wave_spectrum - h_dual_basis_spectrum))
                 self.assertAlmostEqual(diff, 0)
 
+    def test_plane_wave_hamiltonian_default_to_jellium_with_no_geometry(self):
+        grid = Grid(dimensions=1, scale=1.0, length=4)
+        self.assertTrue(plane_wave_hamiltonian(grid).isclose(
+            jellium_model(grid)))
+
+    def test_plane_wave_hamiltonian_bad_geometry(self):
+        grid = Grid(dimensions=1, scale=1.0, length=4)
+        with self.assertRaises(ValueError):
+            plane_wave_hamiltonian(grid, geometry=[('H', (0, 0, 0))])
+
+    def test_plane_wave_hamiltonian_bad_element(self):
+        grid = Grid(dimensions=3, scale=1.0, length=4)
+        with self.assertRaises(ValueError):
+            plane_wave_hamiltonian(grid, geometry=[('Unobtainium',
+                                                    (0, 0, 0))])
+
     def test_jordan_wigner_dual_basis_hamiltonian(self):
         grid = Grid(dimensions=2, length=3, scale=1.)
         spinless = True
@@ -146,7 +162,19 @@ class PlaneWaveHamiltonianTest(unittest.TestCase):
                                                                 spinless)
         self.assertTrue(test_hamiltonian.isclose(qubit_hamiltonian))
 
+    def test_jordan_wigner_dual_basis_hamiltonian_default_to_jellium(self):
+        grid = Grid(dimensions=1, scale=1.0, length=4)
+        self.assertTrue(jordan_wigner_dual_basis_hamiltonian(grid).isclose(
+            jordan_wigner(jellium_model(grid, plane_wave=False))))
 
-# Run test.
-if __name__ == '__main__':
-    unittest.main()
+    def test_jordan_wigner_dual_basis_hamiltonian_bad_geometry(self):
+        grid = Grid(dimensions=1, scale=1.0, length=4)
+        with self.assertRaises(ValueError):
+            jordan_wigner_dual_basis_hamiltonian(
+                grid, geometry=[('H', (0, 0, 0))])
+
+    def test_jordan_wigner_dual_basis_hamiltonian_bad_element(self):
+        grid = Grid(dimensions=3, scale=1.0, length=4)
+        with self.assertRaises(ValueError):
+            jordan_wigner_dual_basis_hamiltonian(
+                grid, geometry=[('Unobtainium', (0, 0, 0))])

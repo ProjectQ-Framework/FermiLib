@@ -158,7 +158,7 @@ def plane_wave_external_potential(grid, geometry, spinless):
 
 
 def plane_wave_hamiltonian(grid, geometry=None,
-                           spinless=False, momentum_space=True):
+                           spinless=False, plane_wave=True):
     """Returns Hamiltonian as FermionOperator class.
 
     Args:
@@ -167,13 +167,13 @@ def plane_wave_hamiltonian(grid, geometry=None,
             example is [('H', (0, 0, 0)), ('H', (0, 0, 0.7414))].
             Distances in atomic units. Use atomic symbols to specify atoms.
         spinless (bool): Whether to use the spinless model or not.
-        momentum_space (bool): Whether to return in plane wave basis (True)
+        plane_wave (bool): Whether to return in plane wave basis (True)
             or plane wave dual basis (False).
 
     Returns:
         FermionOperator: The hamiltonian.
     """
-    jellium_op = jellium_model(grid, spinless, momentum_space)
+    jellium_op = jellium_model(grid, spinless, plane_wave)
 
     if geometry is None:
         return jellium_op
