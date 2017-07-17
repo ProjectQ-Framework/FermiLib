@@ -148,6 +148,3 @@ class ErrorBoundTest(unittest.TestCase):
         terms = [QubitOperator('X1'), QubitOperator('Y1'), QubitOperator('Z1')]
         self.assertLess(error_bound(terms, tight=True),
                         error_bound(terms, tight=False))
-
-if __name__ == '__main__':
-    unittest.main()
