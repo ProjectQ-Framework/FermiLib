@@ -27,10 +27,14 @@ from ._jellium import (dual_basis_kinetic,
                        plane_wave_kinetic,
                        plane_wave_potential)
 
+from ._dual_basis_trotter_error import (dual_basis_error_bound,
+                                        dual_basis_error_operator)
+
 from ._molecular_data import MolecularData, periodic_table
 
-from ._operator_utils import (eigenspectrum, commutator,
-                              count_qubits, is_identity)
+from ._operator_utils import (commutator, count_qubits,
+                              eigenspectrum, get_file_path, is_identity,
+                              load_operator, save_operator)
 
 from ._plane_wave_hamiltonian import (dual_basis_external_potential,
                                       fourier_transform,

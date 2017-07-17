@@ -16,7 +16,6 @@ from __future__ import absolute_import, unicode_literals
 import h5py
 import numpy
 import os
-import sys
 
 from fermilib.config import *
 from fermilib.ops import InteractionOperator, InteractionRDM
