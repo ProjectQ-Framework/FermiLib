@@ -76,8 +76,3 @@ class InteractionOperatorsTest(unittest.TestCase):
         for key in interaction_operator.unique_iter():
             got_str += '{}\n'.format(interaction_operator[key])
         self.assertEqual(want_str, got_str)
-
-
-# Test.
-if __name__ == '__main__':
-    unittest.main()
