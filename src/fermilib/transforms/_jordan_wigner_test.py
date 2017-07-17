@@ -25,7 +25,8 @@ from fermilib.transforms import (get_interaction_operator,
                                  reverse_jordan_wigner)
 from fermilib.transforms._jordan_wigner import (jordan_wigner,
                                                 jordan_wigner_one_body,
-                                                jordan_wigner_two_body)
+                                                jordan_wigner_two_body,
+                                                jordan_wigner_interaction_op)
 
 from projectq.ops import QubitOperator
 
@@ -271,6 +272,21 @@ class InteractionOperatorsJWTest(unittest.TestCase):
         self.assertTrue(jordan_wigner(test_op).isclose(
                         jordan_wigner(get_interaction_operator(test_op))))
 
+    def test_jordan_wigner_interaction_op_too_few_n_qubits(self):
+        with self.assertRaises(ValueError):
+            jordan_wigner_interaction_op(self.interaction_operator,
+                                         self.n_qubits - 2)
+
+    def test_jordan_wigner_interaction_op_with_zero_term(self):
+        test_op = FermionOperator('1^ 2^ 3 4')
+        test_op += hermitian_conjugated(test_op)
+
+        interaction_op = get_interaction_operator(test_op)
+        interaction_op.constant = 0.0
+
+        retransformed_test_op = reverse_jordan_wigner(jordan_wigner(
+            interaction_op))
+
 
 class GetInteractionOperatorTest(unittest.TestCase):
 
@@ -325,7 +341,3 @@ class GetInteractionOperatorTest(unittest.TestCase):
         two_body[1, 0, 3, 2] = 1.
         self.assertEqual(interaction_operator,
                          InteractionOperator(0.0, self.one_body, two_body))
-
-
-if __name__ == '__main__':
-    unittest.main()
