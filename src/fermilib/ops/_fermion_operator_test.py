@@ -763,7 +763,3 @@ class FermionOperatorTest(unittest.TestCase):
         op = FermionOperator(((1, 1), (3, 0), (8, 1)), 0.5)
         # Not necessary, repr could do something in addition
         self.assertEqual(repr(op), str(op))
-
-
-if __name__ == '__main__':
-    unittest.main()
