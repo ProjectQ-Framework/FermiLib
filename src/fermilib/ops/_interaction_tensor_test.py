@@ -97,6 +97,30 @@ class InteractionTensorTest(unittest.TestCase):
                                                       one_body_c,
                                                       two_body_c)
 
+    def test_setitem_1body(self):
+        expected_one_body_tensor = numpy.array([[0, 3], [2, 0]])
+        self.interaction_tensor_a[0, 1] = 3
+        self.interaction_tensor_a[1, 0] = 2
+        self.assertTrue(numpy.allclose(
+            self.interaction_tensor_a.one_body_tensor,
+            expected_one_body_tensor))
+
+    def test_getitem_1body(self):
+        self.assertEqual(self.interaction_tensor_c[0, 1], 1)
+        self.assertEqual(self.interaction_tensor_c[1, 0], 2)
+
+    def test_setitem_2body(self):
+        self.interaction_tensor_a[0, 1, 1, 0] = 3
+        self.interaction_tensor_a[1, 0, 0, 1] = 2
+        self.assertEqual(self.interaction_tensor_a.two_body_tensor[0, 1, 1, 0],
+                         3)
+        self.assertEqual(self.interaction_tensor_a.two_body_tensor[1, 0, 0, 1],
+                         2)
+
+    def test_getitem_2body(self):
+        self.assertEqual(self.interaction_tensor_c[0, 1, 0, 1], 3)
+        self.assertEqual(self.interaction_tensor_c[1, 0, 0, 1], 4)
+
     def test_invalid_getitem_indexing(self):
         with self.assertRaises(ValueError):
             self.interaction_tensor_a[0, 0, 0]
@@ -109,6 +133,7 @@ class InteractionTensorTest(unittest.TestCase):
     def test_neq(self):
         self.assertNotEqual(self.interaction_tensor_a,
                             self.interaction_tensor_b)
+        self.assertTrue(self.interaction_tensor_a != self.interaction_tensor_b)
 
     def test_add(self):
         new_tensor = self.interaction_tensor_a + self.interaction_tensor_b
@@ -237,8 +262,3 @@ class InteractionTensorTest(unittest.TestCase):
                                                     two_body_reverse)
         interaction_tensor.rotate_basis(rotation_matrix_reverse)
         self.assertEqual(interaction_tensor, want_interaction_tensor)
-
-
-# Test.
-if __name__ == '__main__':
-    unittest.main()
