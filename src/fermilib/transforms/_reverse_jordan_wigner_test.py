@@ -67,6 +67,10 @@ class ReverseJWTest(unittest.TestCase):
         retransmed_z = jordan_wigner(transmed_z)
         self.assertTrue(pauli_z.isclose(retransmed_z))
 
+    def test_reverse_jw_too_few_n_qubits(self):
+        with self.assertRaises(ValueError):
+            reverse_jordan_wigner(self.operator_a, 0)
+
     def test_identity(self):
         n_qubits = 5
         transmed_i = reverse_jordan_wigner(self.identity, n_qubits)
@@ -174,6 +178,3 @@ class ReverseJWTest(unittest.TestCase):
     def test_bad_type(self):
         with self.assertRaises(TypeError):
             reverse_jordan_wigner(3)
-
-if __name__ == '__main__':
-    unittest.main()
