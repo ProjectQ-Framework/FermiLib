@@ -272,7 +272,3 @@ class HydrogenIntegrationTest(unittest.TestCase):
         expected_ccsd_energy = ccsd_state_l.getH().dot(
             self.hamiltonian_matrix.dot(ccsd_state_r))[0, 0]
         self.assertAlmostEqual(expected_ccsd_energy, self.molecule.fci_energy)
-
-
-if __name__ == '__main__':
-    unittest.main()
