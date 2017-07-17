@@ -57,8 +57,3 @@ class GridTest(unittest.TestCase):
             (2, 1),
             (2, 2),
         ])
-
-
-# Run test.
-if __name__ == '__main__':
-    unittest.main()
