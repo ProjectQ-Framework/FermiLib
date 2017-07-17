@@ -235,3 +235,8 @@ class GetGapTest(unittest.TestCase):
     def test_get_gap(self):
         operator = QubitOperator('Y0 X1') + QubitOperator('Z0 Z1')
         self.assertAlmostEqual(get_gap(get_sparse_operator(operator)), 2.0)
+
+    def test_get_gap_nonhermitian(self):
+        operator = (QubitOperator('X0 Y1', 1 + 1j) +
+                    QubitOperator('Z0 Z1', 1j) + QubitOperator((), 2 + 1j))
+        self.assertAlmostEqual(get_gap(get_sparse_operator(operator)), 2)

@@ -337,6 +337,6 @@ def get_gap(sparse_operator):
             sparse_operator, 2, which='SA', maxiter=1e7)
     else:
         values, _ = scipy.sparse.linalg.eigs(
-            sparse_operator, 2, which='SA', maxiter=1e7)
+            sparse_operator, 2, which='LM', maxiter=1e7)
     gap = abs(values[1] - values[0])
     return gap
