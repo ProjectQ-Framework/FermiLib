@@ -457,79 +457,119 @@ class MolecularData(object):
             d_geom = f.create_group("geometry")
             atoms = [numpy.string_(item[0]) for item in self.geometry]
             positions = numpy.array([list(item[1]) for item in self.geometry])
-            d_geom["atoms"] = atoms
-            d_geom["positions"] = positions
+            d_geom.create_dataset("atoms", data=atoms)
+            d_geom.create_dataset("positions", data=positions)
             # Save basis:
-            f["basis"] = numpy.string_(self.basis)
+            f.create_dataset("basis", data=numpy.string_(self.basis))
             # Save multiplicity:
-            f["multiplicity"] = self.multiplicity
+            f.create_dataset("multiplicity", data=self.multiplicity)
             # Save charge:
-            f["charge"] = self.charge
+            f.create_dataset("charge", data=self.charge)
             # Save description:
-            f["description"] = numpy.string_(self.description)
+            f.create_dataset("description",
+                             data=numpy.string_(self.description))
             # Save name:
-            f["name"] = numpy.string_(self.name)
+            f.create_dataset("name", data=numpy.string_(self.name))
             # Save n_atoms:
-            f["n_atoms"] = self.n_atoms
+            f.create_dataset("n_atoms", data=self.n_atoms)
             # Save atoms:
-            f["atoms"] = numpy.string_(self.atoms)
+            f.create_dataset("atoms", data=numpy.string_(self.atoms))
             # Save protons:
-            f["protons"] = self.protons
+            f.create_dataset("protons", data=self.protons)
             # Save n_electrons:
-            f["n_electrons"] = self.n_electrons
+            f.create_dataset("n_electrons", data=self.n_electrons)
             # Save generic attributes from calculations:
-            f["n_orbitals"] = (self.n_orbitals if self.n_orbitals is
-                               not None else False)
-            f["n_qubits"] = (self.n_qubits if self.n_qubits is
-                             not None else False)
-            f["nuclear_repulsion"] = (self.nuclear_repulsion if
-                                      self.nuclear_repulsion is
-                                      not None else False)
+            f.create_dataset("n_orbitals",
+                             data=(self.n_orbitals if self.n_orbitals
+                                   is not None else False))
+            f.create_dataset("n_qubits",
+                             data=(self.n_qubits if
+                                   self.n_qubits is not None else False))
+            f.create_dataset("nuclear_repulsion",
+                             data=(self.nuclear_repulsion if
+                                   self.nuclear_repulsion is not None else
+                                   False))
             # Save attributes generated from SCF calculation.
-            f["hf_energy"] = (self.hf_energy if
-                              self.hf_energy is not None else False)
-            f["canonical_orbitals"] = (self.canonical_orbitals if
-                                       self.canonical_orbitals is
-                                       not None else False)
-            f["orbital_energies"] = (self.orbital_energies if
-                                     self.orbital_energies is
-                                     not None else False)
+            f.create_dataset("hf_energy", data=(self.hf_energy if
+                                                self.hf_energy is not None
+                                                else False))
+            f.create_dataset("canonical_orbitals",
+                             data=(self.canonical_orbitals if
+                                   self.canonical_orbitals is
+                                   not None else False),
+                             compression=("gzip" if self.canonical_orbitals
+                                          is not None else None))
+            f.create_dataset("orbital_energies",
+                             data=(self.orbital_energies if
+                                   self.orbital_energies is not None else
+                                   False))
             # Save attributes generated from integrals.
-            f["orbital_overlaps"] = (self.orbital_overlaps if
-                                     self.orbital_overlaps is
-                                     not None else False)
-            f["one_body_integrals"] = (self.one_body_integrals if
-                                       self.one_body_integrals is
-                                       not None else False)
-            f["two_body_integrals"] = (self.two_body_integrals if
-                                       self.two_body_integrals is
-                                       not None else False)
+            f.create_dataset("orbital_overlaps",
+                             data=(self.orbital_overlaps if
+                                   self.orbital_overlaps is
+                                   not None else False),
+                             compression=("gzip" if self.orbital_overlaps
+                                          is not None else None))
+            f.create_dataset("one_body_integrals",
+                             data=(self.one_body_integrals if
+                                   self.one_body_integrals is
+                                   not None else False),
+                             compression=("gzip" if self.one_body_integrals
+                                          is not None else None))
+            f.create_dataset("two_body_integrals",
+                             data=(self.two_body_integrals if
+                                   self.two_body_integrals is
+                                   not None else False),
+                             compression=("gzip" if self.two_body_integrals
+                                          is not None else None))
             # Save attributes generated from MP2 calculation.
-            f["mp2_energy"] = (self.mp2_energy if
-                               self.mp2_energy is not None else False)
+            f.create_dataset("mp2_energy",
+                             data=(self.mp2_energy if
+                                   self.mp2_energy is not None else False))
             # Save attributes generated from CISD calculation.
-            f["cisd_energy"] = (self.cisd_energy if
-                                self.cisd_energy is not None else False)
-            f["cisd_one_rdm"] = (self.cisd_one_rdm if
-                                 self.cisd_one_rdm is not None else False)
-            f["cisd_two_rdm"] = (self.cisd_two_rdm if
-                                 self.cisd_two_rdm is not None else False)
+            f.create_dataset("cisd_energy",
+                             data=(self.cisd_energy if
+                                   self.cisd_energy is not None else False))
+            f.create_dataset("cisd_one_rdm",
+                             data=(self.cisd_one_rdm if
+                                   self.cisd_one_rdm is not None else False),
+                             compression=("gzip" if self.cisd_one_rdm
+                                          is not None else None))
+            f.create_dataset("cisd_two_rdm",
+                             data=(self.cisd_two_rdm if
+                                   self.cisd_two_rdm is not None else False),
+                             compression=("gzip" if self.cisd_two_rdm
+                                          is not None else None))
             # Save attributes generated from exact diagonalization.
-            f["fci_energy"] = (self.fci_energy if
-                               self.fci_energy is not None else False)
-            f["fci_one_rdm"] = (self.fci_one_rdm if
-                                self.fci_one_rdm is not None else False)
-            f["fci_two_rdm"] = (self.fci_two_rdm if
-                                self.fci_two_rdm is not None else False)
+            f.create_dataset("fci_energy",
+                             data=(self.fci_energy if
+                                   self.fci_energy is not None else False))
+            f.create_dataset("fci_one_rdm",
+                             data=(self.fci_one_rdm if
+                                   self.fci_one_rdm is not None else False),
+                             compression=("gzip" if self.fci_one_rdm
+                                          is not None else None))
+            f.create_dataset("fci_two_rdm",
+                             data=(self.fci_two_rdm if
+                                   self.fci_two_rdm is not None else False),
+                             compression=("gzip" if self.fci_two_rdm is not
+                                          None else None))
             # Save attributes generated from CCSD calculation.
-            f["ccsd_energy"] = (self.ccsd_energy if
-                                self.ccsd_energy is not None else False)
-            f["ccsd_single_amps"] = (self.ccsd_single_amps
-                                     if self.ccsd_single_amps is
-                                     not None else False)
-            f["ccsd_double_amps"] = (self.ccsd_double_amps
-                                     if self.ccsd_double_amps is
-                                     not None else False)
+            f.create_dataset("ccsd_energy",
+                             data=(self.ccsd_energy if
+                                   self.ccsd_energy is not None else False))
+            f.create_dataset("ccsd_single_amps",
+                             data=(self.ccsd_single_amps
+                                   if self.ccsd_single_amps is not None else
+                                   False),
+                             compression=("gzip" if self.ccsd_single_amps
+                                          is not None else None))
+            f.create_dataset("ccsd_double_amps",
+                             data=(self.ccsd_double_amps
+                                   if self.ccsd_double_amps is
+                                   not None else False),
+                             compression=("gzip" if self.ccsd_double_amps
+                                          is not None else None))
         # Remove old file first for compatibility with systems that don't allow
         # rename replacement.  Catching OSError for when file does not exist
         # yet

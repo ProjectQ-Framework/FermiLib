@@ -103,6 +103,8 @@ class MolecularDataTest(unittest.TestCase):
         molecule.fci_one_rdm = numpy.arange(11)
         molecule.fci_two_rdm = numpy.arange(11)
         molecule.ccsd_energy = 88.
+        molecule.ccsd_single_amplitudes = [1, 2, 3]
+        molecule.ccsd_double_amplitudes = [1, 2, 3]
 
         # Save molecule.
         molecule.save()
