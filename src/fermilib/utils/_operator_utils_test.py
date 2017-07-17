@@ -144,7 +144,7 @@ class SaveLoadOperatorTest(unittest.TestCase):
         two_body[1, 2, 3, 4] = 12.0
         interaction_operator = InteractionOperator(
             constant, one_body, two_body)
-        with self.assertRaises(TypeError):
+        with self.assertRaises(NotImplementedError):
             save_operator(interaction_operator, file_name)
 
     def test_save_bad_type(self):

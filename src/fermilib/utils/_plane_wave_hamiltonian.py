@@ -184,7 +184,7 @@ def plane_wave_hamiltonian(grid, geometry=None,
         if item[0] not in periodic_hash_table:
             raise ValueError("Invalid nuclear element.")
 
-    if momentum_space:
+    if plane_wave:
         external_potential = plane_wave_external_potential(
             grid, geometry, spinless)
     else:
