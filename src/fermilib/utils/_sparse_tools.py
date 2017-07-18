@@ -124,7 +124,7 @@ def jordan_wigner_sparse(fermion_operator, n_qubits=None):
     return sparse_operator
 
 
-def qubit_operator_sparse(qubit_operator, n_qubits):
+def qubit_operator_sparse(qubit_operator, n_qubits=None):
     """Initialize a SparseOperator from a QubitOperator.
 
     Args:
@@ -134,9 +134,11 @@ def qubit_operator_sparse(qubit_operator, n_qubits):
     Returns:
         The corresponding SparseOperator.
     """
+    from fermilib.utils import count_qubits
     if n_qubits is None:
-        from fermilib.utils import count_qubits
-        n_qubits = count_qubits(fermion_operator)
+        n_qubits = count_qubits(qubit_operator)
+    if n_qubits < count_qubits(qubit_operator):
+        raise ValueError('Invalid number of qubits specified.')
 
     # Construct the SparseOperator.
     n_hilbert = 2 ** n_qubits
@@ -274,7 +276,7 @@ def get_ground_state(sparse_operator):
             sparse_operator, 2, which='SA', maxiter=1e7)
     else:
         values, vectors = scipy.sparse.linalg.eigs(
-            sparse_operator, 2, which='SA', maxiter=1e7)
+            sparse_operator, 2, which='SM', maxiter=1e7)
     eigenstate = scipy.sparse.csc_matrix(vectors[:, 0])
     eigenvalue = values[0]
     return eigenvalue, eigenstate.getH()

@@ -14,12 +14,13 @@
 from __future__ import absolute_import
 
 import numpy
-from scipy.sparse import csc_matrix
-from scipy.linalg import eigh, norm
 import unittest
 
+from scipy.linalg import eigh, norm
+from scipy.sparse import csc_matrix
+
 from fermilib.ops import FermionOperator, number_operator
-from fermilib.transforms import jordan_wigner, get_sparse_operator
+from fermilib.transforms import get_sparse_operator, jordan_wigner
 from fermilib.utils import Grid, jellium_model
 from fermilib.utils._sparse_tools import *
 
@@ -185,6 +186,52 @@ class JordanWignerSparseTest(unittest.TestCase):
             jordan_wigner_sparse(FermionOperator('2^ 1^ 1 3')).A,
             expected.A))
 
+    def test_qubit_operator_sparse_n_qubits_too_small(self):
+        with self.assertRaises(ValueError):
+            qubit_operator_sparse(QubitOperator('X3'), 1)
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_qubit_operator_sparse_n_qubits_not_specified(self):
+        expected = csc_matrix(([1, 1, 1, 1], ([1, 0, 3, 2], [0, 1, 2, 3])),
+                              shape=(4, 4))
+        self.assertTrue(numpy.allclose(
+            qubit_operator_sparse(QubitOperator('X1')).A,
+            expected.A))
+
+
+class GroundStateTest(unittest.TestCase):
+    def test_get_ground_state_hermitian(self):
+        ground = get_ground_state(get_sparse_operator(
+            QubitOperator('Y0 X1') + QubitOperator('Z0 Z1')))
+        expected_state = csc_matrix(([1j, 1], ([1, 2], [0, 0])),
+                                    shape=(4, 1)).A
+        expected_state /= numpy.sqrt(2.0)
+
+        self.assertAlmostEqual(ground[0], -2)
+        self.assertAlmostEqual(
+            numpy.absolute(expected_state.T.dot(ground[1].A))[0, 0], 1.0)
+
+
+class ExpectationTest(unittest.TestCase):
+    def test_expectation_correct(self):
+        operator = get_sparse_operator(QubitOperator('X0'), n_qubits=2)
+        vector = csc_matrix(([1j, 1j], ([1, 3], [0, 0])), shape=(4, 1))
+        self.assertAlmostEqual(expectation(operator, vector), 2.0)
+
+    def test_expectation_correct_zero(self):
+        operator = get_sparse_operator(QubitOperator('X0'), n_qubits=2)
+        vector = csc_matrix(([1j, -1j, -1j, -1j],
+                             ([0, 1, 2, 3], [0, 0, 0, 0])), shape=(4, 1))
+        self.assertAlmostEqual(expectation(operator, vector), 0.0)
+
+    def test_expectation_invalid_state_length(self):
+        operator = get_sparse_operator(QubitOperator('X0'), n_qubits=2)
+        vector = csc_matrix(([1j, -1j, -1j],
+                             ([0, 1, 2], [0, 0, 0])), shape=(3, 1))
+        with self.assertRaises(ValueError):
+            expectation(operator, vector)
+
+
+class GetGapTest(unittest.TestCase):
+    def test_get_gap(self):
+        operator = QubitOperator('Y0 X1') + QubitOperator('Z0 Z1')
+        self.assertAlmostEqual(get_gap(get_sparse_operator(operator)), 2.0)

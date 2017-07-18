@@ -98,7 +98,3 @@ class GraphTest(unittest.TestCase):
         self.assertFalse(eight_node.is_adjacent(0, 6))
         self.assertEqual(eight_node.shortest_path(0, 6),
                          [0, 1, 2, 3, 4, 5, 6])
-
-# Run test.
-if __name__ == '__main__':
-    unittest.main()
