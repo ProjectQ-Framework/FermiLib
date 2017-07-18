@@ -20,6 +20,7 @@ from fermilib.ops import FermionOperator
 from fermilib.transforms import jordan_wigner
 from fermilib.utils import count_qubits, eigenspectrum, Grid
 from fermilib.utils._jellium import (
+    dual_basis_jellium_model,
     dual_basis_kinetic,
     dual_basis_potential,
     jellium_model,
@@ -31,6 +32,8 @@ from fermilib.utils._jellium import (
     plane_wave_potential,
     position_vector,
 )
+
+from projectq.ops import QubitOperator
 
 
 class JelliumTest(unittest.TestCase):
@@ -304,9 +307,11 @@ class JelliumTest(unittest.TestCase):
         grid = Grid(dimensions=2, length=3, scale=1.)
         spinless = True
 
-        # Compute fermionic Hamiltonian.
-        fermion_hamiltonian = jellium_model(grid, spinless, False)
+        # Compute fermionic Hamiltonian. Include then subtract constant.
+        fermion_hamiltonian = dual_basis_jellium_model(
+            grid, spinless, include_constant=True)
         qubit_hamiltonian = jordan_wigner(fermion_hamiltonian)
+        qubit_hamiltonian -= QubitOperator((), 2.8372)
 
         # Compute Jordan-Wigner Hamiltonian.
         test_hamiltonian = jordan_wigner_dual_basis_jellium(grid, spinless)
