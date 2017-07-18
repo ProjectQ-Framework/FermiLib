@@ -71,7 +71,7 @@ def hartree_fock_state_jellium(grid, n_electrons, spinless=True,
         hartree_fock_state_creation_operator = FermionOperator.identity()
         for state in occupied_states[::-1]:
             hartree_fock_state_creation_operator *= (
-                FermionOperator(((state, 1),)))
+                FermionOperator(((int(state), 1),)))
         dual_basis_hf_creation_operator = inverse_fourier_transform(
             hartree_fock_state_creation_operator, grid, spinless)
 

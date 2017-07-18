@@ -97,7 +97,3 @@ class JelliumHartreeFockStateTest(unittest.TestCase):
 
             self.assertLessEqual(
                 HF_energy, expectation(hamiltonian_sparse, HF_competitor))
-
-
-if __name__ == '__main__':
-    unittest.main()
