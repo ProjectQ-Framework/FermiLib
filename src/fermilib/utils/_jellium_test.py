@@ -16,6 +16,7 @@ import unittest
 
 import numpy
 
+from fermilib.ops import FermionOperator
 from fermilib.transforms import jordan_wigner
 from fermilib.utils import count_qubits, eigenspectrum, Grid
 from fermilib.utils._jellium import (
@@ -169,6 +170,31 @@ class JelliumTest(unittest.TestCase):
             numpy.absolute(momentum_spectrum - position_spectrum))
         self.assertAlmostEqual(difference, 0.)
 
+    def test_model_integration_with_constant(self):
+        # Compute Hamiltonian in both momentum and position space.
+        length_scale = 0.7
+
+        grid = Grid(dimensions=2, length=3, scale=length_scale)
+        spinless = True
+
+        # Include the Madelung constant in the momentum but not the position
+        # Hamiltonian.
+        momentum_hamiltonian = jellium_model(grid, spinless, True,
+                                             include_constant=True)
+        position_hamiltonian = jellium_model(grid, spinless, False)
+
+        # Diagonalize and confirm the same energy.
+        jw_momentum = jordan_wigner(momentum_hamiltonian)
+        jw_position = jordan_wigner(position_hamiltonian)
+        momentum_spectrum = eigenspectrum(jw_momentum)
+        position_spectrum = eigenspectrum(jw_position)
+
+        # Confirm momentum spectrum is shifted 2.8372 / length_scale higher.
+        max_difference = numpy.amax(momentum_spectrum - position_spectrum)
+        min_difference = numpy.amax(momentum_spectrum - position_spectrum)
+        self.assertAlmostEqual(max_difference, 2.8372 / length_scale)
+        self.assertAlmostEqual(min_difference, 2.8372 / length_scale)
+
     def test_coefficients(self):
 
         # Test that the coefficients post-JW transform are as claimed in paper.
@@ -296,3 +322,18 @@ class JelliumTest(unittest.TestCase):
         num_nonzeros = sum(1 for coeff in qubit_hamiltonian.terms.values() if
                            coeff != 0.0)
         self.assertTrue(num_nonzeros <= paper_n_terms)
+
+    def test_jordan_wigner_dual_basis_jellium_constant_shift(self):
+        length_scale = 0.6
+        grid = Grid(dimensions=2, length=3, scale=length_scale)
+        spinless = True
+
+        hamiltonian_without_constant = jordan_wigner_dual_basis_jellium(
+            grid, spinless, include_constant=False)
+        hamiltonian_with_constant = jordan_wigner_dual_basis_jellium(
+            grid, spinless, include_constant=True)
+
+        difference = hamiltonian_with_constant - hamiltonian_without_constant
+        expected = FermionOperator.identity() * (2.8372 / length_scale)
+
+        self.assertTrue(expected.isclose(difference))
