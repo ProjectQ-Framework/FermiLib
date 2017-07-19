@@ -210,6 +210,10 @@ class GroundStateTest(unittest.TestCase):
         self.assertAlmostEqual(
             numpy.absolute(expected_state.T.dot(ground[1].A))[0, 0], 1.0)
 
+    def test_get_ground_state_nonhermitian(self):
+        with self.assertRaises(ValueError):
+            get_ground_state(get_sparse_operator(1j * QubitOperator('X1')))
+
 
 class ExpectationTest(unittest.TestCase):
     def test_expectation_correct(self):
@@ -235,3 +239,9 @@ class GetGapTest(unittest.TestCase):
     def test_get_gap(self):
         operator = QubitOperator('Y0 X1') + QubitOperator('Z0 Z1')
         self.assertAlmostEqual(get_gap(get_sparse_operator(operator)), 2.0)
+
+    def test_get_gap_nonhermitian_error(self):
+        operator = (QubitOperator('X0 Y1', 1 + 1j) +
+                    QubitOperator('Z0 Z1', 1j) + QubitOperator((), 2 + 1j))
+        with self.assertRaises(ValueError):
+            get_gap(get_sparse_operator(operator))
