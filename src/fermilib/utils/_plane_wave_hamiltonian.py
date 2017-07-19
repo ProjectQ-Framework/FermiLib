@@ -158,7 +158,8 @@ def plane_wave_external_potential(grid, geometry, spinless):
 
 
 def plane_wave_hamiltonian(grid, geometry=None,
-                           spinless=False, plane_wave=True):
+                           spinless=False, plane_wave=True,
+                           include_constant=False):
     """Returns Hamiltonian as FermionOperator class.
 
     Args:
@@ -169,11 +170,12 @@ def plane_wave_hamiltonian(grid, geometry=None,
         spinless (bool): Whether to use the spinless model or not.
         plane_wave (bool): Whether to return in plane wave basis (True)
             or plane wave dual basis (False).
+        include_constant (bool): Whether to include the Madelung constant.
 
     Returns:
         FermionOperator: The hamiltonian.
     """
-    jellium_op = jellium_model(grid, spinless, plane_wave)
+    jellium_op = jellium_model(grid, spinless, plane_wave, include_constant)
 
     if geometry is None:
         return jellium_op
@@ -283,7 +285,8 @@ def _fourier_transform_helper(hamiltonian,
     return hamiltonian_t
 
 
-def jordan_wigner_dual_basis_hamiltonian(grid, geometry=None, spinless=False):
+def jordan_wigner_dual_basis_hamiltonian(grid, geometry=None, spinless=False,
+                                         include_constant=False):
     """Return the dual basis Hamiltonian as QubitOperator.
 
     Args:
@@ -292,11 +295,13 @@ def jordan_wigner_dual_basis_hamiltonian(grid, geometry=None, spinless=False):
             example is [('H', (0, 0, 0)), ('H', (0, 0, 0.7414))].
             Distances in atomic units. Use atomic symbols to specify atoms.
         spinless (bool): Whether to use the spinless model or not.
+        include_constant (bool): Whether to include the Madelung constant.
 
     Returns:
         hamiltonian (QubitOperator)
     """
-    jellium_op = jordan_wigner_dual_basis_jellium(grid, spinless)
+    jellium_op = jordan_wigner_dual_basis_jellium(
+        grid, spinless, include_constant)
 
     if geometry is None:
         return jellium_op
