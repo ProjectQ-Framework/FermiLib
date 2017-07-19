@@ -129,7 +129,3 @@ class LiHIntegrationTest(unittest.TestCase):
             self.hamiltonian_matrix_no_core.todense())[0][0]
         self.assertAlmostEqual(no_core_fci_energy,
                                self.frozen_core_fci_energy)
-
-
-if __name__ == '__main__':
-    unittest.main()

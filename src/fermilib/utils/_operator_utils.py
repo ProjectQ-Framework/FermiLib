@@ -133,7 +133,6 @@ def save_operator(operator, file_name=None, data_directory=None):
 
     Raises:
         OperatorUtilsError: Not saved, file already exists.
-        TypeError: Not implemented.
         TypeError: Operator of invalid type.
     """
     file_path = get_file_path(file_name, data_directory)
@@ -147,7 +146,8 @@ def save_operator(operator, file_name=None, data_directory=None):
         operator_type = "QubitOperator"
     elif (isinstance(operator, InteractionOperator) or
           isinstance(operator, InteractionRDM)):
-        raise TypeError('Not implemented.')
+        raise NotImplementedError('Not yet implemented for InteractionOperator'
+                                  ' or InteractionRDM.')
     else:
         raise TypeError('Operator of invalid type.')
 

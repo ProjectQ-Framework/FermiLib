@@ -283,18 +283,31 @@ class ErrorBoundTest(unittest.TestCase):
         self.assertAlmostEqual(dual_basis_error_bound(
             self.terms, jellium_only=True), 6.92941899358)
 
-    def test_error_bound_using_info(self):
+    def test_error_bound_using_info_1d(self):
         # Generate the Hamiltonian.
         hamiltonian = dual_basis_jellium_hamiltonian(grid_length=4,
                                                      dimension=1)
 
         # Unpack result into terms, indices they act on, and whether they're
         # hopping operators.
-        result = ordered_dual_basis_terms_grouped_by_type_with_info(
+        result = simulation_ordered_grouped_dual_basis_terms_with_info(
             hamiltonian)
         terms, indices, is_hopping = result
         self.assertAlmostEqual(dual_basis_error_bound(
-            terms, indices, is_hopping), 4.05696310313)
+            terms, indices, is_hopping), 7.4239378440953283)
+
+    def test_error_bound_using_info_2d_verbose(self):
+        # Generate the Hamiltonian.
+        hamiltonian = dual_basis_jellium_hamiltonian(grid_length=3,
+                                                     dimension=2)
+
+        # Unpack result into terms, indices they act on, and whether they're
+        # hopping operators.
+        result = simulation_ordered_grouped_dual_basis_terms_with_info(
+            hamiltonian)
+        terms, indices, is_hopping = result
+        self.assertAlmostEqual(0.052213321121580794, dual_basis_error_bound(
+            terms, indices, is_hopping, jellium_only=True, verbose=True))
 
 
 class OrderedDualBasisTermsMoreInfoTest(unittest.TestCase):
@@ -312,7 +325,7 @@ class OrderedDualBasisTermsMoreInfoTest(unittest.TestCase):
         hamiltonian = dual_basis_jellium_hamiltonian(
             grid_length, dimension, wigner_seitz_radius, n_particles)
 
-        terms = ordered_dual_basis_terms_grouped_by_type_with_info(
+        terms = simulation_ordered_grouped_dual_basis_terms_with_info(
             hamiltonian)[0]
         terms_total = sum(terms, FermionOperator.zero())
 
@@ -340,7 +353,7 @@ class OrderedDualBasisTermsMoreInfoTest(unittest.TestCase):
 
         # Unpack result into terms, indices they act on, and whether they're
         # hopping operators.
-        result = ordered_dual_basis_terms_grouped_by_type_with_info(
+        result = simulation_ordered_grouped_dual_basis_terms_with_info(
             hamiltonian)
         terms, indices, is_hopping = result
 
@@ -367,7 +380,7 @@ class OrderedDualBasisTermsMoreInfoTest(unittest.TestCase):
 
         # Unpack result into terms, indices they act on, and whether they're
         # hopping operators.
-        result = ordered_dual_basis_terms_grouped_by_type_with_info(
+        result = simulation_ordered_grouped_dual_basis_terms_with_info(
             hamiltonian)
         terms, indices, is_hopping = result
 
@@ -376,6 +389,27 @@ class OrderedDualBasisTermsMoreInfoTest(unittest.TestCase):
             is_hopping_term = not (single_term[1][1] or
                                    single_term[0][0] == single_term[1][0])
             self.assertEqual(is_hopping_term, is_hopping[i])
+
+    def test_total_length(self):
+        grid_length = 8
+        dimension = 1
+        wigner_seitz_radius = 10.0
+        inverse_filling_fraction = 2
+        n_qubits = grid_length ** dimension
+
+        # Compute appropriate length scale.
+        n_particles = n_qubits // inverse_filling_fraction
+
+        hamiltonian = dual_basis_jellium_hamiltonian(
+            grid_length, dimension, wigner_seitz_radius, n_particles)
+
+        # Unpack result into terms, indices they act on, and whether they're
+        # hopping operators.
+        result = simulation_ordered_grouped_dual_basis_terms_with_info(
+            hamiltonian)
+        terms, indices, is_hopping = result
+
+        self.assertEqual(len(terms), n_qubits * (n_qubits - 1))
 
 
 class OrderedDualBasisTermsNoInfoTest(unittest.TestCase):

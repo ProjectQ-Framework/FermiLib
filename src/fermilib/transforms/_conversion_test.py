@@ -17,10 +17,11 @@ import copy
 import numpy
 import unittest
 
-from fermilib.ops import (InteractionOperator,
-                          FermionOperator,
+from fermilib.ops import (FermionOperator,
+                          InteractionOperator,
                           normal_ordered,
                           number_operator)
+from fermilib.ops._interaction_operator import InteractionOperatorError
 from fermilib.transforms import *
 from fermilib.utils import *
 
@@ -38,6 +39,26 @@ class GetInteractionOperatorTest(unittest.TestCase):
         fermion_operator = get_fermion_operator(molecular_operator)
         fermion_operator = normal_ordered(fermion_operator)
         self.assertTrue(normal_ordered(op).isclose(fermion_operator))
+
+    def test_get_interaction_operator_bad_input(self):
+        with self.assertRaises(TypeError):
+            get_interaction_operator('3')
+
+    def test_get_interaction_operator_too_few_qubits(self):
+        with self.assertRaises(ValueError):
+            get_interaction_operator(FermionOperator('3^ 2^ 1 0'), 3)
+
+    def test_get_interaction_operator_bad_1body_term(self):
+        with self.assertRaises(InteractionOperatorError):
+            get_interaction_operator(FermionOperator('1^ 0^'))
+
+    def test_get_interaction_operator_bad_2body_term(self):
+        with self.assertRaises(InteractionOperatorError):
+            get_interaction_operator(FermionOperator('3^ 2 1 0'))
+
+    def test_get_interaction_operator_nonmolecular_term(self):
+        with self.assertRaises(InteractionOperatorError):
+            get_interaction_operator(FermionOperator('3^ 2 1'))
 
 
 class GetSparseOperatorQubitTest(unittest.TestCase):
@@ -122,7 +143,3 @@ class GetSparseOperatorFermionTest(unittest.TestCase):
         sparse_operator.eliminate_zeros()
         self.assertEqual(len(list(sparse_operator.data)), 0)
         self.assertEqual(sparse_operator.shape, (16, 16))
-
-
-if __name__ == '__main__':
-    unittest.main()
