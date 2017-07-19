@@ -258,6 +258,7 @@ class MolecularData(object):
                 else:
                     self.filename = filename
                 self.load()
+                self.init_lazy_properties()
                 return
             else:
                 raise ValueError("Geometry, basis, multiplicity must be"
@@ -302,29 +303,45 @@ class MolecularData(object):
 
         # Attributes generated from SCF calculation.
         self.hf_energy = None
-        self._canonical_orbitals = None
         self.orbital_energies = None
 
         # Attributes generated from integrals.
         self._orbital_overlaps = None
-        self._one_body_integrals = None
-        self._two_body_integrals = None
 
         # Attributes generated from MP2 calculation.
         self.mp2_energy = None
 
         # Attributes generated from CISD calculation.
         self.cisd_energy = None
-        self._cisd_one_rdm = None
-        self._cisd_two_rdm = None
 
         # Attributes generated from exact diagonalization.
         self.fci_energy = None
-        self._fci_one_rdm = None
-        self._fci_two_rdm = None
 
         # Attributes generated from CCSD calculation.
         self.ccsd_energy = None
+
+        # Initialize attributes that will be loaded only upon demand
+        self.init_lazy_properties()
+
+    def init_lazy_properties(self):
+        """Initializes properties loaded on demand to None"""
+
+        # Molecular orbitals
+        self._canonical_orbitals = None
+
+        # Electronic Integrals
+        self._one_body_integrals = None
+        self._two_body_integrals = None
+
+        # CI RDMs
+        self._cisd_one_rdm = None
+        self._cisd_two_rdm = None
+
+        # FCI RDMs
+        self._fci_one_rdm = None
+        self._fci_two_rdm = None
+
+        # Coupled cluster amplitudes
         self._ccsd_single_amps = None
         self._ccsd_double_amps = None
 

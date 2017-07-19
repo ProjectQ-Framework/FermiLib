@@ -180,9 +180,14 @@ class MolecularDataTest(unittest.TestCase):
         test_hf_energy = molecule.hf_energy
         molecule = MolecularData(
             self.geometry, self.basis, self.multiplicity,
-            filename=self.filename + "hdf5",
+            filename=self.filename + ".hdf5",
             data_directory=data_directory)
         self.assertAlmostEqual(test_hf_energy, molecule.hf_energy)
+
+        molecule = MolecularData(filename=self.filename + ".hdf5")
+        integrals = molecule.one_body_integrals
+        self.assertTrue(integrals is not None)
+
         with self.assertRaises(ValueError):
             MolecularData()
 
