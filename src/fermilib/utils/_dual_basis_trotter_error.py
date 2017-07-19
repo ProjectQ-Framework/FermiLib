@@ -13,7 +13,6 @@
 """Module to compute Trotter errors in the plane-wave dual basis."""
 from __future__ import absolute_import
 from future.utils import iteritems, itervalues
-from math import sqrt
 
 import numpy
 
@@ -261,7 +260,7 @@ def trivially_double_commutes_dual_basis(term_a, term_b, term_c):
 
 
 def dual_basis_error_operator(terms, indices=None, is_hopping_operator=None,
-                              jellium_only=False):
+                              jellium_only=False, verbose=False):
     """Determine the difference between the exact generator of unitary
     evolution and the approximate generator given by the second-order
     Trotter-Suzuki expansion.
@@ -275,6 +274,7 @@ def dual_basis_error_operator(terms, indices=None, is_hopping_operator=None,
                       rather than the full dual basis Hamiltonian (i.e. whether
                       c_i = c for all number operators i^ i, or whether they
                       depend on i as is possible in the general case).
+        verbose: Whether to print percentage progress.
 
     Returns:
         The difference between the true and effective generators of time
@@ -284,9 +284,18 @@ def dual_basis_error_operator(terms, indices=None, is_hopping_operator=None,
         Size Required for Accurate Quantum Simulation of Quantum Chemistry".
     """
     more_info = bool(indices)
+    n_terms = len(terms)
+
+    if verbose:
+        import time
+        start = time.time()
 
     error_operator = FermionOperator.zero()
-    for beta in range(len(terms)):
+    for beta in range(n_terms):
+        if verbose and beta % (n_terms // 30) == 0:
+            print '%4.3f percent done in' % (
+                (float(beta) / n_terms) ** 3 * 100), time.time() - start
+
         for alpha in range(beta + 1):
             for alpha_prime in range(beta):
                 # If we have pre-computed info on indices, use it to determine
@@ -326,7 +335,7 @@ def dual_basis_error_operator(terms, indices=None, is_hopping_operator=None,
 
 
 def dual_basis_error_bound(terms, indices=None, is_hopping_operator=None,
-                           jellium_only=False):
+                           jellium_only=False, verbose=False):
     """Numerically upper bound the error in the ground state energy
     for the second-order Trotter-Suzuki expansion.
 
@@ -339,6 +348,7 @@ def dual_basis_error_bound(terms, indices=None, is_hopping_operator=None,
                       rather than the full dual basis Hamiltonian (i.e. whether
                       c_i = c for all number operators i^ i, or whether they
                       depend on i as is possible in the general case).
+        verbose: Whether to print percentage progress.
 
     Returns:
         A float upper bound on norm of error in the ground state energy.
@@ -350,19 +360,22 @@ def dual_basis_error_bound(terms, indices=None, is_hopping_operator=None,
     """
     # Return the 1-norm of the error operator (upper bound on error).
     return numpy.sum(numpy.absolute(list(dual_basis_error_operator(
-        terms, indices, is_hopping_operator, jellium_only).terms.values())))
+        terms, indices, is_hopping_operator,
+        jellium_only, verbose).terms.values())))
 
 
-def ordered_dual_basis_terms_grouped_by_type_with_info(dual_basis_hamiltonian):
+def simulation_ordered_grouped_dual_basis_terms_with_info(
+        dual_basis_hamiltonian, input_ordering=None):
     """Give terms from the dual basis Hamiltonian in simulated order.
 
-    Roughly uses the simulation ordering, grouping terms into hopping
+    Uses the simulation ordering, grouping terms into hopping
     (i^ j + j^ i) and number (i^j^ i j + c_i i^ i + c_j j^ j) operators.
     Pre-computes term information (indices each operator acts on, as
     well as whether each operator is a hopping operator.
 
     Args:
         dual_basis_hamiltonian (FermionOperator): The Hamiltonian.
+        input_ordering (list): The initial Jordan-Wigner canonical order.
 
     Returns:
         A 3-tuple of terms from the plane-wave dual basis Hamiltonian in
@@ -371,99 +384,91 @@ def ordered_dual_basis_terms_grouped_by_type_with_info(dual_basis_hamiltonian):
     """
     zero = FermionOperator.zero()
     hamiltonian = dual_basis_hamiltonian
-
     n_qubits = count_qubits(hamiltonian)
 
     ordered_terms = []
     ordered_indices = []
     ordered_is_hopping_operator = []
 
-    # Number of times the two-number term i^ j^ i j appears for given i
-    # (stored in the ith position of the list).
-    two_number_operator_appearances = [0] * n_qubits
+    # If no input mode ordering is specified, default to range(n_qubits).
+    if not input_ordering:
+        input_ordering = list(range(n_qubits))
 
-    for i in range(n_qubits):
-        for j in range(n_qubits):
-            two_number_action = ((i, 1), (j, 1), (i, 0), (j, 0))
-            if hamiltonian.terms.get(two_number_action):
-                # Increment the number of times we've found two-number
-                # operators containing i and j.
-                two_number_operator_appearances[i] += 1
-                two_number_operator_appearances[j] += 1
+    # Half a second-order Trotter step reverses the input ordering: this tells
+    # us how much we need to include in the ordered list of terms.
+    final_ordering = list(reversed(input_ordering))
 
-    # Iterate over the different possible first qubit indices.
-    for i in range(n_qubits):
-        # Iterate over possible offsets. Each stage of the algorithm
-        # simulates a different offset.
-        for j in range(1, n_qubits):
-            # The index_left is the low index, index_right is high.
-            index_left = min(i, (i + j) % n_qubits)
-            index_right = max(i, (i + j) % n_qubits)
+    # Follow odd-even transposition sort. In alternating steps, swap each even
+    # qubits with the odd qubit to its right, and in the next step swap each
+    # the odd qubits with the even qubit to its right. Do this until the input
+    # ordering has been reversed.
+    odd = 0
+    while input_ordering != final_ordering:
+        for i in range(odd, n_qubits - 1, 2):
+            # Always keep the max on the left to avoid having to normal order.
+            left = max(input_ordering[i], input_ordering[i + 1])
+            right = min(input_ordering[i], input_ordering[i + 1])
 
-            # Operators of the hopping term l^ r + r^ l.
-            hopping_action1 = ((index_left, 1), (index_right, 0))
-            hopping_action2 = ((index_right, 1), (index_left, 0))
+            # Calculate the hopping operators in the Hamiltonian.
+            left_hopping_operator = FermionOperator(
+                ((left, 1), (right, 0)), hamiltonian.terms.get(
+                    ((left, 1), (right, 0)), 0.0))
+            right_hopping_operator = FermionOperator(
+                ((right, 1), (left, 0)), hamiltonian.terms.get(
+                    ((right, 1), (left, 0)), 0.0))
 
-            # Operators of the two-number term r^ l^ r l (after normal-
-            # ordering).
-            two_number_action = ((index_right, 1), (index_left, 1),
-                                 (index_right, 0), (index_left, 0))
+            # Calculate the two-number operator l^ r^ l r in the Hamiltonian.
+            two_number_operator = FermionOperator(
+                ((left, 1), (right, 1), (left, 0), (right, 0)),
+                hamiltonian.terms.get(
+                    ((left, 1), (right, 1), (left, 0), (right, 0)), 0.0))
 
-            # Single-number terms l^ l and r^ r.
-            left_number_action = ((index_left, 1), (index_left, 0))
-            right_number_action = ((index_right, 1), (index_right, 0))
+            # Calculate the left number operator, left^ left.
+            left_number_operator = FermionOperator(
+                ((left, 1), (left, 0)), hamiltonian.terms.get(
+                    ((left, 1), (left, 0)), 0.0))
 
-            # Calculate the hopping operator in the Hamiltonian.
-            hopping_operator = (
-                FermionOperator(hopping_action1,
-                                hamiltonian.terms.get(hopping_action1, 0.0)) +
-                FermionOperator(hopping_action2,
-                                hamiltonian.terms.get(hopping_action2, 0.0)))
-            hopping_operator.compress()
-            # Divide by two to avoid double-counting the operator.
-            hopping_operator /= 2.0
+            # Calculate the right number operator, right^ right.
+            right_number_operator = FermionOperator(
+                ((right, 1), (right, 0)), hamiltonian.terms.get(
+                    ((right, 1), (right, 0)), 0.0))
 
-            # Calculate the two-number operator in the Hamiltonian.
-            number_operator = FermionOperator(two_number_action,
-                                              hamiltonian.terms.get(
-                                                  two_number_action, 0.0))
-            # If it's zero, we have nothing to simulate at this stage;
-            # otherwise, group l^ l and r^ r with it.
-            if not number_operator.isclose(zero):
-                number_operator += (
-                    FermionOperator(
-                        left_number_action,
-                        hamiltonian.terms.get(left_number_action, 0.0) /
-                        two_number_operator_appearances[index_left]) +
-                    FermionOperator(
-                        right_number_action,
-                        hamiltonian.terms.get(right_number_action, 0.0) /
-                        two_number_operator_appearances[index_right]))
-            number_operator.compress()
-            # Divide by two to avoid double-counting.
-            number_operator /= 2.0
+            # Divide single-number terms by n_qubits-1 to avoid over-counting.
+            # Each qubit is swapped n_qubits-1 times total.
+            left_number_operator /= (n_qubits - 1)
+            right_number_operator /= (n_qubits - 1)
 
             # If the overall hopping operator isn't close to zero, append it.
             # Include the indices it acts on and that it's a hopping operator.
-            if not hopping_operator.isclose(zero):
-                ordered_terms.append(hopping_operator)
-                ordered_indices.append(set((index_left, index_right)))
+            if not (left_hopping_operator +
+                    right_hopping_operator).isclose(zero):
+                ordered_terms.append(left_hopping_operator +
+                                     right_hopping_operator)
+                ordered_indices.append(set((left, right)))
                 ordered_is_hopping_operator.append(True)
 
             # If the overall number operator isn't close to zero, append it.
             # Include the indices it acts on and that it's a number operator.
-            if not number_operator.isclose(zero):
-                ordered_terms.append(number_operator)
-                ordered_indices.append(set((index_left, index_right)))
+            if not (two_number_operator + left_number_operator +
+                    right_number_operator).isclose(zero):
+                ordered_terms.append(two_number_operator +
+                                     left_number_operator +
+                                     right_number_operator)
+                ordered_indices.append(set((left, right)))
                 ordered_is_hopping_operator.append(False)
+
+            # Track the current Jordan-Wigner canonical ordering.
+            input_ordering[i], input_ordering[i + 1] = (input_ordering[i + 1],
+                                                        input_ordering[i])
+
+        # Alternate even and odd steps of the reversal procedure.
+        odd = 1 - odd
 
     return (ordered_terms, ordered_indices, ordered_is_hopping_operator)
 
 
 def ordered_dual_basis_terms_no_info(dual_basis_hamiltonian):
-    """Give terms from the dual basis Hamiltonian in simulated order.
-
-    Orders the terms by dictionary output.
+    """Give terms from the dual basis Hamiltonian in dictionary output order.
 
     Args:
         dual_basis_hamiltonian (FermionOperator): The Hamiltonian.
