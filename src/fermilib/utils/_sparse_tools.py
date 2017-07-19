@@ -271,12 +271,12 @@ def get_ground_state(sparse_operator):
         eigenvalue: The lowest eigenvalue, a float.
         eigenstate: The lowest eigenstate in scipy.sparse csc format.
     """
-    if is_hermitian(sparse_operator):
-        values, vectors = scipy.sparse.linalg.eigsh(
-            sparse_operator, 2, which='SA', maxiter=1e7)
-    else:
-        values, vectors = scipy.sparse.linalg.eigs(
-            sparse_operator, 2, which='SM', maxiter=1e7)
+    if not is_hermitian(sparse_operator):
+        raise ValueError('sparse_operator must be Hermitian.')
+
+    values, vectors = scipy.sparse.linalg.eigsh(
+        sparse_operator, 2, which='SA', maxiter=1e7)
+
     eigenstate = scipy.sparse.csc_matrix(vectors[:, 0])
     eigenvalue = values[0]
     return eigenvalue, eigenstate.getH()
@@ -332,11 +332,11 @@ def get_gap(sparse_operator):
 
     Returns: A real float giving eigenvalue gap.
     """
-    if is_hermitian(sparse_operator):
-        values, _ = scipy.sparse.linalg.eigsh(
-            sparse_operator, 2, which='SA', maxiter=1e7)
-    else:
-        values, _ = scipy.sparse.linalg.eigs(
-            sparse_operator, 2, which='SA', maxiter=1e7)
+    if not is_hermitian(sparse_operator):
+        raise ValueError('sparse_operator must be Hermitian.')
+
+    values, _ = scipy.sparse.linalg.eigsh(
+        sparse_operator, 2, which='SA', maxiter=1e7)
+
     gap = abs(values[1] - values[0])
     return gap
