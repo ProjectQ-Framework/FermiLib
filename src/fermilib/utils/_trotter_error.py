@@ -183,4 +183,4 @@ def trotter_steps_required(trotter_error_bound, time, energy_precision):
         The number of Trotter steps required is an upper bound on the
         true requirement, which may be lower. Calculated using
     """
-    return ceil(time ** 2 / energy_precision * trotter_error_bound)
+    return int(ceil(time ** 2 / energy_precision * trotter_error_bound))

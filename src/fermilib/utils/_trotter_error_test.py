@@ -158,3 +158,6 @@ class TrotterStepsRequiredTest(unittest.TestCase):
     def test_trotter_steps_required_negative_time(self):
         self.assertEqual(trotter_steps_required(
             trotter_error_bound=0.1, time=3.3, energy_precision=0.11), 10)
+
+    def test_return_type(self):
+        self.assertIsInstance(trotter_steps_required(0.1, 0.1, 0.1), int)
