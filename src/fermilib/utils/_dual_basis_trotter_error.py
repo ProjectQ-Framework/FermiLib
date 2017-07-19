@@ -293,8 +293,8 @@ def dual_basis_error_operator(terms, indices=None, is_hopping_operator=None,
     error_operator = FermionOperator.zero()
     for beta in range(n_terms):
         if verbose and beta % (n_terms // 30) == 0:
-            print '%4.3f percent done in' % (
-                (float(beta) / n_terms) ** 3 * 100), time.time() - start
+            print('%4.3f percent done in' % (
+                (float(beta) / n_terms) ** 3 * 100), time.time() - start)
 
         for alpha in range(beta + 1):
             for alpha_prime in range(beta):
