@@ -45,7 +45,8 @@ class MissingCalculationError(Exception):
 
 # Functions to change from Bohr to angstroms and back.
 def bohr_to_angstroms(distance):
-    return 0.529177 * distance
+    # Value defined so it is the inverse to numerical precision of angs to bohr
+    return 0.5291772458017723 * distance
 
 
 def angstroms_to_bohr(distance):
@@ -145,9 +146,9 @@ def name_molecule(geometry,
 
     # Add charge.
     if charge > 0:
-        name += '{}+'.format(charge)
+        name += '_{}+'.format(charge)
     elif charge < 0:
-        name += '{}-'.format(charge)
+        name += '_{}-'.format(charge)
 
     # Optionally add descriptive tag and return.
     if description:
