@@ -28,11 +28,20 @@ class MolecularDataTest(unittest.TestCase):
         self.geometry = [('H', (0., 0., 0.)), ('H', (0., 0., 0.7414))]
         self.basis = 'sto-3g'
         self.multiplicity = 1
-        filename = os.path.join(THIS_DIRECTORY, 'data',
-                                'H2_sto-3g_singlet_0.7414')
+        self.filename = os.path.join(THIS_DIRECTORY, 'data',
+                                     'H2_sto-3g_singlet_0.7414')
         self.molecule = MolecularData(
-            self.geometry, self.basis, self.multiplicity, filename=filename)
+            self.geometry, self.basis, self.multiplicity,
+            filename=self.filename)
         self.molecule.load()
+
+    def testUnitConversion(self):
+        """Test the unit conversion routines"""
+        unit_angstrom = 1.0
+        bohr = angstroms_to_bohr(unit_angstrom)
+        self.assertAlmostEqual(bohr, 1.889726)
+        inverse_transform = bohr_to_angstroms(bohr)
+        self.assertAlmostEqual(inverse_transform, 1.0)
 
     def test_name_molecule(self):
         charge = 0
@@ -44,6 +53,16 @@ class MolecularDataTest(unittest.TestCase):
                                       description="0.7414")
         self.assertEqual(correct_name, computed_name)
         self.assertEqual(correct_name, self.molecule.name)
+
+        # Check (+) charge
+        charge = 1
+        correct_name = "H2_sto-3g_singlet_1+_0.7414"
+        computed_name = name_molecule(self.geometry,
+                                      self.basis,
+                                      self.multiplicity,
+                                      charge,
+                                      description="0.7414")
+        self.assertEqual(correct_name, computed_name)
 
     def test_invalid_multiplicity(self):
         geometry = [('H', (0., 0., 0.)), ('H', (0., 0., 0.7414))]
@@ -68,10 +87,16 @@ class MolecularDataTest(unittest.TestCase):
 
     def test_save_load(self):
         n_atoms = self.molecule.n_atoms
+        orbitals = self.molecule.canonical_orbitals
+        self.assertFalse(orbitals is None)
+        overlaps = self.molecule.orbital_overlaps
+        self.assertFalse(overlaps is None)
         self.molecule.n_atoms += 1
         self.assertEqual(self.molecule.n_atoms, n_atoms + 1)
         self.molecule.load()
         self.assertEqual(self.molecule.n_atoms, n_atoms)
+        dummy_data = self.molecule.get_from_file("dummy_entry")
+        self.assertTrue(dummy_data is None)
 
     def test_dummy_save(self):
 
@@ -89,7 +114,7 @@ class MolecularDataTest(unittest.TestCase):
         molecule.n_orbitals = 10
         molecule.n_qubits = 10
         molecule.nuclear_repulsion = -12.3
-        molecule.hf_energy = 88.
+        molecule.hf_energy = 99.
         molecule.canonical_orbitals = [1, 2, 3, 4]
         molecule.orbital_energies = [5, 6, 7, 8]
         molecule.orbital_overlaps = [1, 2, 3, 4]
@@ -103,6 +128,27 @@ class MolecularDataTest(unittest.TestCase):
         molecule.fci_one_rdm = numpy.arange(11)
         molecule.fci_two_rdm = numpy.arange(11)
         molecule.ccsd_energy = 88.
+        molecule.ccsd_single_amps = [1, 2, 3]
+        molecule.ccsd_double_amps = [1, 2, 3]
+
+        # Test missing calculation and information exceptions
+        molecule.hf_energy = None
+        with self.assertRaises(MissingCalculationError):
+            one_body_ints, two_body_ints = molecule.get_integrals()
+        molecule.hf_energy = 99.
+
+        with self.assertRaises(ValueError):
+            molecule.get_active_space_integrals([], [])
+
+        molecule.fci_energy = None
+        with self.assertRaises(MissingCalculationError):
+            molecule.get_molecular_rdm(use_fci=True)
+        molecule.fci_energy = 232.
+
+        molecule.cisd_energy = None
+        with self.assertRaises(MissingCalculationError):
+            molecule.get_molecular_rdm(use_fci=False)
+        molecule.cisd_energy = 232.
 
         # Save molecule.
         molecule.save()
@@ -124,6 +170,26 @@ class MolecularDataTest(unittest.TestCase):
             self.assertAlmostEqual(molecule.ccsd_energy, 88.)
         finally:
             os.remove(filename + '.hdf5')
+
+    def test_file_loads(self):
+        """Test different filename specs"""
+        data_directory = os.path.join(THIS_DIRECTORY, 'data')
+        molecule = MolecularData(
+            self.geometry, self.basis, self.multiplicity,
+            filename=self.filename)
+        test_hf_energy = molecule.hf_energy
+        molecule = MolecularData(
+            self.geometry, self.basis, self.multiplicity,
+            filename=self.filename + ".hdf5",
+            data_directory=data_directory)
+        self.assertAlmostEqual(test_hf_energy, molecule.hf_energy)
+
+        molecule = MolecularData(filename=self.filename + ".hdf5")
+        integrals = molecule.one_body_integrals
+        self.assertTrue(integrals is not None)
+
+        with self.assertRaises(ValueError):
+            MolecularData()
 
     def test_active_space(self):
         """Test simple active space truncation features"""
