@@ -16,6 +16,7 @@ from __future__ import absolute_import, unicode_literals
 import h5py
 import numpy
 import os
+import uuid
 
 from fermilib.config import *
 from fermilib.ops import InteractionOperator, InteractionRDM
@@ -44,7 +45,8 @@ class MissingCalculationError(Exception):
 
 # Functions to change from Bohr to angstroms and back.
 def bohr_to_angstroms(distance):
-    return 0.529177 * distance
+    # Value defined so it is the inverse to numerical precision of angs to bohr
+    return 0.5291772458017723 * distance
 
 
 def angstroms_to_bohr(distance):
@@ -144,9 +146,9 @@ def name_molecule(geometry,
 
     # Add charge.
     if charge > 0:
-        name += '{}+'.format(charge)
+        name += '_{}+'.format(charge)
     elif charge < 0:
-        name += '{}-'.format(charge)
+        name += '_{}-'.format(charge)
 
     # Optionally add descriptive tag and return.
     if description:
@@ -210,15 +212,18 @@ class MolecularData(object):
         orbital_energies: Numpy array giving the canonical orbital energies.
         fock_matrix: Numpy array giving the Fock matrix.
         orbital_overlaps: Numpy array giving the orbital overlap coefficients.
-        kinetic_integrals: Numpy array giving 1-body kinetic energy integrals.
-        potential_integrals: Numpy array giving 1-body potential integrals.
+        one_body_integrals: Numpy array of one-electron integrals
+        two_body_integrals: Numpy array of two-electron integrals
         mp2_energy: Energy from MP2 perturbation theory.
         cisd_energy: Energy from configuration interaction singles + doubles.
         cisd_one_rdm: Numpy array giving 1-RDM from CISD calculation.
+        cisd_two_rdm: Numpy array giving 2-RDM from CISD calculation.
         fci_energy: Exact energy of molecule within given basis.
         fci_one_rdm: Numpy array giving 1-RDM from FCI calculation.
+        fci_two_rdm: Numpy array giving 2-RDM from FCI calculation.
         ccsd_energy: Energy from coupled cluster singles + doubles.
-        ccsd_amplitudes: Molecular operator holding coupled cluster amplitude.
+        ccsd_single_amps: Numpy array holding single amplitudes
+        ccsd_double_amps: Numpy array holding double amplitudes
     """
     def __init__(self, geometry=None, basis=None, multiplicity=None,
                  charge=0, description="", filename="", data_directory=None):
@@ -253,6 +258,7 @@ class MolecularData(object):
                 else:
                     self.filename = filename
                 self.load()
+                self.init_lazy_properties()
                 return
             else:
                 raise ValueError("Geometry, basis, multiplicity must be"
@@ -297,132 +303,305 @@ class MolecularData(object):
 
         # Attributes generated from SCF calculation.
         self.hf_energy = None
-        self.canonical_orbitals = None
         self.orbital_energies = None
 
         # Attributes generated from integrals.
-        self.orbital_overlaps = None
-        self.one_body_integrals = None
-        self.two_body_integrals = None
+        self._orbital_overlaps = None
 
         # Attributes generated from MP2 calculation.
         self.mp2_energy = None
 
         # Attributes generated from CISD calculation.
         self.cisd_energy = None
-        self.cisd_one_rdm = None
-        self.cisd_two_rdm = None
 
         # Attributes generated from exact diagonalization.
         self.fci_energy = None
-        self.fci_one_rdm = None
-        self.fci_two_rdm = None
 
         # Attributes generated from CCSD calculation.
         self.ccsd_energy = None
-        self.ccsd_amplitudes = None
+
+        # Initialize attributes that will be loaded only upon demand
+        self.init_lazy_properties()
+
+    def init_lazy_properties(self):
+        """Initializes properties loaded on demand to None"""
+
+        # Molecular orbitals
+        self._canonical_orbitals = None
+
+        # Electronic Integrals
+        self._one_body_integrals = None
+        self._two_body_integrals = None
+
+        # CI RDMs
+        self._cisd_one_rdm = None
+        self._cisd_two_rdm = None
+
+        # FCI RDMs
+        self._fci_one_rdm = None
+        self._fci_two_rdm = None
+
+        # Coupled cluster amplitudes
+        self._ccsd_single_amps = None
+        self._ccsd_double_amps = None
+
+    @property
+    def canonical_orbitals(self):
+        if self._canonical_orbitals is None:
+            data = self.get_from_file("canonical_orbitals")
+            self._canonical_orbitals = (data if data is not None and
+                                        data.dtype.num != 0 else None)
+        return self._canonical_orbitals
+
+    @canonical_orbitals.setter
+    def canonical_orbitals(self, value):
+        self._canonical_orbitals = value
+
+    @property
+    def orbital_overlaps(self):
+        if self._orbital_overlaps is None:
+            data = self.get_from_file("one_body_integrals")
+            self._orbital_overlaps = (data if data is not None and
+                                      data.dtype.num != 0 else None)
+        return self._orbital_overlaps
+
+    @orbital_overlaps.setter
+    def orbital_overlaps(self, value):
+        self._orbital_overlaps = value
+
+    @property
+    def one_body_integrals(self):
+        if self._one_body_integrals is None:
+            data = self.get_from_file("one_body_integrals")
+            self._one_body_integrals = (data if data is not None and
+                                        data.dtype.num != 0 else None)
+        return self._one_body_integrals
+
+    @one_body_integrals.setter
+    def one_body_integrals(self, value):
+        self._one_body_integrals = value
+
+    @property
+    def two_body_integrals(self):
+        if self._two_body_integrals is None:
+            data = self.get_from_file("two_body_integrals")
+            self._two_body_integrals = (data if data is not None and
+                                        data.dtype.num != 0 else None)
+        return self._two_body_integrals
+
+    @two_body_integrals.setter
+    def two_body_integrals(self, value):
+        self._two_body_integrals = value
+
+    @property
+    def cisd_one_rdm(self):
+        if self._cisd_one_rdm is None:
+            data = self.get_from_file("cisd_one_rdm")
+            self._cisd_one_rdm = (data if data is not None and
+                                  data.dtype.num != 0 else None)
+        return self._cisd_one_rdm
+
+    @cisd_one_rdm.setter
+    def cisd_one_rdm(self, value):
+        self._cisd_one_rdm = value
+
+    @property
+    def cisd_two_rdm(self):
+        if self._cisd_two_rdm is None:
+            data = self.get_from_file("cisd_two_rdm")
+            self._cisd_two_rdm = (data if data is not None and
+                                  data.dtype.num != 0 else None)
+        return self._cisd_two_rdm
+
+    @cisd_two_rdm.setter
+    def cisd_two_rdm(self, value):
+        self._cisd_two_rdm = value
+
+    @property
+    def fci_one_rdm(self):
+        if self._fci_one_rdm is None:
+            data = self.get_from_file("fci_one_rdm")
+            self._fci_one_rdm = (data if data is not None and
+                                 data.dtype.num != 0 else None)
+        return self._fci_one_rdm
+
+    @fci_one_rdm.setter
+    def fci_one_rdm(self, value):
+        self._fci_one_rdm = value
+
+    @property
+    def fci_two_rdm(self):
+        if self._fci_two_rdm is None:
+            data = self.get_from_file("fci_two_rdm")
+            self._fci_two_rdm = (data if data is not None and
+                                 data.dtype.num != 0 else None)
+        return self._fci_two_rdm
+
+    @fci_two_rdm.setter
+    def fci_two_rdm(self, value):
+        self._fci_two_rdm = value
+
+    @property
+    def ccsd_single_amps(self):
+        if self._ccsd_single_amps is None:
+            data = self.get_from_file("ccsd_single_amps")
+            self._ccsd_single_amps = (data if data is not None and
+                                      data.dtype.num != 0 else None)
+        return self._ccsd_single_amps
+
+    @ccsd_single_amps.setter
+    def ccsd_single_amps(self, value):
+        self._ccsd_single_amps = value
+
+    @property
+    def ccsd_double_amps(self):
+        if self._ccsd_double_amps is None:
+            data = self.get_from_file("ccsd_double_amps")
+            self._ccsd_double_amps = (data if data is not None and
+                                      data.dtype.num != 0 else None)
+        return self._ccsd_double_amps
+
+    @ccsd_double_amps.setter
+    def ccsd_double_amps(self, value):
+        self._ccsd_double_amps = value
 
     def save(self):
         """Method to save the class under a systematic name."""
-
-        # Load two body integrals/rdms from file before re-saving, since
-        # they aren't loaded by default
-        if (os.path.isfile("{}.hdf5".format(self.filename))):
-            if (self.one_body_integrals is not None and
-                    self.two_body_integrals is None):
-                self.one_body_integrals, self.two_body_integrals = (
-                    self.get_integrals())
-            if self.cisd_one_rdm is not None and self.cisd_two_rdm is None:
-                rdm = self.get_molecular_rdm()
-                self.cisd_two_rdm = rdm.two_body_tensor
-            if self.fci_one_rdm is not None and self.fci_two_rdm is None:
-                rdm = self.get_molecular_rdm(use_fci=True)
-                self.fci_two_rdm = rdm.two_body_tensor
-
-        with h5py.File("{}.hdf5".format(self.filename), "w") as f:
+        # Create a temporary file and swap it to the original name in case
+        # data needs to be loaded while saving
+        tmp_name = uuid.uuid4()
+        with h5py.File("{}.hdf5".format(tmp_name), "w") as f:
             # Save geometry (atoms and positions need to be separate):
             d_geom = f.create_group("geometry")
             atoms = [numpy.string_(item[0]) for item in self.geometry]
             positions = numpy.array([list(item[1]) for item in self.geometry])
-            d_geom["atoms"] = atoms
-            d_geom["positions"] = positions
+            d_geom.create_dataset("atoms", data=atoms)
+            d_geom.create_dataset("positions", data=positions)
             # Save basis:
-            f["basis"] = numpy.string_(self.basis)
+            f.create_dataset("basis", data=numpy.string_(self.basis))
             # Save multiplicity:
-            f["multiplicity"] = self.multiplicity
+            f.create_dataset("multiplicity", data=self.multiplicity)
             # Save charge:
-            f["charge"] = self.charge
+            f.create_dataset("charge", data=self.charge)
             # Save description:
-            f["description"] = numpy.string_(self.description)
+            f.create_dataset("description",
+                             data=numpy.string_(self.description))
             # Save name:
-            f["name"] = numpy.string_(self.name)
+            f.create_dataset("name", data=numpy.string_(self.name))
             # Save n_atoms:
-            f["n_atoms"] = self.n_atoms
+            f.create_dataset("n_atoms", data=self.n_atoms)
             # Save atoms:
-            f["atoms"] = numpy.string_(self.atoms)
+            f.create_dataset("atoms", data=numpy.string_(self.atoms))
             # Save protons:
-            f["protons"] = self.protons
+            f.create_dataset("protons", data=self.protons)
             # Save n_electrons:
-            f["n_electrons"] = self.n_electrons
+            f.create_dataset("n_electrons", data=self.n_electrons)
             # Save generic attributes from calculations:
-            f["n_orbitals"] = (self.n_orbitals if self.n_orbitals is
-                               not None else False)
-            f["n_qubits"] = (self.n_qubits if self.n_qubits is
-                             not None else False)
-            f["nuclear_repulsion"] = (self.nuclear_repulsion if
-                                      self.nuclear_repulsion is
-                                      not None else False)
+            f.create_dataset("n_orbitals",
+                             data=(self.n_orbitals if self.n_orbitals
+                                   is not None else False))
+            f.create_dataset("n_qubits",
+                             data=(self.n_qubits if
+                                   self.n_qubits is not None else False))
+            f.create_dataset("nuclear_repulsion",
+                             data=(self.nuclear_repulsion if
+                                   self.nuclear_repulsion is not None else
+                                   False))
             # Save attributes generated from SCF calculation.
-            f["hf_energy"] = (self.hf_energy if
-                              self.hf_energy is not None else False)
-            f["canonical_orbitals"] = (self.canonical_orbitals if
-                                       self.canonical_orbitals is
-                                       not None else False)
-            f["orbital_energies"] = (self.orbital_energies if
-                                     self.orbital_energies is
-                                     not None else False)
+            f.create_dataset("hf_energy", data=(self.hf_energy if
+                                                self.hf_energy is not None
+                                                else False))
+            f.create_dataset("canonical_orbitals",
+                             data=(self.canonical_orbitals if
+                                   self.canonical_orbitals is
+                                   not None else False),
+                             compression=("gzip" if self.canonical_orbitals
+                                          is not None else None))
+            f.create_dataset("orbital_energies",
+                             data=(self.orbital_energies if
+                                   self.orbital_energies is not None else
+                                   False))
             # Save attributes generated from integrals.
-            f["orbital_overlaps"] = (self.orbital_overlaps if
-                                     self.orbital_overlaps is
-                                     not None else False)
-            f["one_body_integrals"] = (self.one_body_integrals if
-                                       self.one_body_integrals is
-                                       not None else False)
-            f["two_body_integrals"] = (self.two_body_integrals if
-                                       self.two_body_integrals is
-                                       not None else False)
+            f.create_dataset("orbital_overlaps",
+                             data=(self.orbital_overlaps if
+                                   self.orbital_overlaps is
+                                   not None else False),
+                             compression=("gzip" if self.orbital_overlaps
+                                          is not None else None))
+            f.create_dataset("one_body_integrals",
+                             data=(self.one_body_integrals if
+                                   self.one_body_integrals is
+                                   not None else False),
+                             compression=("gzip" if self.one_body_integrals
+                                          is not None else None))
+            f.create_dataset("two_body_integrals",
+                             data=(self.two_body_integrals if
+                                   self.two_body_integrals is
+                                   not None else False),
+                             compression=("gzip" if self.two_body_integrals
+                                          is not None else None))
             # Save attributes generated from MP2 calculation.
-            f["mp2_energy"] = (self.mp2_energy if
-                               self.mp2_energy is not None else False)
+            f.create_dataset("mp2_energy",
+                             data=(self.mp2_energy if
+                                   self.mp2_energy is not None else False))
             # Save attributes generated from CISD calculation.
-            f["cisd_energy"] = (self.cisd_energy if
-                                self.cisd_energy is not None else False)
-            f["cisd_one_rdm"] = (self.cisd_one_rdm if
-                                 self.cisd_one_rdm is not None else False)
-            f["cisd_two_rdm"] = (self.cisd_two_rdm if
-                                 self.cisd_two_rdm is not None else False)
+            f.create_dataset("cisd_energy",
+                             data=(self.cisd_energy if
+                                   self.cisd_energy is not None else False))
+            f.create_dataset("cisd_one_rdm",
+                             data=(self.cisd_one_rdm if
+                                   self.cisd_one_rdm is not None else False),
+                             compression=("gzip" if self.cisd_one_rdm
+                                          is not None else None))
+            f.create_dataset("cisd_two_rdm",
+                             data=(self.cisd_two_rdm if
+                                   self.cisd_two_rdm is not None else False),
+                             compression=("gzip" if self.cisd_two_rdm
+                                          is not None else None))
             # Save attributes generated from exact diagonalization.
-            f["fci_energy"] = (self.fci_energy if
-                               self.fci_energy is not None else False)
-            f["fci_one_rdm"] = (self.fci_one_rdm if
-                                self.fci_one_rdm is not None else False)
-            f["fci_two_rdm"] = (self.fci_two_rdm if
-                                self.fci_two_rdm is not None else False)
+            f.create_dataset("fci_energy",
+                             data=(self.fci_energy if
+                                   self.fci_energy is not None else False))
+            f.create_dataset("fci_one_rdm",
+                             data=(self.fci_one_rdm if
+                                   self.fci_one_rdm is not None else False),
+                             compression=("gzip" if self.fci_one_rdm
+                                          is not None else None))
+            f.create_dataset("fci_two_rdm",
+                             data=(self.fci_two_rdm if
+                                   self.fci_two_rdm is not None else False),
+                             compression=("gzip" if self.fci_two_rdm is not
+                                          None else None))
             # Save attributes generated from CCSD calculation.
-            f["ccsd_energy"] = (self.ccsd_energy if
-                                self.ccsd_energy is not None else False)
-            ccsd_a = f.create_group("ccsd_amplitudes")
-            ccsd_a["constant"] = (self.ccsd_amplitudes.constant if
-                                  self.ccsd_amplitudes is not None else False)
-            ccsd_a["one_body_tensor"] = (self.ccsd_amplitudes.one_body_tensor
-                                         if self.ccsd_amplitudes is
-                                         not None else False)
-            ccsd_a["two_body_tensor"] = (self.ccsd_amplitudes.two_body_tensor
-                                         if self.ccsd_amplitudes is
-                                         not None else False)
+            f.create_dataset("ccsd_energy",
+                             data=(self.ccsd_energy if
+                                   self.ccsd_energy is not None else False))
+            f.create_dataset("ccsd_single_amps",
+                             data=(self.ccsd_single_amps
+                                   if self.ccsd_single_amps is not None else
+                                   False),
+                             compression=("gzip" if self.ccsd_single_amps
+                                          is not None else None))
+            f.create_dataset("ccsd_double_amps",
+                             data=(self.ccsd_double_amps
+                                   if self.ccsd_double_amps is
+                                   not None else False),
+                             compression=("gzip" if self.ccsd_double_amps
+                                          is not None else None))
+        # Remove old file first for compatibility with systems that don't allow
+        # rename replacement.  Catching OSError for when file does not exist
+        # yet
+        try:
+            os.remove("{}.hdf5".format(self.filename))
+        except OSError:
+            pass
+
+        os.rename("{}.hdf5".format(tmp_name),
+                  "{}.hdf5".format(self.filename))
 
     def load(self):
         geometry = []
+
         with h5py.File("{}.hdf5".format(self.filename), "r") as f:
             # Load geometry:
             for atom, pos in zip(f["geometry/atoms"][...],
@@ -448,47 +627,50 @@ class MolecularData(object):
             # Load n_electrons:
             self.n_electrons = int(f["n_electrons"][...])
             # Load generic attributes from calculations:
-            d_0 = f["n_orbitals"][...]
-            self.n_orbitals = int(d_0) if d_0.dtype.num != 0 else None
-            d_1 = f["n_qubits"][...]
-            self.n_qubits = int(d_1) if d_1.dtype.num != 0 else None
-            d_2 = f["nuclear_repulsion"][...]
-            self.nuclear_repulsion = float(d_2) if d_2.dtype.num != 0 else None
+            data = f["n_orbitals"][...]
+            self.n_orbitals = int(data) if data.dtype.num != 0 else None
+            data = f["n_qubits"][...]
+            self.n_qubits = int(data) if data.dtype.num != 0 else None
+            data = f["nuclear_repulsion"][...]
+            self.nuclear_repulsion = (float(data) if data.dtype.num != 0 else
+                                      None)
             # Load attributes generated from SCF calculation.
-            d_3 = f["hf_energy"][...]
-            self.hf_energy = d_3 if d_3.dtype.num != 0 else None
-            d_4 = f["canonical_orbitals"][...]
-            self.canonical_orbitals = d_4 if d_4.dtype.num != 0 else None
-            d_5 = f["orbital_energies"][...]
-            self.orbital_energies = d_5 if d_5.dtype.num != 0 else None
-            # Load attributes generated from integrals.
-            d_6 = f["orbital_overlaps"][...]
-            self.orbital_overlaps = d_6 if d_6.dtype.num != 0 else None
-            d_7 = f["one_body_integrals"][...]
-            self.one_body_integrals = d_7 if d_7.dtype.num != 0 else None
+            data = f["hf_energy"][...]
+            self.hf_energy = data if data.dtype.num != 0 else None
+            data = f["orbital_energies"][...]
+            self.orbital_energies = data if data.dtype.num != 0 else None
             # Load attributes generated from MP2 calculation.
-            d_8 = f["mp2_energy"][...]
-            self.mp2_energy = d_8 if d_8.dtype.num != 0 else None
+            data = f["mp2_energy"][...]
+            self.mp2_energy = data if data.dtype.num != 0 else None
             # Load attributes generated from CISD calculation.
-            d_9 = f["cisd_energy"][...]
-            self.cisd_energy = d_9 if d_9.dtype.num != 0 else None
-            d_10 = f["cisd_one_rdm"][...]
-            self.cisd_one_rdm = d_10 if d_10.dtype.num != 0 else None
+            data = f["cisd_energy"][...]
+            self.cisd_energy = data if data.dtype.num != 0 else None
             # Load attributes generated from exact diagonalization.
-            d_11 = f["fci_energy"][...]
-            self.fci_energy = d_11 if d_11.dtype.num != 0 else None
-            d_12 = f["fci_one_rdm"][...]
-            self.fci_one_rdm = d_12 if d_12.dtype.num != 0 else None
+            data = f["fci_energy"][...]
+            self.fci_energy = data if data.dtype.num != 0 else None
             # Load attributes generated from CCSD calculation.
-            d_13 = f["ccsd_energy"][...]
-            self.ccsd_energy = d_13 if d_13.dtype.num != 0 else None
-            if f["ccsd_amplitudes/constant"][...].dtype.num != 0:
-                constant = f["ccsd_amplitudes/constant"][...]
-                one = f["ccsd_amplitudes/one_body_tensor"][...]
-                two = f["ccsd_amplitudes/two_body_tensor"][...]
-                self.ccsd_amplitudes = InteractionOperator(constant, one, two)
-            else:
-                self.ccsd_amplitudes = None
+            data = f["ccsd_energy"][...]
+            self.ccsd_energy = data if data.dtype.num != 0 else None
+
+    def get_from_file(self, property_name):
+        """Helper routine to re-open HDF5 file and pull out single property
+
+        Args:
+            property_name(string): Property name to load from self.filename
+
+        Returns:
+            The data located at file[property_name] for the HDF5 file at
+                self.filename. Returns None if the key is not found in the
+                file.
+        """
+        try:
+            with h5py.File("{}.hdf5".format(self.filename), "r") as f:
+                data = f[property_name][...]
+        except KeyError:
+            data = None
+        except IOError:
+            data = None
+        return data
 
     def get_n_alpha_electrons(self):
         """Return number of alpha electrons."""
@@ -515,11 +697,6 @@ class MolecularData(object):
             raise MissingCalculationError(
                 'Missing SCF in {}, run before loading integrals.'.format(
                     self.filename))
-
-        # Get integrals and return.
-        with h5py.File("{}.hdf5".format(self.filename), "r") as f:
-            tmp = f["two_body_integrals"][...]
-            self.two_body_integrals = tmp if tmp.dtype.num != 0 else None
         return self.one_body_integrals, self.two_body_integrals
 
     def get_active_space_integrals(self,
@@ -679,20 +856,16 @@ class MolecularData(object):
                     'Missing FCI RDM in {}'.format(self.filename) +
                     'Run FCI calculation before loading FCI RDMs.')
             else:
-                rdm_name = "fci_two_rdm"
                 one_rdm = self.fci_one_rdm
+                two_rdm = self.fci_two_rdm
         else:
             if self.cisd_energy is None:
                 raise MissingCalculationError(
                     'Missing CISD RDM in {}'.format(self.filename) +
                     'Run CISD calculation before loading CISD RDMs.')
             else:
-                rdm_name = "cisd_two_rdm"
                 one_rdm = self.cisd_one_rdm
-
-        with h5py.File("{}.hdf5".format(self.filename), "r") as f:
-            tmp = f[rdm_name][...]
-            two_rdm = self.two_rdm = tmp if tmp.dtype.num != 0 else None
+                two_rdm = self.cisd_two_rdm
 
         # Truncate.
         one_rdm[numpy.absolute(one_rdm) < EQ_TOLERANCE] = 0.

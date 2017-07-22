@@ -148,3 +148,16 @@ class ErrorBoundTest(unittest.TestCase):
         terms = [QubitOperator('X1'), QubitOperator('Y1'), QubitOperator('Z1')]
         self.assertLess(error_bound(terms, tight=True),
                         error_bound(terms, tight=False))
+
+
+class TrotterStepsRequiredTest(unittest.TestCase):
+    def test_trotter_steps_required(self):
+        self.assertEqual(trotter_steps_required(
+            trotter_error_bound=0.3, time=2.5, energy_precision=0.04), 7)
+
+    def test_trotter_steps_required_negative_time(self):
+        self.assertEqual(trotter_steps_required(
+            trotter_error_bound=0.1, time=3.3, energy_precision=0.11), 4)
+
+    def test_return_type(self):
+        self.assertIsInstance(trotter_steps_required(0.1, 0.1, 0.1), int)
