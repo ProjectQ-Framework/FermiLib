@@ -16,8 +16,11 @@ from __future__ import absolute_import
 import unittest
 
 from fermilib.config import *
-from fermilib.utils import MolecularData
+from fermilib.ops._interaction_rdm import InteractionRDMError
 from fermilib.transforms import jordan_wigner
+from fermilib.utils import MolecularData
+
+from projectq.ops import QubitOperator
 
 
 class InteractionRDMTest(unittest.TestCase):
@@ -46,11 +49,20 @@ class InteractionRDMTest(unittest.TestCase):
                             qubit_expectations.terms[qubit_term])
         self.assertLess(abs(test_energy - self.cisd_energy), EQ_TOLERANCE)
 
+    def test_get_qubit_expectations_nonmolecular_term(self):
+        with self.assertRaises(InteractionRDMError):
+            self.rdm.get_qubit_expectations(QubitOperator('X1 X2 X3 X4 Y6'))
+
+    def test_get_qubit_expectations_through_expectation_method(self):
+        qubit_operator = jordan_wigner(self.hamiltonian)
+        test_energy = self.rdm.expectation(qubit_operator)
+
+        self.assertLess(abs(test_energy - self.cisd_energy), EQ_TOLERANCE)
+
     def test_get_molecular_operator_expectation(self):
         expectation = self.rdm.expectation(self.hamiltonian)
         self.assertAlmostEqual(expectation, self.cisd_energy, places=7)
 
-
-# Test.
-if __name__ == '__main__':
-    unittest.main()
+    def test_expectation_bad_type(self):
+        with self.assertRaises(InteractionRDMError):
+            self.rdm.expectation(12)

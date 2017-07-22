@@ -144,10 +144,7 @@ class InteractionTensor(object):
             p, q = args
             return self.one_body_tensor[p, q]
         elif not len(args):
-            if self.constant is None:
-                raise ValueError('args must be of length 2, or 4.')
-            else:
-                return self.constant
+            return self.constant
         else:
             raise ValueError('args must be of length 0, 2, or 4.')
 

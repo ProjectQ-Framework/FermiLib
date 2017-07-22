@@ -106,11 +106,20 @@ def is_identity(operator):
 
 
 def commutator(operator_a, operator_b):
-    """Compute the commutator of two QubitOperators or FermionOperators."""
-    if (isinstance(operator_a, (QubitOperator, FermionOperator)) and
-            isinstance(operator_b, (QubitOperator, FermionOperator))):
-        return operator_a * operator_b - operator_b * operator_a
-    raise TypeError('Operator of invalid type.')
+    """Compute the commutator of two QubitOperators or FermionOperators.
+
+    Args:
+        operator_a, operator_b (FermionOperator): Operators in commutator.
+    """
+    if not ((isinstance(operator_a, FermionOperator) and
+            isinstance(operator_b, FermionOperator)) or
+            (isinstance(operator_a, QubitOperator) and
+             isinstance(operator_b, QubitOperator))):
+        raise TypeError('operator_a and operator_b must both be Fermion or'
+                        ' QubitOperators.')
+    result = operator_a * operator_b
+    result -= operator_b * operator_a
+    return result
 
 
 def save_operator(operator, file_name=None, data_directory=None):
@@ -120,11 +129,10 @@ def save_operator(operator, file_name=None, data_directory=None):
         operator: An instance of FermionOperator or QubitOperator.
         file_name: The name of the saved hdf5 file.
         data_directory: Optional data directory to change from default data
-            directory specified in config file.
+                        directory specified in config file.
 
     Raises:
         OperatorUtilsError: Not saved, file already exists.
-        TypeError: Not implemented.
         TypeError: Operator of invalid type.
     """
     file_path = get_file_path(file_name, data_directory)
@@ -138,7 +146,8 @@ def save_operator(operator, file_name=None, data_directory=None):
         operator_type = "QubitOperator"
     elif (isinstance(operator, InteractionOperator) or
           isinstance(operator, InteractionRDM)):
-        raise TypeError('Not implemented.')
+        raise NotImplementedError('Not yet implemented for InteractionOperator'
+                                  ' or InteractionRDM.')
     else:
         raise TypeError('Operator of invalid type.')
 
@@ -156,7 +165,7 @@ def load_operator(file_name=None, data_directory=None):
     Args:
         file_name: The name of the saved hdf5 file.
         data_directory: Optional data directory to change from default data
-            directory specified in config file.
+                        directory specified in config file.
 
     Returns:
         operator: The stored FermionOperator or QubitOperator
@@ -194,7 +203,7 @@ def get_file_path(file_name, data_directory):
     Args:
         file_name: The name of the saved hdf5 file.
         data_directory: Optional data directory to change from default data
-            directory specified in config file.
+                        directory specified in config file.
 
     Returns:
         file_path (string): File path.

@@ -49,8 +49,7 @@ def reverse_jordan_wigner(qubit_operator, n_qubits=None):
     if n_qubits is None:
         n_qubits = count_qubits(qubit_operator)
     if n_qubits < count_qubits(qubit_operator):
-        raise TypeError(
-            'Invalid number of qubits specified')
+        raise ValueError('Invalid number of qubits specified.')
 
     # Loop through terms.
     transformed_operator = FermionOperator()
@@ -73,9 +72,7 @@ def reverse_jordan_wigner(qubit_operator, n_qubits=None):
                     if pauli_operator[1] == 'Y':
                         raising_term *= 1.j
                         lowering_term *= -1.j
-                    elif pauli_operator[1] != 'X':
-                        raise TypeError(
-                            'Pauli operators must be X, Y, or Z')
+
                     transformed_pauli = raising_term + lowering_term
 
                     # Account for the phase terms.
