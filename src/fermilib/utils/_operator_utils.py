@@ -13,14 +13,14 @@
 """This module provides generic tools for classes in ops/"""
 from __future__ import absolute_import
 
-import h5py
-import json
+import marshal
 import numpy
 import os
 import time
 
 from fermilib.config import *
 from fermilib.ops import *
+from future.builtins.iterators import map, zip
 
 from projectq.ops import QubitOperator
 
@@ -123,11 +123,11 @@ def commutator(operator_a, operator_b):
 
 
 def save_operator(operator, file_name=None, data_directory=None):
-    """Save FermionOperator or QubitOperator to hdf5 file.
+    """Save FermionOperator or QubitOperator to file.
 
     Args:
         operator: An instance of FermionOperator or QubitOperator.
-        file_name: The name of the saved hdf5 file.
+        file_name: The name of the saved file.
         data_directory: Optional data directory to change from default data
                         directory specified in config file.
 
@@ -151,19 +151,18 @@ def save_operator(operator, file_name=None, data_directory=None):
     else:
         raise TypeError('Operator of invalid type.')
 
-    with h5py.File(file_path, 'w') as f:
-        f['operator_type'] = numpy.string_(operator_type)
-        f['operator_terms'] = numpy.string_(json.dumps(
-            [{'k': k, 'r': v.real, 'i': v.imag}
-                for k, v in operator.terms.items()],
-            ensure_ascii=False).encode('utf8'))
+    tm = operator.terms
+    with open(file_path, 'wb') as f:
+        marshal.dump((operator_type, dict(zip(tm.keys(),
+                                          map(complex, tm.values())))), f)
+        f.close()
 
 
 def load_operator(file_name=None, data_directory=None):
-    """Load FermionOperator or QubitOperator from hdf5 file.
+    """Load FermionOperator or QubitOperator from file.
 
     Args:
-        file_name: The name of the saved hdf5 file.
+        file_name: The name of the saved file.
         data_directory: Optional data directory to change from default data
                         directory specified in config file.
 
@@ -175,22 +174,19 @@ def load_operator(file_name=None, data_directory=None):
     """
     file_path = get_file_path(file_name, data_directory)
 
-    with h5py.File(file_path, 'r') as f:
-        operator_type = f['operator_type'][...].tobytes().decode('utf-8')
-        operator_terms = json.loads(
-            f['operator_terms'][...].tobytes().decode('utf-8'))
+    with open(file_path, 'rb') as f:
+        data = marshal.load(f)
+        operator_type = data[0]
+        operator_terms = data[1]
 
     if operator_type == 'FermionOperator':
         operator = FermionOperator()
         for term in operator_terms:
-            operator += FermionOperator(
-                tuple(tuple(x) for x in term['k']), term['r'] + term['i'] * 1j)
+            operator += FermionOperator(term, operator_terms[term])
     elif operator_type == 'QubitOperator':
         operator = QubitOperator()
         for term in operator_terms:
-            operator += QubitOperator(
-                tuple((x[0], str(x[1])) for x in term['k']),
-                term['r'] + term['i'] * 1j)
+            operator += QubitOperator(term, operator_terms[term])
     else:
         raise TypeError('Operator of invalid type.')
 
@@ -198,10 +194,10 @@ def load_operator(file_name=None, data_directory=None):
 
 
 def get_file_path(file_name, data_directory):
-    """Compute file_path for the hdf5 file that stores operator.
+    """Compute file_path for the file that stores operator.
 
     Args:
-        file_name: The name of the saved hdf5 file.
+        file_name: The name of the saved file.
         data_directory: Optional data directory to change from default data
                         directory specified in config file.
 
@@ -212,8 +208,8 @@ def get_file_path(file_name, data_directory):
         OperatorUtilsError: File name is not provided.
     """
     if file_name:
-        if file_name[-5:] != '.hdf5':
-            file_name = file_name + ".hdf5"
+        if file_name[-5:] != '.data':
+            file_name = file_name + ".data"
     else:
         raise OperatorUtilsError("File name is not provided.")
 
