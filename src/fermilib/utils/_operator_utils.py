@@ -20,7 +20,7 @@ import time
 
 from fermilib.config import *
 from fermilib.ops import *
-from itertools import *
+from future.builtins.iterators import map, zip
 
 from projectq.ops import QubitOperator
 
@@ -153,8 +153,8 @@ def save_operator(operator, file_name=None, data_directory=None):
 
     tm = operator.terms
     with open(file_path, 'wb') as f:
-        marshal.dump((operator_type, dict(izip(tm.iterkeys(),
-                                          imap(complex, tm.itervalues())))), f)
+        marshal.dump((operator_type, dict(zip(tm.keys(),
+                                          map(complex, tm.values())))), f)
         f.close()
 
 
