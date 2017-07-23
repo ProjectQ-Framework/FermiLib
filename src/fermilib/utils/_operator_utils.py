@@ -20,6 +20,7 @@ import time
 
 from fermilib.config import *
 from fermilib.ops import *
+from itertools import *
 
 from projectq.ops import QubitOperator
 
@@ -151,9 +152,10 @@ def save_operator(operator, file_name=None, data_directory=None):
         raise TypeError('Operator of invalid type.')
 
     tm = operator.terms
-    f = open(file_path, 'wb')
-    marshal.dump((operator_type, {k: numpy_scalar(tm[k]) for k in tm}), f)
-    f.close()
+    with open(file_path, 'wb') as f:
+        marshal.dump((operator_type, dict(izip(tm.iterkeys(),
+                                          imap(complex, tm.itervalues())))), f)
+        f.close()
 
 
 def load_operator(file_name=None, data_directory=None):
@@ -217,19 +219,3 @@ def get_file_path(file_name, data_directory):
         file_path = data_directory + '/' + file_name
 
     return file_path
-
-
-def numpy_scalar(number):
-    """Convert numpy float64 and complex128 to native Python type.
-
-    Args:
-        number: The number in numpy float64 or complex128 format.
-
-    Returns:
-        number: Converted number in native Python format.
-    """
-    if (isinstance(number, numpy.float64) or
-            isinstance(number, numpy.complex128)):
-        return numpy.asscalar(number)
-    else:
-        return number
