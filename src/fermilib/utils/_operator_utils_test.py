@@ -107,35 +107,35 @@ class SaveLoadOperatorTest(unittest.TestCase):
         self.fermion_operator = self.fermion_term + hermitian_conjugated(
             self.fermion_term)
         self.qubit_operator = jordan_wigner(self.fermion_operator)
+        self.file_name = "test_file"     
 
-    def test_save_and_load_operators(self):
-        file_name = "test_file"
+    def tearDown(self):
+        file_path = os.path.join(DATA_DIRECTORY, self.file_name + '.data')
+        if os.path.isfile(file_path):
+            os.remove(file_path)
 
-        save_operator(self.fermion_operator, file_name)
-        loaded_fermion_operator = load_operator(file_name)
+    def test_save_and_load_fermion_operators(self):
+        save_operator(self.fermion_operator, self.file_name)
+        loaded_fermion_operator = load_operator(self.file_name)
         self.assertEqual(self.fermion_operator.terms,
-                         loaded_fermion_operator.terms)
-        os.remove(get_file_path(file_name, DATA_DIRECTORY))
+                         loaded_fermion_operator.terms,
+                         msg=str(self.fermion_operator -
+                                 loaded_fermion_operator))
 
-        save_operator(self.qubit_operator, file_name)
-        loaded_qubit_operator = load_operator(file_name)
+    def test_save_and_load_qubit_operators(self):
+        save_operator(self.qubit_operator, self.file_name)
+        loaded_qubit_operator = load_operator(self.file_name)
         self.assertEqual(self.qubit_operator.terms,
                          loaded_qubit_operator.terms)
-        os.remove(get_file_path(file_name, DATA_DIRECTORY))
 
-    def test_save_and_load_operators_errors(self):
-        file_name = "test_file"
-
-        with self.assertRaises(OperatorUtilsError):
-            save_operator("invalid_operator_type")
+    def test_save_no_filename_operator_utils_error(self):
         with self.assertRaises(OperatorUtilsError):
             save_operator(self.fermion_operator)
 
-        save_operator(self.fermion_operator, file_name)
-        with self.assertRaises(OperatorUtilsError):
-            save_operator(self.fermion_operator, file_name)
-        os.remove(get_file_path(file_name, DATA_DIRECTORY))
+    def test_basic_save(self):
+        save_operator(self.fermion_operator, self.file_name)
 
+    def test_save_interaction_operator_not_implemented(self):
         constant = 100.0
         one_body = numpy.zeros((self.n_qubits, self.n_qubits), float)
         two_body = numpy.zeros((self.n_qubits, self.n_qubits,
@@ -145,7 +145,12 @@ class SaveLoadOperatorTest(unittest.TestCase):
         interaction_operator = InteractionOperator(
             constant, one_body, two_body)
         with self.assertRaises(NotImplementedError):
-            save_operator(interaction_operator, file_name)
+            save_operator(interaction_operator, self.file_name)
+
+    def test_save_on_top_of_existing_operator_utils_error(self):
+        save_operator(self.fermion_operator, self.file_name)
+        with self.assertRaises(OperatorUtilsError):
+            save_operator(self.fermion_operator, self.file_name)        
 
     def test_save_bad_type(self):
         with self.assertRaises(TypeError):
