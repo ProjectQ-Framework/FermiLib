@@ -260,6 +260,11 @@ class ExpectationProductStateTest(unittest.TestCase):
             expectation_product_state(
                 'never', csc_matrix(([1], ([6], [0])), shape=(16, 1)))
 
+    def test_expectation_qubit_operator_not_implemented(self):
+        with self.assertRaises(NotImplementedError):
+            expectation_product_state(
+                QubitOperator(), csc_matrix(([1], ([6], [0])), shape=(16, 1)))
+
 
 class GetGapTest(unittest.TestCase):
     def test_get_gap(self):
