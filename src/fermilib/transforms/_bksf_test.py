@@ -134,7 +134,7 @@ class bravyi_kitaev_fastTransformTest(unittest.TestCase):
             if bool(numpy.size(numpy.where(jw_eig_spec[i] ==
                                            bravyi_kitaev_fast_eig_spec))):
                 evensector += 1
-        self.assertTrue(evensector == 2**(n_qubits - 1))
+        self.assertEqual(evensector, 2**(n_qubits - 1))
 
     def test_bravyi_kitaev_fast_jw_hamiltonian(self):
         n_qubits = count_qubits(self.molecular_hamiltonian)
@@ -150,7 +150,7 @@ class bravyi_kitaev_fastTransformTest(unittest.TestCase):
             if bool(numpy.size(numpy.where(jw_H_eig[i] ==
                                            bravyi_kitaev_fast_H_eig))):
                 evensector += 1
-        self.assertTrue(evensector == 2**(n_qubits - 1))
+        self.assertEqual(evensector, 2**(n_qubits - 1))
 
 
 if __name__ == '__main__':
