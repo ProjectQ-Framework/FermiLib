@@ -235,34 +235,37 @@ class ExpectationTest(unittest.TestCase):
             expectation(operator, vector)
 
 
-class ExpectationProductStateTest(unittest.TestCase):
+class ExpectationComputationalBasisStateTest(unittest.TestCase):
     def test_expectation_fermion_operator_single_number_terms(self):
         operator = FermionOperator('3^ 3', 1.9) + FermionOperator('2^ 1')
         state = csc_matrix(([1], ([15], [0])), shape=(16, 1))
 
-        self.assertAlmostEqual(expectation_product_state(operator, state), 1.9)
+        self.assertAlmostEqual(
+            expectation_computational_basis_state(operator, state), 1.9)
 
     def test_expectation_fermion_operator_two_number_terms(self):
         operator = (FermionOperator('2^ 2', 1.9) + FermionOperator('2^ 1') +
                     FermionOperator('2^ 1^ 2 1', -1.7))
         state = csc_matrix(([1], ([6], [0])), shape=(16, 1))
 
-        self.assertAlmostEqual(expectation_product_state(operator, state), 3.6)
+        self.assertAlmostEqual(
+            expectation_computational_basis_state(operator, state), 3.6)
 
     def test_expectation_identity_fermion_operator(self):
         operator = FermionOperator.identity() * 1.1
         state = csc_matrix(([1], ([6], [0])), shape=(16, 1))
 
-        self.assertAlmostEqual(expectation_product_state(operator, state), 1.1)
+        self.assertAlmostEqual(
+            expectation_computational_basis_state(operator, state), 1.1)
 
     def test_expectation_bad_operator_type(self):
         with self.assertRaises(TypeError):
-            expectation_product_state(
+            expectation_computational_basis_state(
                 'never', csc_matrix(([1], ([6], [0])), shape=(16, 1)))
 
     def test_expectation_qubit_operator_not_implemented(self):
         with self.assertRaises(NotImplementedError):
-            expectation_product_state(
+            expectation_computational_basis_state(
                 QubitOperator(), csc_matrix(([1], ([6], [0])), shape=(16, 1)))
 
 

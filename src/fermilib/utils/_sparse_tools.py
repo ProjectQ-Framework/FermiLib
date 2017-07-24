@@ -328,13 +328,14 @@ def expectation(sparse_operator, state):
     return expectation
 
 
-def expectation_product_state(operator, product_state):
-    """Compute expectation value of an operator with a product state.
+def expectation_computational_basis_state(operator, computational_basis_state):
+    """Compute expectation value of operator with a  state.
 
     Args:
         operator: Qubit or FermionOperator to evaluate expectation value of.
                   If operator is a FermionOperator, it must be normal-ordered.
-        product_state (scipy.sparse vector): normalized pure state.
+        computational_basis_state (scipy.sparse vector): normalized
+            computational basis state.
 
     Returns:
         A real float giving expectation value.
@@ -348,12 +349,12 @@ def expectation_product_state(operator, product_state):
     if not isinstance(operator, FermionOperator):
         raise TypeError('operator must be a FermionOperator.')
 
-    product_state_index = product_state.nonzero()[0][0]
+    computational_basis_state_index = computational_basis_state.nonzero()[0][0]
 
     expectation_value = operator.terms.get((), 0.0)
 
     occupied_orbitals = [digit == '1' for digit in
-                         bin(product_state_index)[2:]][::-1]
+                         bin(computational_basis_state_index)[2:]][::-1]
 
     for i in range(len(occupied_orbitals)):
         if occupied_orbitals[i]:
