@@ -15,7 +15,6 @@ from __future__ import absolute_import
 from fermilib.utils import count_qubits
 from fermilib.transforms._jordan_wigner import (jordan_wigner,
                                                 jordan_wigner_one_body)
-import _bksf
 import numpy
 import os
 from projectq.ops import QubitOperator
@@ -24,6 +23,7 @@ from fermilib.config import *
 from fermilib.ops import *
 from fermilib.transforms import *
 from fermilib.utils import *
+from . import _bksf
 
 
 class bravyi_kitaev_fastTransformTest(unittest.TestCase):
