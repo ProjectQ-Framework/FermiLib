@@ -107,7 +107,7 @@ class SaveLoadOperatorTest(unittest.TestCase):
         self.fermion_operator = self.fermion_term + hermitian_conjugated(
             self.fermion_term)
         self.qubit_operator = jordan_wigner(self.fermion_operator)
-        self.file_name = "test_file"     
+        self.file_name = "test_file"
 
     def tearDown(self):
         file_path = os.path.join(DATA_DIRECTORY, self.file_name + '.data')
@@ -150,7 +150,11 @@ class SaveLoadOperatorTest(unittest.TestCase):
     def test_save_on_top_of_existing_operator_utils_error(self):
         save_operator(self.fermion_operator, self.file_name)
         with self.assertRaises(OperatorUtilsError):
-            save_operator(self.fermion_operator, self.file_name)        
+            save_operator(self.fermion_operator, self.file_name)
+
+    def test_load_bad_type(self):
+        with self.assertRaises(TypeError):
+            load_operator('bad_type_operator')
 
     def test_save_bad_type(self):
         with self.assertRaises(TypeError):
@@ -209,11 +213,11 @@ class CommutatorTest(unittest.TestCase):
             self.qubit_operator * operator_b -
             operator_b * self.qubit_operator))
 
-    def test_commutator_operator_b_bad_type_raise_TypeError(self):
+    def test_commutator_operator_a_bad_type(self):
         with self.assertRaises(TypeError):
             commutator(1, self.fermion_operator)
 
-    def test_commutator_operator_b_bad_type_raise_TypeError(self):
+    def test_commutator_operator_b_bad_type(self):
         with self.assertRaises(TypeError):
             commutator(self.qubit_operator, "hello")
 
