@@ -14,6 +14,7 @@
 from __future__ import absolute_import
 
 import numpy
+
 from projectq.ops import QubitOperator
 
 from fermilib.ops import FermionOperator
@@ -141,8 +142,8 @@ def momentum_vector(momentum_indices, grid):
     return 2. * numpy.pi * adjusted_vector / grid.scale
 
 
-def momentum_kinetic_operator(grid, spinless=False):
-    """Return the kinetic energy operator in momentum second quantization.
+def plane_wave_kinetic(grid, spinless=False):
+    """Return the kinetic energy operator in the plane wave basis.
 
     Args:
         grid (fermilib.utils.Grid): The discretization to use.
@@ -153,10 +154,7 @@ def momentum_kinetic_operator(grid, spinless=False):
     """
     # Initialize.
     operator = FermionOperator()
-    if spinless:
-        spins = [None]
-    else:
-        spins = [0, 1]
+    spins = [None] if spinless else [0, 1]
 
     # Loop once through all plane waves.
     for momenta_indices in grid.all_points_indices():
@@ -174,8 +172,8 @@ def momentum_kinetic_operator(grid, spinless=False):
     return operator
 
 
-def momentum_potential_operator(grid, spinless=False):
-    """Return the potential operator in momentum second quantization.
+def plane_wave_potential(grid, spinless=False):
+    """Return the potential operator in the plane wave basis.
 
     Args:
         grid (Grid): The discretization to use.
@@ -185,15 +183,34 @@ def momentum_potential_operator(grid, spinless=False):
         operator (FermionOperator)
     """
     # Initialize.
-    volume = grid.volume_scale()
-    prefactor = 2. * numpy.pi / volume
+    prefactor = 2. * numpy.pi / grid.volume_scale()
     operator = FermionOperator((), 0.0)
     spins = [None] if spinless else [0, 1]
 
+    # Pre-Computations.
+    shifted_omega_indices_dict = {}
+    shifted_indices_minus_dict = {}
+    shifted_indices_plus_dict = {}
+    orbital_ids = {}
+    for indices_a in grid.all_points_indices():
+        shifted_omega_indices = [j - grid.length // 2 for j in indices_a]
+        shifted_omega_indices_dict[indices_a] = shifted_omega_indices
+        shifted_indices_minus_dict[indices_a] = {}
+        shifted_indices_plus_dict[indices_a] = {}
+        for indices_b in grid.all_points_indices():
+            shifted_indices_minus_dict[indices_a][indices_b] = tuple([
+                (indices_b[i] - shifted_omega_indices[i]) % grid.length
+                for i in range(grid.dimensions)])
+            shifted_indices_plus_dict[indices_a][indices_b] = tuple([
+                (indices_b[i] + shifted_omega_indices[i]) % grid.length
+                for i in range(grid.dimensions)])
+        orbital_ids[indices_a] = {}
+        for spin in spins:
+            orbital_ids[indices_a][spin] = orbital_id(grid, indices_a, spin)
+
     # Loop once through all plane waves.
     for omega_indices in grid.all_points_indices():
-        shifted_omega_indices = [index - grid.length // 2 for
-                                 index in omega_indices]
+        shifted_omega_indices = shifted_omega_indices_dict[omega_indices]
 
         # Get the momenta vectors.
         omega_momenta = momentum_vector(omega_indices, grid)
@@ -206,22 +223,19 @@ def momentum_potential_operator(grid, spinless=False):
         coefficient = prefactor / omega_momenta.dot(omega_momenta)
 
         for grid_indices_a in grid.all_points_indices():
-            shifted_indices_d = [
-                (grid_indices_a[i] - shifted_omega_indices[i]) % grid.length
-                for i in range(grid.dimensions)]
+            shifted_indices_d = (
+                shifted_indices_minus_dict[omega_indices][grid_indices_a])
             for grid_indices_b in grid.all_points_indices():
-                shifted_indices_c = [
-                    (grid_indices_b[i] + shifted_omega_indices[i]) %
-                    grid.length
-                    for i in range(grid.dimensions)]
+                shifted_indices_c = (
+                    shifted_indices_plus_dict[omega_indices][grid_indices_b])
 
                 # Loop over spins.
                 for spin_a in spins:
-                    orbital_a = orbital_id(grid, grid_indices_a, spin_a)
-                    orbital_d = orbital_id(grid, shifted_indices_d, spin_a)
+                    orbital_a = orbital_ids[grid_indices_a][spin_a]
+                    orbital_d = orbital_ids[shifted_indices_d][spin_a]
                     for spin_b in spins:
-                        orbital_b = orbital_id(grid, grid_indices_b, spin_b)
-                        orbital_c = orbital_id(grid, shifted_indices_c, spin_b)
+                        orbital_b = orbital_ids[grid_indices_b][spin_b]
+                        orbital_c = orbital_ids[shifted_indices_c][spin_b]
 
                         # Add interaction term.
                         if ((orbital_a != orbital_b) and
@@ -234,52 +248,95 @@ def momentum_potential_operator(grid, spinless=False):
     return operator
 
 
-def position_kinetic_operator(grid, spinless=False):
-    """Return the kinetic operator in position space second quantization.
+def dual_basis_jellium_model(grid, spinless=False,
+                             kinetic=True, potential=True,
+                             include_constant=False):
+    """Return jellium Hamiltonian in the dual basis of arXiv:1706.00023
 
     Args:
         grid (Grid): The discretization to use.
         spinless (bool): Whether to use the spinless model or not.
+        kinetic (bool): Whether to include kinetic terms.
+        potential (bool): Whether to include potential terms.
+        include_constant (bool): Whether to include the Madelung constant.
 
     Returns:
         operator (FermionOperator)
     """
     # Initialize.
     n_points = grid.num_points()
+    position_prefactor = 2. * numpy.pi / grid.volume_scale()
     operator = FermionOperator()
     spins = [None] if spinless else [0, 1]
 
+    # Pre-Computations.
+    position_vectors = {}
+    momentum_vectors = {}
+    momenta_squared_dict = {}
+    orbital_ids = {}
+    for indices in grid.all_points_indices():
+        position_vectors[indices] = position_vector(indices, grid)
+        momenta = momentum_vector(indices, grid)
+        momentum_vectors[indices] = momenta
+        momenta_squared_dict[indices] = momenta.dot(momenta)
+        orbital_ids[indices] = {}
+        for spin in spins:
+            orbital_ids[indices][spin] = orbital_id(grid, indices, spin)
+
     # Loop once through all lattice sites.
     for grid_indices_a in grid.all_points_indices():
-        coordinates_a = position_vector(grid_indices_a, grid)
+        coordinates_a = position_vectors[grid_indices_a]
         for grid_indices_b in grid.all_points_indices():
-            coordinates_b = position_vector(grid_indices_b, grid)
+            coordinates_b = position_vectors[grid_indices_b]
             differences = coordinates_b - coordinates_a
 
-            # Compute coefficient.
-            coefficient = 0.
+            # Compute coefficients.
+            kinetic_coefficient = 0.
+            potential_coefficient = 0.
             for momenta_indices in grid.all_points_indices():
-                momenta = momentum_vector(momenta_indices, grid)
-                if momenta.any():
-                    coefficient += (
-                        numpy.cos(momenta.dot(differences)) *
-                        momenta.dot(momenta) / (2. * float(n_points)))
+                momenta = momentum_vectors[momenta_indices]
+                momenta_squared = momenta_squared_dict[momenta_indices]
+                if momenta_squared == 0:
+                    continue
+                cos_difference = numpy.cos(momenta.dot(differences))
+                if kinetic:
+                    kinetic_coefficient += (
+                        cos_difference * momenta_squared /
+                        (2. * float(n_points)))
+                if potential:
+                    potential_coefficient += (
+                        position_prefactor * cos_difference / momenta_squared)
 
             # Loop over spins and identify interacting orbitals.
+            orbital_a = {}
+            orbital_b = {}
             for spin in spins:
-                orbital_a = orbital_id(grid, grid_indices_a, spin)
-                orbital_b = orbital_id(grid, grid_indices_b, spin)
+                orbital_a[spin] = orbital_ids[grid_indices_a][spin]
+                orbital_b[spin] = orbital_ids[grid_indices_b][spin]
+            if kinetic:
+                for spin in spins:
+                    operators = ((orbital_a[spin], 1), (orbital_b[spin], 0))
+                    operator += FermionOperator(operators, kinetic_coefficient)
+            if potential:
+                for sa in spins:
+                    for sb in spins:
+                        if orbital_a[sa] == orbital_b[sb]:
+                            continue
+                        operators = ((orbital_a[sa], 1), (orbital_a[sa], 0),
+                                     (orbital_b[sb], 1), (orbital_b[sb], 0))
+                        operator += FermionOperator(operators,
+                                                    potential_coefficient)
 
-                # Add interaction term.
-                operators = ((orbital_a, 1), (orbital_b, 0))
-                operator += FermionOperator(operators, coefficient)
+    # Include the Madelung constant if requested.
+    if include_constant:
+        operator += FermionOperator.identity() * (2.8372 / grid.scale)
 
     # Return.
     return operator
 
 
-def position_potential_operator(grid, spinless=False):
-    """Return the potential operator in position space second quantization.
+def dual_basis_kinetic(grid, spinless=False):
+    """Return the kinetic operator in the dual basis of arXiv:1706.00023.
 
     Args:
         grid (Grid): The discretization to use.
@@ -288,70 +345,55 @@ def position_potential_operator(grid, spinless=False):
     Returns:
         operator (FermionOperator)
     """
-    # Initialize.
-    volume = grid.volume_scale()
-    prefactor = 2. * numpy.pi / volume
-    operator = FermionOperator()
-    spins = [None] if spinless else [0, 1]
-
-    # Loop once through all lattice sites.
-    for grid_indices_a in grid.all_points_indices():
-        coordinates_a = position_vector(grid_indices_a, grid)
-        for grid_indices_b in grid.all_points_indices():
-            coordinates_b = position_vector(grid_indices_b, grid)
-            differences = coordinates_b - coordinates_a
-
-            # Compute coefficient.
-            coefficient = 0.
-            for momenta_indices in grid.all_points_indices():
-                momenta = momentum_vector(momenta_indices, grid)
-                if momenta.any():
-                    coefficient += (
-                        prefactor * numpy.cos(momenta.dot(differences)) /
-                        momenta.dot(momenta))
-
-            # Loop over spins and identify interacting orbitals.
-            for spin_a in spins:
-                orbital_a = orbital_id(grid, grid_indices_a, spin_a)
-                for spin_b in spins:
-                    orbital_b = orbital_id(grid, grid_indices_b, spin_b)
-
-                    # Add interaction term.
-                    if orbital_a != orbital_b:
-                        operators = ((orbital_a, 1), (orbital_a, 0),
-                                     (orbital_b, 1), (orbital_b, 0))
-                        operator += FermionOperator(operators, coefficient)
-
-    return operator
+    return dual_basis_jellium_model(grid, spinless, True, False)
 
 
-def jellium_model(grid, spinless=False, momentum_space=True):
+def dual_basis_potential(grid, spinless=False):
+    """Return the potential operator in the dual basis of arXiv:1706.00023
+
+    Args:
+        grid (Grid): The discretization to use.
+        spinless (bool): Whether to use the spinless model or not.
+
+    Returns:
+        operator (FermionOperator)
+    """
+    return dual_basis_jellium_model(grid, spinless, False, True)
+
+
+def jellium_model(grid, spinless=False, plane_wave=True,
+                  include_constant=False):
     """Return jellium Hamiltonian as FermionOperator class.
 
     Args:
         grid (fermilib.utils.Grid): The discretization to use.
         spinless (bool): Whether to use the spinless model or not.
-        momentum_space (bool): Whether to return in momentum space (True)
+        plane_wave (bool): Whether to return in momentum space (True)
             or position space (False).
+        include_constant (bool): Whether to include the Madelung constant.
 
     Returns:
         FermionOperator: The Hamiltonian of the model.
     """
-    if momentum_space:
-        hamiltonian = momentum_kinetic_operator(grid, spinless)
-        hamiltonian += momentum_potential_operator(grid, spinless)
+    if plane_wave:
+        hamiltonian = plane_wave_kinetic(grid, spinless)
+        hamiltonian += plane_wave_potential(grid, spinless)
     else:
-        hamiltonian = position_kinetic_operator(grid, spinless)
-        hamiltonian += position_potential_operator(grid, spinless)
+        hamiltonian = dual_basis_jellium_model(grid, spinless)
+    # Include the Madelung constant if requested.
+    if include_constant:
+        hamiltonian += FermionOperator.identity() * (2.8372 / grid.scale)
     return hamiltonian
 
 
-def jordan_wigner_position_jellium(grid, spinless=False):
-    """Return the position space jellium Hamiltonian as QubitOperator.
+def jordan_wigner_dual_basis_jellium(grid, spinless=False,
+                                     include_constant=False):
+    """Return the jellium Hamiltonian as QubitOperator in the dual basis.
 
     Args:
         grid (Grid): The discretization to use.
         spinless (bool): Whether to use the spinless model or not.
+        include_constant (bool): Whether to include the Madelung constant.
 
     Returns:
         hamiltonian (QubitOperator)
@@ -365,11 +407,19 @@ def jordan_wigner_position_jellium(grid, spinless=False):
         n_qubits = 2 * n_orbitals
     hamiltonian = QubitOperator()
 
+    # Compute vectors.
+    momentum_vectors = {}
+    momenta_squared_dict = {}
+    for indices in grid.all_points_indices():
+        momenta = momentum_vector(indices, grid)
+        momentum_vectors[indices] = momenta
+        momenta_squared_dict[indices] = momenta.dot(momenta)
+
     # Compute the identity coefficient and the coefficient of local Z terms.
     identity_coefficient = 0.
     z_coefficient = 0.
     for k_indices in grid.all_points_indices():
-        momenta = momentum_vector(k_indices, grid)
+        momenta = momentum_vectors[k_indices]
         if momenta.any():
             momenta_squared = momenta.dot(momenta)
             identity_coefficient += momenta_squared / 2.
@@ -407,18 +457,19 @@ def jordan_wigner_position_jellium(grid, spinless=False):
             zpzq_coefficient = 0.
             term_coefficient = 0.
             for k_indices in grid.all_points_indices():
-                momenta = momentum_vector(k_indices, grid)
-                if momenta.any():
-                    momenta_squared = momenta.dot(momenta)
-                    cos_difference = numpy.cos(momenta.dot(difference))
+                momenta = momentum_vectors[k_indices]
+                momenta_squared = momenta_squared_dict[k_indices]
+                if momenta_squared == 0:
+                    continue
+                cos_difference = numpy.cos(momenta.dot(difference))
 
-                    zpzq_coefficient += (zz_prefactor * cos_difference /
-                                         momenta_squared)
+                zpzq_coefficient += (zz_prefactor * cos_difference /
+                                     momenta_squared)
 
-                    if skip_xzx_yzy:
-                        continue
-                    term_coefficient += (xzx_yzy_prefactor * cos_difference *
-                                         momenta_squared)
+                if skip_xzx_yzy:
+                    continue
+                term_coefficient += (xzx_yzy_prefactor * cos_difference *
+                                     momenta_squared)
 
             # Add ZZ term.
             qubit_term = QubitOperator(((p, 'Z'), (q, 'Z')), zpzq_coefficient)
@@ -432,6 +483,10 @@ def jordan_wigner_position_jellium(grid, spinless=False):
             yzy_operators = ((p, 'Y'),) + z_string + ((q, 'Y'),)
             hamiltonian += QubitOperator(xzx_operators, term_coefficient)
             hamiltonian += QubitOperator(yzy_operators, term_coefficient)
+
+    # Include the Madelung constant if requested.
+    if include_constant:
+        hamiltonian += QubitOperator((),) * (2.8372 / grid.scale)
 
     # Return Hamiltonian.
     return hamiltonian

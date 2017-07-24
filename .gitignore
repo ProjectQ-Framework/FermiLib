@@ -70,3 +70,5 @@ ENV/
 
 # mkdocs documentation
 /site
+
+*.lprof

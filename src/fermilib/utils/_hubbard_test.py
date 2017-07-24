@@ -101,8 +101,3 @@ class FermiHubbardTest(unittest.TestCase):
             self.x_dimension, self.y_dimension, self.tunneling, self.coulomb,
             self.chemical_potential, self.magnetic_field,
             periodic=True, spinless=True)
-
-
-# Run test.
-if __name__ == '__main__':
-    unittest.main()

@@ -125,15 +125,13 @@ class ErrorOperatorTest(unittest.TestCase):
 class ErrorBoundTest(unittest.TestCase):
     def test_error_bound_xyz_tight(self):
         terms = [QubitOperator('X1'), QubitOperator('Y1'), QubitOperator('Z1')]
-        expected = sqrt(7. / 12)  # norm of [[-2/3, 1/3+i/6], [1/3-i/6, 2/3]]
-        self.assertTrue(numpy.isclose(
-            error_bound(terms, tight=True), expected))
+        expected = sqrt(7. / 12)  # 2-norm of [[-2/3, 1/3+i/6], [1/3-i/6, 2/3]]
+        self.assertLess(expected, error_bound(terms, tight=True))
 
     def test_error_bound_xyz_loose(self):
         terms = [QubitOperator('X1'), QubitOperator('Y1'), QubitOperator('Z1')]
         self.assertTrue(numpy.isclose(
-            error_bound(terms, tight=False),
-            4. * (2**2 + 1**2)))
+            error_bound(terms, tight=False), 4. * (2 ** 2 + 1 ** 2)))
 
     def test_error_operator_xyz(self):
         terms = [QubitOperator('X1'), QubitOperator('Y1'), QubitOperator('Z1')]
@@ -146,6 +144,20 @@ class ErrorBoundTest(unittest.TestCase):
         self.assertTrue(numpy.allclose(matrix, expected),
                         ("Got " + str(matrix)))
 
+    def test_error_bound_qubit_tight_less_than_loose_integration(self):
+        terms = [QubitOperator('X1'), QubitOperator('Y1'), QubitOperator('Z1')]
+        self.assertLess(error_bound(terms, tight=True),
+                        error_bound(terms, tight=False))
 
-if __name__ == '__main__':
-    unittest.main()
+
+class TrotterStepsRequiredTest(unittest.TestCase):
+    def test_trotter_steps_required(self):
+        self.assertEqual(trotter_steps_required(
+            trotter_error_bound=0.3, time=2.5, energy_precision=0.04), 7)
+
+    def test_trotter_steps_required_negative_time(self):
+        self.assertEqual(trotter_steps_required(
+            trotter_error_bound=0.1, time=3.3, energy_precision=0.11), 4)
+
+    def test_return_type(self):
+        self.assertIsInstance(trotter_steps_required(0.1, 0.1, 0.1), int)

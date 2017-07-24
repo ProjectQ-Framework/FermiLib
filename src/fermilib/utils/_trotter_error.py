@@ -13,7 +13,7 @@
 """Module to compute the second order Trotter error."""
 from future.utils import iteritems
 
-from math import sqrt
+from math import sqrt, ceil
 from scipy.linalg import expm
 
 from fermilib.config import *
@@ -143,11 +143,9 @@ def error_bound(terms, tight=False):
     error = 0.0
 
     if tight:
-        # return the Frobenius norm of the error operator
-        # (upper bound on error)
-        error = sum(abs(coefficient) ** 2
+        # return the 1-norm of the error operator (upper bound on error)
+        error = sum(abs(coefficient)
                     for coefficient in error_operator(terms).terms.values())
-        error = sqrt(error)
 
     elif not tight:
         for alpha in range(len(terms)):
@@ -166,3 +164,23 @@ def error_bound(terms, tight=False):
                 error += 4.0 * abs(coefficient_a) * error_a ** 2
 
     return error
+
+
+def trotter_steps_required(trotter_error_bound, time, energy_precision):
+    """Determine the number of Trotter steps for accurate simulation.
+
+    Args:
+        trotter_error_bound (float): Upper bound on Trotter error in the
+                                     state of interest.
+        time (float): The total simulation time.
+        energy_precision (float): Acceptable shift in state energy.
+
+    Returns:
+        The integer minimum number of Trotter steps required for
+        simulation to the desired precision.
+
+    Notes:
+        The number of Trotter steps required is an upper bound on the
+        true requirement, which may be lower.
+    """
+    return int(ceil(time * sqrt(trotter_error_bound / energy_precision)))

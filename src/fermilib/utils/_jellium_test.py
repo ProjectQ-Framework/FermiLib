@@ -16,20 +16,24 @@ import unittest
 
 import numpy
 
+from fermilib.ops import FermionOperator
 from fermilib.transforms import jordan_wigner
 from fermilib.utils import count_qubits, eigenspectrum, Grid
 from fermilib.utils._jellium import (
+    dual_basis_jellium_model,
+    dual_basis_kinetic,
+    dual_basis_potential,
     jellium_model,
-    jordan_wigner_position_jellium,
-    momentum_kinetic_operator,
-    momentum_potential_operator,
+    jordan_wigner_dual_basis_jellium,
     momentum_vector,
     orbital_id,
     OrbitalSpecificationError,
-    position_kinetic_operator,
-    position_potential_operator,
+    plane_wave_kinetic,
+    plane_wave_potential,
     position_vector,
 )
+
+from projectq.ops import QubitOperator
 
 
 class JelliumTest(unittest.TestCase):
@@ -117,8 +121,8 @@ class JelliumTest(unittest.TestCase):
         # Compute kinetic energy operator in both momentum and position space.
         grid = Grid(dimensions=2, length=2, scale=3.)
         spinless = False
-        momentum_kinetic = momentum_kinetic_operator(grid, spinless)
-        position_kinetic = position_kinetic_operator(grid, spinless)
+        momentum_kinetic = plane_wave_kinetic(grid, spinless)
+        position_kinetic = dual_basis_kinetic(grid, spinless)
 
         # Diagonalize and confirm the same energy.
         jw_momentum = jordan_wigner(momentum_kinetic)
@@ -136,8 +140,8 @@ class JelliumTest(unittest.TestCase):
         # Compute potential energy operator in momentum and position space.
         grid = Grid(dimensions=2, length=3, scale=2.)
         spinless = 1
-        momentum_potential = momentum_potential_operator(grid, spinless)
-        position_potential = position_potential_operator(grid, spinless)
+        momentum_potential = plane_wave_potential(grid, spinless)
+        position_potential = dual_basis_potential(grid, spinless)
 
         # Diagonalize and confirm the same energy.
         jw_momentum = jordan_wigner(momentum_potential)
@@ -169,6 +173,31 @@ class JelliumTest(unittest.TestCase):
             numpy.absolute(momentum_spectrum - position_spectrum))
         self.assertAlmostEqual(difference, 0.)
 
+    def test_model_integration_with_constant(self):
+        # Compute Hamiltonian in both momentum and position space.
+        length_scale = 0.7
+
+        grid = Grid(dimensions=2, length=3, scale=length_scale)
+        spinless = True
+
+        # Include the Madelung constant in the momentum but not the position
+        # Hamiltonian.
+        momentum_hamiltonian = jellium_model(grid, spinless, True,
+                                             include_constant=True)
+        position_hamiltonian = jellium_model(grid, spinless, False)
+
+        # Diagonalize and confirm the same energy.
+        jw_momentum = jordan_wigner(momentum_hamiltonian)
+        jw_position = jordan_wigner(position_hamiltonian)
+        momentum_spectrum = eigenspectrum(jw_momentum)
+        position_spectrum = eigenspectrum(jw_position)
+
+        # Confirm momentum spectrum is shifted 2.8372 / length_scale higher.
+        max_difference = numpy.amax(momentum_spectrum - position_spectrum)
+        min_difference = numpy.amax(momentum_spectrum - position_spectrum)
+        self.assertAlmostEqual(max_difference, 2.8372 / length_scale)
+        self.assertAlmostEqual(min_difference, 2.8372 / length_scale)
+
     def test_coefficients(self):
 
         # Test that the coefficients post-JW transform are as claimed in paper.
@@ -179,11 +208,11 @@ class JelliumTest(unittest.TestCase):
         volume = grid.volume_scale()
 
         # Kinetic operator.
-        kinetic = position_kinetic_operator(grid, spinless)
+        kinetic = dual_basis_kinetic(grid, spinless)
         qubit_kinetic = jordan_wigner(kinetic)
 
         # Potential operator.
-        potential = position_potential_operator(grid, spinless)
+        potential = dual_basis_potential(grid, spinless)
         qubit_potential = jordan_wigner(potential)
 
         # Check identity.
@@ -259,8 +288,6 @@ class JelliumTest(unittest.TestCase):
                         zpzq = ((min(p, q), 'Z'), (max(p, q), 'Z'))
                         if zpzq in qubit_potential.terms:
                             potential_coefficient = qubit_potential.terms[zpzq]
-                        else:
-                            potential_coefficient = 0.
 
                         for indices_c in grid.all_points_indices():
                             momenta = momentum_vector(indices_c, grid)
@@ -275,17 +302,19 @@ class JelliumTest(unittest.TestCase):
                         self.assertAlmostEqual(
                             potential_coefficient, paper_potential_coefficient)
 
-    def test_jordan_wigner_position_jellium(self):
+    def test_jordan_wigner_dual_basis_jellium(self):
         # Parameters.
         grid = Grid(dimensions=2, length=3, scale=1.)
         spinless = True
 
-        # Compute fermionic Hamiltonian.
-        fermion_hamiltonian = jellium_model(grid, spinless, False)
+        # Compute fermionic Hamiltonian. Include then subtract constant.
+        fermion_hamiltonian = dual_basis_jellium_model(
+            grid, spinless, include_constant=True)
         qubit_hamiltonian = jordan_wigner(fermion_hamiltonian)
+        qubit_hamiltonian -= QubitOperator((), 2.8372)
 
         # Compute Jordan-Wigner Hamiltonian.
-        test_hamiltonian = jordan_wigner_position_jellium(grid, spinless)
+        test_hamiltonian = jordan_wigner_dual_basis_jellium(grid, spinless)
 
         # Make sure Hamiltonians are the same.
         self.assertTrue(test_hamiltonian.isclose(qubit_hamiltonian))
@@ -294,14 +323,22 @@ class JelliumTest(unittest.TestCase):
         n_qubits = count_qubits(qubit_hamiltonian)
         if spinless:
             paper_n_terms = 1 - .5 * n_qubits + 1.5 * (n_qubits ** 2)
-        else:
-            paper_n_terms = 1 - .5 * n_qubits + n_qubits ** 2
 
         num_nonzeros = sum(1 for coeff in qubit_hamiltonian.terms.values() if
                            coeff != 0.0)
         self.assertTrue(num_nonzeros <= paper_n_terms)
 
+    def test_jordan_wigner_dual_basis_jellium_constant_shift(self):
+        length_scale = 0.6
+        grid = Grid(dimensions=2, length=3, scale=length_scale)
+        spinless = True
 
-# Run test.
-if __name__ == '__main__':
-    unittest.main()
+        hamiltonian_without_constant = jordan_wigner_dual_basis_jellium(
+            grid, spinless, include_constant=False)
+        hamiltonian_with_constant = jordan_wigner_dual_basis_jellium(
+            grid, spinless, include_constant=True)
+
+        difference = hamiltonian_with_constant - hamiltonian_without_constant
+        expected = FermionOperator.identity() * (2.8372 / length_scale)
+
+        self.assertTrue(expected.isclose(difference))

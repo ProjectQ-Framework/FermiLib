@@ -18,16 +18,54 @@ import numpy
 from fermilib.config import *
 from fermilib.ops import FermionOperator
 from fermilib.utils._grid import Grid
-from fermilib.utils._jellium import (orbital_id, grid_indices, position_vector,
-                                     momentum_vector, jellium_model,
-                                     jordan_wigner_position_jellium)
+from fermilib.utils._jellium import (
+    grid_indices,
+    jellium_model,
+    jordan_wigner_dual_basis_jellium,
+    momentum_vector,
+    orbital_id,
+    position_vector)
 from fermilib.utils._molecular_data import periodic_hash_table
 
 from projectq.ops import QubitOperator
 
 
-def dual_basis_u_operator(grid, geometry, spinless):
-    """Return the external potential operator in plane wave dual basis.
+def wigner_seitz_length_scale(wigner_seitz_radius, n_particles, dimension):
+    """Function to give length_scale associated with Wigner-Seitz radius.
+
+    Args:
+        wigner_seitz_radius (float): The radius per particle in atomic units.
+        n_particles (int): The number of particles in the simulation cell.
+        dimension (int): The dimension of the system.
+
+    Returns:
+        length_scale (float): The length scale for the simulation.
+
+    Raises:
+        ValueError: System dimension must be a positive integer.
+    """
+    if not isinstance(dimension, int) or dimension < 1:
+        raise ValueError('System dimension must be a positive integer.')
+
+    half_dimension = dimension // 2
+    if dimension % 2:
+        volume_per_particle = (2 * numpy.math.factorial(half_dimension) *
+                               (4 * numpy.pi) ** half_dimension /
+                               numpy.math.factorial(dimension) *
+                               wigner_seitz_radius ** dimension)
+    else:
+        volume_per_particle = (numpy.pi ** half_dimension /
+                               numpy.math.factorial(half_dimension) *
+                               wigner_seitz_radius ** dimension)
+
+    volume = volume_per_particle * n_particles
+    length_scale = volume ** (1. / dimension)
+
+    return length_scale
+
+
+def dual_basis_external_potential(grid, geometry, spinless):
+    """Return the external potential in the dual basis of arXiv:1706.00023.
 
     Args:
         grid (Grid): The discretization to use.
@@ -45,7 +83,6 @@ def dual_basis_u_operator(grid, geometry, spinless):
         spins = [None]
     else:
         spins = [0, 1]
-
     for pos_indices in grid.all_points_indices():
         coordinate_p = position_vector(pos_indices, grid)
         for nuclear_term in geometry:
@@ -67,11 +104,10 @@ def dual_basis_u_operator(grid, geometry, spinless):
                         operator = FermionOperator(operators, coefficient)
                     else:
                         operator += FermionOperator(operators, coefficient)
-
     return operator
 
 
-def plane_wave_u_operator(grid, geometry, spinless):
+def plane_wave_external_potential(grid, geometry, spinless):
     """Return the external potential operator in plane wave basis.
 
     Args:
@@ -122,7 +158,8 @@ def plane_wave_u_operator(grid, geometry, spinless):
 
 
 def plane_wave_hamiltonian(grid, geometry=None,
-                           spinless=False, momentum_space=True):
+                           spinless=False, plane_wave=True,
+                           include_constant=False):
     """Returns Hamiltonian as FermionOperator class.
 
     Args:
@@ -131,13 +168,14 @@ def plane_wave_hamiltonian(grid, geometry=None,
             example is [('H', (0, 0, 0)), ('H', (0, 0, 0.7414))].
             Distances in atomic units. Use atomic symbols to specify atoms.
         spinless (bool): Whether to use the spinless model or not.
-        momentum_space (bool): Whether to return in plane wave basis (True)
+        plane_wave (bool): Whether to return in plane wave basis (True)
             or plane wave dual basis (False).
+        include_constant (bool): Whether to include the Madelung constant.
 
     Returns:
         FermionOperator: The hamiltonian.
     """
-    jellium_op = jellium_model(grid, spinless, momentum_space)
+    jellium_op = jellium_model(grid, spinless, plane_wave, include_constant)
 
     if geometry is None:
         return jellium_op
@@ -148,10 +186,12 @@ def plane_wave_hamiltonian(grid, geometry=None,
         if item[0] not in periodic_hash_table:
             raise ValueError("Invalid nuclear element.")
 
-    if momentum_space:
-        external_potential = plane_wave_u_operator(grid, geometry, spinless)
+    if plane_wave:
+        external_potential = plane_wave_external_potential(
+            grid, geometry, spinless)
     else:
-        external_potential = dual_basis_u_operator(grid, geometry, spinless)
+        external_potential = dual_basis_external_potential(
+            grid, geometry, spinless)
 
     return jellium_op + external_potential
 
@@ -245,7 +285,8 @@ def _fourier_transform_helper(hamiltonian,
     return hamiltonian_t
 
 
-def jordan_wigner_dual_basis_hamiltonian(grid, geometry=None, spinless=False):
+def jordan_wigner_dual_basis_hamiltonian(grid, geometry=None, spinless=False,
+                                         include_constant=False):
     """Return the dual basis Hamiltonian as QubitOperator.
 
     Args:
@@ -254,11 +295,13 @@ def jordan_wigner_dual_basis_hamiltonian(grid, geometry=None, spinless=False):
             example is [('H', (0, 0, 0)), ('H', (0, 0, 0.7414))].
             Distances in atomic units. Use atomic symbols to specify atoms.
         spinless (bool): Whether to use the spinless model or not.
+        include_constant (bool): Whether to include the Madelung constant.
 
     Returns:
         hamiltonian (QubitOperator)
     """
-    jellium_op = jordan_wigner_position_jellium(grid, spinless)
+    jellium_op = jordan_wigner_dual_basis_jellium(
+        grid, spinless, include_constant)
 
     if geometry is None:
         return jellium_op

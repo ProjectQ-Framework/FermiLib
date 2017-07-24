@@ -214,7 +214,3 @@ class UnitaryCC(unittest.TestCase):
                           (-0.23423) * FermionOperator("1^ 4 6^ 13") +
                           0.23423 * FermionOperator("13^ 6 4^ 1"))
         self.assertTrue(test_generator.isclose(generator))
-
-# Run test.
-if __name__ == '__main__':
-    unittest.main()

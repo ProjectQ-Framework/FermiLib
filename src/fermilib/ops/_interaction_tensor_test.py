@@ -82,6 +82,59 @@ class InteractionTensorTest(unittest.TestCase):
                                                         one_body_axb,
                                                         two_body_axb)
 
+        self.n_qubits_plus_one = self.n_qubits + 1
+        one_body_c = numpy.zeros((self.n_qubits_plus_one,
+                                  self.n_qubits_plus_one))
+        two_body_c = numpy.zeros((self.n_qubits_plus_one,
+                                  self.n_qubits_plus_one,
+                                  self.n_qubits_plus_one,
+                                  self.n_qubits_plus_one))
+        one_body_c[0, 1] = 1
+        one_body_c[1, 0] = 2
+        two_body_c[0, 1, 0, 1] = 3
+        two_body_c[1, 0, 0, 1] = 4
+        self.interaction_tensor_c = InteractionTensor(self.constant,
+                                                      one_body_c,
+                                                      two_body_c)
+
+    def test_setitem_1body(self):
+        expected_one_body_tensor = numpy.array([[0, 3], [2, 0]])
+        self.interaction_tensor_a[0, 1] = 3
+        self.interaction_tensor_a[1, 0] = 2
+        self.assertTrue(numpy.allclose(
+            self.interaction_tensor_a.one_body_tensor,
+            expected_one_body_tensor))
+
+    def test_getitem_1body(self):
+        self.assertEqual(self.interaction_tensor_c[0, 1], 1)
+        self.assertEqual(self.interaction_tensor_c[1, 0], 2)
+
+    def test_setitem_2body(self):
+        self.interaction_tensor_a[0, 1, 1, 0] = 3
+        self.interaction_tensor_a[1, 0, 0, 1] = 2
+        self.assertEqual(self.interaction_tensor_a.two_body_tensor[0, 1, 1, 0],
+                         3)
+        self.assertEqual(self.interaction_tensor_a.two_body_tensor[1, 0, 0, 1],
+                         2)
+
+    def test_getitem_2body(self):
+        self.assertEqual(self.interaction_tensor_c[0, 1, 0, 1], 3)
+        self.assertEqual(self.interaction_tensor_c[1, 0, 0, 1], 4)
+
+    def test_invalid_getitem_indexing(self):
+        with self.assertRaises(ValueError):
+            self.interaction_tensor_a[0, 0, 0]
+
+    def test_invalid_setitem_indexing(self):
+        test_tensor = copy.deepcopy(self.interaction_tensor_a)
+        with self.assertRaises(ValueError):
+            test_tensor[0, 0, 0] = 5
+
+    def test_neq(self):
+        self.assertNotEqual(self.interaction_tensor_a,
+                            self.interaction_tensor_b)
+        self.assertTrue(self.interaction_tensor_a != self.interaction_tensor_b)
+
     def test_add(self):
         new_tensor = self.interaction_tensor_a + self.interaction_tensor_b
         self.assertEqual(new_tensor, self.interaction_tensor_ab)
@@ -90,6 +143,14 @@ class InteractionTensorTest(unittest.TestCase):
         new_tensor = copy.deepcopy(self.interaction_tensor_a)
         new_tensor += self.interaction_tensor_b
         self.assertEqual(new_tensor, self.interaction_tensor_ab)
+
+    def test_invalid_addend(self):
+        with self.assertRaises(TypeError):
+            self.interaction_tensor_a + 2
+
+    def test_invalid_tensor_shape_add(self):
+        with self.assertRaises(TypeError):
+            self.interaction_tensor_a + self.interaction_tensor_c
 
     def test_neg(self):
         self.assertEqual(-self.interaction_tensor_a,
@@ -104,6 +165,14 @@ class InteractionTensorTest(unittest.TestCase):
         new_tensor -= self.interaction_tensor_b
         self.assertEqual(new_tensor, self.interaction_tensor_a)
 
+    def test_invalid_subtrahend(self):
+        with self.assertRaises(TypeError):
+            self.interaction_tensor_a - 2
+
+    def test_invalid_tensor_shape_sub(self):
+        with self.assertRaises(TypeError):
+            self.interaction_tensor_a - self.interaction_tensor_c
+
     def test_mul(self):
         new_tensor = self.interaction_tensor_a * self.interaction_tensor_b
         self.assertEqual(new_tensor, self.interaction_tensor_axb)
@@ -112,6 +181,14 @@ class InteractionTensorTest(unittest.TestCase):
         new_tensor = copy.deepcopy(self.interaction_tensor_a)
         new_tensor *= self.interaction_tensor_b
         self.assertEqual(new_tensor, self.interaction_tensor_axb)
+
+    def test_invalid_multiplier(self):
+        with self.assertRaises(TypeError):
+            self.interaction_tensor_a * 2
+
+    def test_invalid_tensor_shape_mult(self):
+        with self.assertRaises(TypeError):
+            self.interaction_tensor_a * self.interaction_tensor_c
 
     def test_iter_and_str(self):
         one_body = numpy.zeros((self.n_qubits, self.n_qubits))
@@ -123,6 +200,7 @@ class InteractionTensorTest(unittest.TestCase):
                                                one_body, two_body)
         want_str = '[] 23.0\n[0 1] 11.0\n[0 1 1 0] 22.0\n'
         self.assertEqual(interaction_tensor.__str__(), want_str)
+        self.assertEqual(interaction_tensor.__repr__(), want_str)
 
     def test_rotate_basis_identical(self):
         rotation_matrix_identical = numpy.zeros((self.n_qubits, self.n_qubits))
@@ -184,8 +262,3 @@ class InteractionTensorTest(unittest.TestCase):
                                                     two_body_reverse)
         interaction_tensor.rotate_basis(rotation_matrix_reverse)
         self.assertEqual(interaction_tensor, want_interaction_tensor)
-
-
-# Test.
-if __name__ == '__main__':
-    unittest.main()
