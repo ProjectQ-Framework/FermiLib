@@ -97,7 +97,7 @@ class ParallelBubbleSortIntegrationTest(unittest.TestCase):
         arr = [(i, j) for i in range(system_size)
                for j in range(system_size)]
 
-        self.assertListEqual(map(partial(key_2d, system_size), arr)[:16],
+        self.assertListEqual(list(map(partial(key_2d, system_size), arr))[:16],
                              range(0, 64, 8) + range(1, 65, 8))
 
         self.assertFalse(is_sorted_embedded_array(arr, key_2d, system_size))
@@ -110,8 +110,8 @@ class ParallelBubbleSortIntegrationTest(unittest.TestCase):
         system_size = 8
         s = '{:0' + str(3) + 'b}'
         first_round = [int(s.format(i)[::-1], 2) for i in range(system_size)]
-        second_round = (range(system_size / 2, system_size) +
-                        range(system_size / 2))
+        second_round = (range(system_size // 2, system_size) +
+                        range(system_size // 2))
 
         # Generate array of size system_size.
         arr = [(i,) for i in range(system_size)]
