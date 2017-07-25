@@ -29,12 +29,12 @@ def index_of_position_in_1d_array(coordinate_ordering, system_side_length,
     n-dimensional position is taken.
 
     Args:
-        position (list of ints): The vector indicating the position
-                within the n-dimensional system.
-        system_side_length (int): The number of points along a side of
-                the system.
         coordinate_ordering (list of ints): The order of coordinates by
                 which to increment the index.
+        system_side_length (int): The number of points along a side of
+                the system.
+        position (list of ints): The vector indicating the position
+                within the n-dimensional system.
 
     Returns:
         The integer index of the position in a 1D array.
@@ -59,7 +59,7 @@ def is_sorted_array_of_nd_positions(arr, key, system_side_length):
 
     Args:
         arr: the array to work with.
-        key: the key function to use to determine ordering.
+        key: the key function or tuple to use to determine ordering.
         system_side_length: The integer side length of the n-dimensional
                             cube from which the positions in the array
                             are taken.
@@ -81,7 +81,7 @@ def parallel_bubble_sort(array, key, system_side_length):
 
     Args:
         array: An array of multi-dimensional positions to sort.
-        key: The key function by which to determine ordering.
+        key: The key function or tuple by which to determine ordering.
         system_side_length: The integer side length of the hypercube
                             from which the positions in array are taken.
     """
@@ -116,12 +116,6 @@ def parallel_bubble_sort_single_step(array, key, odd=False,
                             which the positions in array are taken.
     """
     swaps_in_layer = []
-
-    if system_side_length is None:
-        system_side_length = len(array)
-
-    if isinstance(key, tuple):
-        key = partial(*key)
 
     for i in range(int(odd), len(array) - 1, 2):
         if (key(system_side_length, array[i]) >
