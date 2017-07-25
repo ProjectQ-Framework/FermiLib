@@ -155,7 +155,6 @@ def save_operator(operator, file_name=None, data_directory=None):
     with open(file_path, 'wb') as f:
         marshal.dump((operator_type, dict(zip(tm.keys(),
                                           map(complex, tm.values())))), f)
-        f.close()
 
 
 def load_operator(file_name=None, data_directory=None):
