@@ -11,8 +11,6 @@
 #   limitations under the License.
 
 """This module has functions to perform parallel bubble sort on arrays."""
-import projectq
-
 from functools import partial
 from itertools import product
 
