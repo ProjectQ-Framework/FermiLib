@@ -22,6 +22,7 @@ import scipy.sparse
 import scipy.sparse.linalg
 
 from fermilib.config import *
+from fermilib.ops import FermionOperator
 
 from projectq.ops import QubitOperator
 
@@ -300,7 +301,7 @@ def expectation(sparse_operator, state):
     """Compute expectation value of operator with a state.
 
     Args:
-        state_vector: scipy.sparse.csc vector representing a pure state,
+        state: scipy.sparse.csc vector representing a pure state,
             or, a scipy.sparse.csc matrix representing a density matrix.
 
     Returns:
@@ -325,6 +326,51 @@ def expectation(sparse_operator, state):
 
     # Return.
     return expectation
+
+
+def expectation_computational_basis_state(operator, computational_basis_state):
+    """Compute expectation value of operator with a  state.
+
+    Args:
+        operator: Qubit or FermionOperator to evaluate expectation value of.
+                  If operator is a FermionOperator, it must be normal-ordered.
+        computational_basis_state (scipy.sparse vector / list): normalized
+            computational basis state (if scipy.sparse vector), or list of
+            occupied orbitals.
+
+    Returns:
+        A real float giving expectation value.
+
+    Raises:
+        TypeError: Incorrect operator or state type.
+    """
+    if isinstance(operator, QubitOperator):
+        raise NotImplementedError('Not yet implemented for QubitOperators.')
+
+    if not isinstance(operator, FermionOperator):
+        raise TypeError('operator must be a FermionOperator.')
+
+    occupied_orbitals = computational_basis_state
+
+    if not isinstance(occupied_orbitals, list):
+        computational_basis_state_index = (
+            occupied_orbitals.nonzero()[0][0])
+
+        occupied_orbitals = [digit == '1' for digit in
+                             bin(computational_basis_state_index)[2:]][::-1]
+
+    expectation_value = operator.terms.get((), 0.0)
+
+    for i in range(len(occupied_orbitals)):
+        if occupied_orbitals[i]:
+            expectation_value += operator.terms.get(
+                ((i, 1), (i, 0)), 0.0)
+
+            for j in range(i + 1, len(occupied_orbitals)):
+                expectation_value -= operator.terms.get(
+                    ((j, 1), (i, 1), (j, 0), (i, 0)), 0.0)
+
+    return expectation_value
 
 
 def get_gap(sparse_operator):

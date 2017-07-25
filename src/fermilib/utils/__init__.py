@@ -45,6 +45,7 @@ from ._plane_wave_hamiltonian import (dual_basis_external_potential,
                                       wigner_seitz_length_scale)
 
 from ._sparse_tools import (expectation,
+                            expectation_computational_basis_state,
                             get_density_matrix,
                             get_gap,
                             get_ground_state,
