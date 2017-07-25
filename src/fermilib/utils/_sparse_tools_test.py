@@ -258,6 +258,28 @@ class ExpectationComputationalBasisStateTest(unittest.TestCase):
         self.assertAlmostEqual(
             expectation_computational_basis_state(operator, state), 1.1)
 
+    def test_expectation_state_is_list_single_number_terms(self):
+        operator = FermionOperator('3^ 3', 1.9) + FermionOperator('2^ 1')
+        state = [1, 1, 1, 1]
+
+        self.assertAlmostEqual(
+            expectation_computational_basis_state(operator, state), 1.9)
+
+    def test_expectation_state_is_list_fermion_operator_two_number_terms(self):
+        operator = (FermionOperator('2^ 2', 1.9) + FermionOperator('2^ 1') +
+                    FermionOperator('2^ 1^ 2 1', -1.7))
+        state = [0, 1, 1]
+
+        self.assertAlmostEqual(
+            expectation_computational_basis_state(operator, state), 3.6)
+
+    def test_expectation_state_is_list_identity_fermion_operator(self):
+        operator = FermionOperator.identity() * 1.1
+        state = [0, 1, 1]
+
+        self.assertAlmostEqual(
+            expectation_computational_basis_state(operator, state), 1.1)
+
     def test_expectation_bad_operator_type(self):
         with self.assertRaises(TypeError):
             expectation_computational_basis_state(

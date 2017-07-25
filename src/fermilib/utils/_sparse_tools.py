@@ -334,14 +334,15 @@ def expectation_computational_basis_state(operator, computational_basis_state):
     Args:
         operator: Qubit or FermionOperator to evaluate expectation value of.
                   If operator is a FermionOperator, it must be normal-ordered.
-        computational_basis_state (scipy.sparse vector): normalized
-            computational basis state.
+        computational_basis_state (scipy.sparse vector / list): normalized
+            computational basis state (if scipy.sparse vector), or list of
+            occupied orbitals.
 
     Returns:
         A real float giving expectation value.
 
     Raises:
-        TypeError: Incorrect operator type.
+        TypeError: Incorrect operator or state type.
     """
     if isinstance(operator, QubitOperator):
         raise NotImplementedError('Not yet implemented for QubitOperators.')
@@ -349,12 +350,16 @@ def expectation_computational_basis_state(operator, computational_basis_state):
     if not isinstance(operator, FermionOperator):
         raise TypeError('operator must be a FermionOperator.')
 
-    computational_basis_state_index = computational_basis_state.nonzero()[0][0]
+    occupied_orbitals = computational_basis_state
+
+    if not isinstance(occupied_orbitals, list):
+        computational_basis_state_index = (
+            occupied_orbitals.nonzero()[0][0])
+
+        occupied_orbitals = [digit == '1' for digit in
+                             bin(computational_basis_state_index)[2:]][::-1]
 
     expectation_value = operator.terms.get((), 0.0)
-
-    occupied_orbitals = [digit == '1' for digit in
-                         bin(computational_basis_state_index)[2:]][::-1]
 
     for i in range(len(occupied_orbitals)):
         if occupied_orbitals[i]:
