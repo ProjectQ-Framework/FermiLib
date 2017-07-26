@@ -12,10 +12,13 @@
 
 """bravyi_kitaev_fast transform on fermionic operators."""
 from __future__ import absolute_import
-from fermilib.ops import InteractionOperator
+
 import networkx
 import numpy
 from projectq.ops import QubitOperator
+
+from fermilib.ops import InteractionOperator
+from fermilib.utils import count_qubits
 
 
 def bravyi_kitaev_fast(operator):
@@ -47,16 +50,18 @@ def bravyi_kitaev_fast_interaction_op(iop, n_qubits=None):
     These Majorana modes can be used to define edge operators B_i and A_{ij}:
         B_i=c_{2i}c_{2i+1},
         A_{ij}=c_{2i}c_{2j}
-    using these edge operators the fermionic algebra can be generated and hence
-    all the terms in the electronic Hamiltonian can be expressed in terms of
-    edge operators. The terms in electronic Hamiltonian can be divided into
-    five types (arXiv 1208.5986). We can find the edge operator expression for
-    each of those five types. For example, the excitation operator term in
-    Hamiltonian when represented in terms of edge operators becomes:
-    a_i^{\dagger}a_j+a_j^{\dagger}a_i = (-1j/2)*(A_ij*B_i+B_j*A_ij)
-    For the sake of brevity the reader is encouraged to look up the expressions
-    of other terms from the code below. The variables for edge operators are
-    chosen according to the nomenclature defined above (B_i and A_ij).
+    using these edge operators the fermionic algebra can be generated and
+    hence all the terms in the electronic Hamiltonian can be expressed in
+    terms of edge operators. The terms in electronic Hamiltonian can be
+    divided into five types (arXiv 1208.5986). We can find the edge operator
+    expression for each of those five types. For example, the excitation
+    operator term in Hamiltonian when represented in terms of edge operators
+    becomes:
+        a_i^{\dagger}a_j+a_j^{\dagger}a_i = (-1j/2)*(A_ij*B_i+B_j*A_ij)
+    For the sake of brevity the reader is encouraged to look up the
+    expressions of other terms from the code below. The variables for edge
+    operators are chosen according to the nomenclature defined above
+    (B_i and A_ij).
 
     Args:
         iop (Interaction Operator):
@@ -65,7 +70,6 @@ def bravyi_kitaev_fast_interaction_op(iop, n_qubits=None):
     Returns:
         qubit_operator: An instance of the QubitOperator class.
     """
-    from fermilib.utils import count_qubits
     if n_qubits is None:
         n_qubits = count_qubits(iop)
     if n_qubits < count_qubits(iop):
@@ -83,8 +87,8 @@ def bravyi_kitaev_fast_interaction_op(iop, n_qubits=None):
             # Handle one-body terms.
             coefficient = complex(iop[p, q])
             if coefficient and p >= q:
-                qubit_operator += coefficient * \
-                                 one_body(edge_matrix_indices, p, q)
+                qubit_operator += (coefficient *
+                                   one_body(edge_matrix_indices, p, q))
 
             # Keep looping for the two-body terms.
             for r in range(n_qubits):
@@ -119,8 +123,8 @@ def bravyi_kitaev_fast_edge_matrix(iop, n_qubits=None):
         iop (Interaction Operator):
 
     Returns:
-        edge_matrix (Numpy array):A square numpy array containing information
-        about the edges present in the model.
+        edge_matrix (Numpy array): A square numpy array containing information
+            about the edges present in the model.
     """
     from fermilib.utils import count_qubits
     if n_qubits is None:
@@ -199,10 +203,12 @@ def one_body(edge_matrix_indices, p, q):
     """Map the term a^\dagger_p a_q + a^\dagger_q a_p to QubitOperator.
     The definitions for various operators will be presented in a paper soon
 
-    Input: Numpy array (specifying the edges), index p and q specifying the one
-           body term.
+    Args:
+        edge_matrix_indices(numpy array): Specifying the edges
+        p and q (int): specifying the one body term.
 
-    Return: An instance of QubitOperator()
+    Return: 
+        An instance of QubitOperator()
     """
     # Handle off-diagonal terms.
     qubit_operator = QubitOperator()
@@ -211,12 +217,12 @@ def one_body(edge_matrix_indices, p, q):
         B_a = edge_operator_b(edge_matrix_indices, a)
         B_b = edge_operator_b(edge_matrix_indices, b)
         A_ab = edge_operator_aij(edge_matrix_indices, a, b)
-        qubit_operator += (-1j/2.)*(A_ab*B_b+B_a*A_ab)
+        qubit_operator += (-1j/2.) * (A_ab * B_b + B_a * A_ab)
 
     # Handle diagonal terms.
     else:
         B_p = edge_operator_b(edge_matrix_indices, p)
-        qubit_operator += (QubitOperator((), 1)-B_p)/2.
+        qubit_operator += (QubitOperator((), 1) - B_p) / 2.
 
     return qubit_operator
 
@@ -225,10 +231,12 @@ def two_body(edge_matrix_indices, p, q, r, s):
     """Map the term a^\dagger_p a^\dagger_q a_r a_s + h.c. to QubitOperator.
     The definitions for various operators will be covered in a paper soon.
 
-    Input: Numpy array (specifying the edges), index p, q, r and s specifying
-           the two body term.
+    Args: 
+        edge_matrix_indices (numpy array): specifying the edges
+        p, q, r and s (int): specifying the two body term.
 
-    Return: An instance of QubitOperator()
+    Return: 
+        An instance of QubitOperator()
     """
     # Initialize qubit operator.
     qubit_operator = QubitOperator()
@@ -310,10 +318,12 @@ def edge_operator_b(edge_matrix_indices, i):
     """Calculate the edge operator B_i. The definitions used here are
     consistent with arXiv:quant-ph/0003137
 
-    Args: Numpy array(Square and Symmetric), index i for specifying the edge
-          edge operator B.
+    Args: 
+        edge_matrix_indices(numpy array(square and symmetric):
+        i (int): index for specifying the edge operator B.
 
-    Returns: An instance of qubitoperator
+    Returns: 
+        An instance of QubitOperator
     """
     B_i = QubitOperator()
     qubit_position_matrix = numpy.array(numpy.where(edge_matrix_indices == i))
@@ -330,10 +340,12 @@ def edge_operator_aij(edge_matrix_indices, i, j):
     """Calculate the edge operator A_ij. The definitions used here are
     consistent with arXiv:quant-ph/0003137
 
-    Input: Numpy array (specifying the edges), index i and j specifying the
-           edge operator A
+    Args: 
+        edge_matrix_indices(numpy array): specifying the edges
+        i,j (int): specifying the edge operator A
 
-    Returns: An instance of qubitoperator
+    Returns: 
+        An instance of QubitOperator
     """
     a_ij = QubitOperator()
     operator = tuple()
@@ -362,9 +374,11 @@ def edge_operator_aij(edge_matrix_indices, i, j):
 def vacuum_operator(edge_matrix_indices):
     """Use the stabilizers to find the vacuum state in bravyi_kitaev_fast.
 
-    Input: Numpy array (specifying the edges)
+    Args: 
+        edge_matrix_indices(numpy array): specifying the edges
 
-    Return: An instance of QubitOperator()
+    Return: 
+        An instance of QubitOperator
 
     """
     # Initialize qubit operator.
@@ -390,14 +404,17 @@ def vacuum_operator(edge_matrix_indices):
 
 def number_operator(iop, mode_number=None):
     """Find the qubit operator for the number operator in bravyi_kitaev_fast
-       representation
+    representation
 
-       Input: Interaction Operator, index mode_number corresponding to the mode
-       for which number operator is required.
+    Args:
+        iop (InteractionOperator):
+        mode_number: index mode_number corresponding to the mode
+            for which number operator is required.
 
-       Return: An instance of Qubitoperator()
+    Return: 
+        A QubitOperator
 
-       """
+   """
     n_qubit = iop.n_qubits
     num_operator = QubitOperator()
     edge_matrix = bravyi_kitaev_fast_edge_matrix(iop)
@@ -419,9 +436,11 @@ def generate_fermions(edge_matrix_indices, i, j):
     """The QubitOperator for generating fermions in bravyi_kitaev_fast
     representation
 
-    Input: Numpy array (specifying the edges)
+    Args: 
+        edge_matrix_indices(numpy array): specifying the edges
 
-    Return: And instance of QubitOperator()
+    Return: 
+        A QubitOperator
     """
     gen_fer_operator = (-1j/2.)*(edge_operator_aij(edge_matrix_indices, i, j) *
                                  edge_operator_b(edge_matrix_indices, j) -

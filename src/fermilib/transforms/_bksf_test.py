@@ -12,17 +12,20 @@
 
 """Tests  _bravyi_kitaev_fast_test.py."""
 from __future__ import absolute_import
-from fermilib.utils import count_qubits
-from fermilib.transforms._jordan_wigner import (jordan_wigner,
-                                                jordan_wigner_one_body)
-import numpy
 import os
-from projectq.ops import QubitOperator
 import unittest
+
 from fermilib.config import *
 from fermilib.ops import *
 from fermilib.transforms import *
+from fermilib.transforms._jordan_wigner import (jordan_wigner,
+                                                jordan_wigner_one_body)
 from fermilib.utils import *
+from fermilib.utils import count_qubits
+
+import numpy
+from projectq.ops import QubitOperator
+
 from . import _bksf
 
 
@@ -175,7 +178,7 @@ class bravyi_kitaev_fastTransformTest(unittest.TestCase):
         bksf_vacuum_state_sp_matrix = get_sparse_operator(
                                       bksf_vacuum_state_operator)
         bksf_vacuum_state_matrix = bksf_vacuum_state_sp_matrix.toarray()
-        vacuum_state = numpy.zeros((64,1))
+        vacuum_state = numpy.zeros((64, 1))
         vacuum_state[0] = 1.
         bksf_vacuum_state = numpy.dot(bksf_vacuum_state_matrix, vacuum_state)
         two_fermion_state = numpy.dot(fermion_generation_matrix,
@@ -187,7 +190,7 @@ class bravyi_kitaev_fastTransformTest(unittest.TestCase):
         tot_fermions = numpy.dot(two_fermion_state.conjugate().T,
                                  numpy.dot(number_operator_matrix,
                                  two_fermion_state))
-        self.assertTrue(2.0-float(tot_fermions.real) < 1e-13)
+        self.assertTrue(2.0 - float(tot_fermions.real) < 1e-13)
 
 
 if __name__ == '__main__':
