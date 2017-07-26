@@ -63,7 +63,7 @@ class bravyi_kitaev_fastTransformTest(unittest.TestCase):
             _bksf.bravyi_kitaev_fast(FermionOperator((2, 1), 1))
 
     def test_bravyi_kitaev_fast_edgeoperator_Bi(self):
-
+        # checking the edge operators
         edge_matrix = numpy.triu(numpy.ones((4, 4)))
         edge_matrix_indices = numpy.array(numpy.nonzero(
                                           numpy.triu(edge_matrix) -
@@ -88,6 +88,7 @@ class bravyi_kitaev_fastTransformTest(unittest.TestCase):
                         _bksf.edge_operator_b(edge_matrix_indices, 3)))
 
     def test_bravyi_kitaev_fast_edgeoperator_Aij(self):
+        # checking the edge operators
         edge_matrix = numpy.triu(numpy.ones((4, 4)))
         edge_matrix_indices = numpy.array(numpy.nonzero(
                                           numpy.triu(edge_matrix) -
@@ -121,6 +122,10 @@ class bravyi_kitaev_fastTransformTest(unittest.TestCase):
                                           edge_matrix_indices, 2, 3)))
 
     def test_bravyi_kitaev_fast_jw_number_operator(self):
+        # bksf algorithm allows for even number of particles. So, compare the
+        # spectrum of number operator from jordan-wigner and bksf algorithm
+        # to make sure half of the jordan-wigner number operator spectrum
+        # can be found in bksf number operator spectrum.
         bravyi_kitaev_fast_n = _bksf.number_operator(
                                                     self.molecular_hamiltonian)
         jw_n = QubitOperator()
@@ -137,6 +142,8 @@ class bravyi_kitaev_fastTransformTest(unittest.TestCase):
         self.assertEqual(evensector, 2**(n_qubits - 1))
 
     def test_bravyi_kitaev_fast_jw_hamiltonian(self):
+        # make sure half of the jordan-wigner Hamiltonian eigenspectrum can
+        # be found in bksf Hamiltonian eigenspectrum.
         n_qubits = count_qubits(self.molecular_hamiltonian)
         bravyi_kitaev_fast_H = _bksf.bravyi_kitaev_fast(
                                                     self.molecular_hamiltonian)
@@ -151,6 +158,36 @@ class bravyi_kitaev_fastTransformTest(unittest.TestCase):
                                            bravyi_kitaev_fast_H_eig))):
                 evensector += 1
         self.assertEqual(evensector, 2**(n_qubits - 1))
+
+    def test_bravyi_kitaev_fast_generate_fermions(self):
+        # test for generating two fermions
+        edge_matrix = _bksf.bravyi_kitaev_fast_edge_matrix(
+                        self.molecular_hamiltonian)
+        edge_matrix_indices = numpy.array(numpy.nonzero(
+                                numpy.triu(edge_matrix) - numpy.diag(
+                                        numpy.diag(edge_matrix))))
+        fermion_generation_operator = _bksf.generate_fermions(
+                                      edge_matrix_indices, 2, 3)
+        fermion_generation_sp_matrix = get_sparse_operator(
+                                        fermion_generation_operator)
+        fermion_generation_matrix = fermion_generation_sp_matrix.toarray()
+        bksf_vacuum_state_operator = _bksf.vacuum_operator(edge_matrix_indices)
+        bksf_vacuum_state_sp_matrix = get_sparse_operator(
+                                      bksf_vacuum_state_operator)
+        bksf_vacuum_state_matrix = bksf_vacuum_state_sp_matrix.toarray()
+        vacuum_state = numpy.zeros((64,1))
+        vacuum_state[0] = 1.
+        bksf_vacuum_state = numpy.dot(bksf_vacuum_state_matrix, vacuum_state)
+        two_fermion_state = numpy.dot(fermion_generation_matrix,
+                                      bksf_vacuum_state)
+        # using number operator to check the number of fermions generated
+        tot_number_operator = _bksf.number_operator(self.molecular_hamiltonian)
+        number_operator_sp_matrix = get_sparse_operator(tot_number_operator)
+        number_operator_matrix = number_operator_sp_matrix.toarray()
+        tot_fermions = numpy.dot(two_fermion_state.conjugate().T,
+                                 numpy.dot(number_operator_matrix,
+                                 two_fermion_state))
+        self.assertTrue(2.0-float(tot_fermions.real) < 1e-13)
 
 
 if __name__ == '__main__':
