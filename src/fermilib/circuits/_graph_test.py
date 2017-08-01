@@ -14,7 +14,7 @@ from __future__ import absolute_import
 
 import unittest
 
-from fermilib.utils import Graph, Node
+from fermilib.circuits import Graph, Node
 
 
 class GraphTest(unittest.TestCase):

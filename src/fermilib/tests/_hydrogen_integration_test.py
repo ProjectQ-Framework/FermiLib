@@ -18,6 +18,7 @@ import numpy
 import scipy.sparse
 import unittest
 
+from fermilib.circuits import *
 from fermilib.config import *
 from fermilib.ops import *
 from fermilib.transforms import *
