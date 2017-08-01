@@ -13,7 +13,7 @@
 """Tests for _parallel_bubble_sort.py."""
 import unittest
 
-from fermilib.utils._parallel_bubble_sort import (
+from fermilib.circuits._parallel_bubble_sort import (
     index_of_position_in_1d_array, is_sorted_array_of_nd_positions,
     parallel_bubble_sort)
 
