@@ -24,7 +24,7 @@ def fermionic_reorder(register, input_order, target_order=None):
         target_order (list): The desired Jordan-Wigner canonical order.
     """
     if not target_order:
-        target_order = range(len(input_order))
+        target_order = list(range(len(input_order)))
 
     key = (index_of_position_in_1d_array, [0])
 
@@ -89,7 +89,7 @@ def dual_basis_trotter_step(register, hamiltonian, input_ordering=None,
     n_qubits = count_qubits(hamiltonian)
 
     if not input_ordering:
-        input_ordering = range(n_qubits)
+        input_ordering = list(range(n_qubits))
 
     # The intermediate ordering is the halfway point for second-order Trotter.
     intermediate_ordering = input_ordering[::-1]
@@ -195,7 +195,7 @@ def simulate_dual_basis_evolution(register, hamiltonian, trotter_steps=1,
     n_qubits = count_qubits(hamiltonian)
 
     if not input_ordering:
-        input_ordering = range(n_qubits)
+        input_ordering = list(range(n_qubits))
 
     if set(input_ordering) != set(range(n_qubits)):
         raise ValueError('input_ordering must be a permutation of integers '
