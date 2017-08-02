@@ -5,6 +5,10 @@ import os
 import random
 import unittest
 
+from fermilib.circuits.ffft import (
+    ffft, fswap, fswap_adjacent, fswap_generator, apply_phase,
+    fourier_transform_0, swap_adjacent_fermionic_modes, ffft_2d,
+    operator_2d_fft_with_reordering)
 from fermilib.ops import FermionOperator, normal_ordered
 from fermilib.transforms import jordan_wigner
 from fermilib.utils import (count_qubits, eigenspectrum, fourier_transform,
@@ -13,11 +17,6 @@ from fermilib.utils import (count_qubits, eigenspectrum, fourier_transform,
 from projectq import MainEngine
 from projectq.ops import (QubitOperator, H, X, Y, Z, C, Rx, Ry, Rz, Swap, Ph,
                           Measure, All, TimeEvolution)
-
-from fermilib.utils.ffft import (ffft, fswap, fswap_adjacent, fswap_generator,
-                                 apply_phase, fourier_transform_0,
-                                 swap_adjacent_fermionic_modes,
-                                 ffft_2d, operator_2d_fft_with_reordering)
 
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
@@ -35,30 +34,6 @@ def prepare_integer_fermion_operator(n):
         if (n >> i) & 1:
             res = FermionOperator(((i, 1),)) * res
     return res
-
-
-def prepare_integer_fermion_operator_backwards(n):
-    res = FermionOperator('')
-    for i in range(int(numpy.log2(n + 1)) + 1):
-        if (n >> i) & 1:
-            res *= FermionOperator(((i, 1),))
-    return res
-
-
-def convert_operator_to_wavefunction(fermion_operator, key_array=None):
-    if not key_array:
-        key_array = range(count_qubits(fermion_operator))
-
-    post_swap_order = list(key_array)
-    post_swap_order.reverse()
-
-    fermion_operator = normal_ordered(fermion_operator, key_array)
-    fermion_operator.compress()
-    vec = numpy.zeros(2 ** len(post_swap_order), dtype=complex)
-    for term in fermion_operator.terms:
-        index = sum(2 ** post_swap_order[site[0]] for site in term)
-        vec[index] = fermion_operator.terms[term]
-    return vec
 
 
 def ordered_wavefunction(engine, indices_to_evaluate=None):
@@ -496,33 +471,6 @@ class FFFTNModeIntegrationTest(unittest.TestCase):
         self.assertTrue(numpy.allclose(frequencies_seen, expected))
 
 
-def get_hamiltonians(n_qubits, print_hamiltonians=False):
-    """Return a tuple of the Hamiltonian in the plane wave and dual basis."""
-    dimensions = 1
-    grid_length = n_qubits
-    length_scale = 1.0
-    grid = Grid(dimensions, grid_length, length_scale)
-
-    plane_wave = jellium_model(grid, spinless=True, plane_wave=True)
-    dual_basis = jellium_model(grid, spinless=True, plane_wave=False)
-
-    if print_hamiltonians:
-        print 'plane wave H:', plane_wave
-        print 'dual basis H:', dual_basis
-
-    jw_plane_wave = jordan_wigner(plane_wave)
-    jw_dual_basis = jordan_wigner(dual_basis)
-
-    plane_wave_spectrum = eigenspectrum(jw_plane_wave)
-    dual_basis_spectrum = eigenspectrum(jw_dual_basis)
-
-    diff = numpy.amax(numpy.absolute(
-        plane_wave_spectrum - dual_basis_spectrum))
-    assert numpy.isclose(diff, 0.0)
-
-    return (jw_plane_wave, jw_dual_basis)
-
-
 class SwapAdjacentFermionicModesTest(unittest.TestCase):
     def test_basic_swap(self):
         operator = normal_ordered(FermionOperator('2^ 2 4^ 4'))
@@ -583,7 +531,7 @@ class FFFTPlaneWaveIntegrationTest(unittest.TestCase):
         register = eng.allocate_qureg(n_qubits)
 
         state_index = 157
-
+        
         prepare_logical_state(register, state_index)
 
         ffft(eng, register, n_qubits)
@@ -843,3 +791,7 @@ class FFFTPlaneWaveIntegrationTest(unittest.TestCase):
 
         self.assertAlmostEqual(plane_wave_expectation_value,
                                dual_basis_expectation_value)
+
+
+if __name__ == '__main__':
+    unittest.main()

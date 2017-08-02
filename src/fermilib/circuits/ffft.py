@@ -2,11 +2,11 @@
 import itertools
 import numpy
 
+from fermilib.circuits._parallel_bubble_sort import (
+    index_of_position_in_1d_array, parallel_bubble_sort)
 from fermilib.ops import FermionOperator, normal_ordered
 from fermilib.transforms import jordan_wigner
 from fermilib.utils import fourier_transform, Grid
-from fermilib.utils._parallel_bubble_sort import (
-    index_of_position_in_1d_array, parallel_bubble_sort)
 
 from projectq import MainEngine
 from projectq.ops import (QubitOperator, H, X, Y, Z, C, Rx, Ry, Rz, Ph, Swap,

@@ -1,14 +1,13 @@
 """Module for low-depth Trotterized simulation in the plane wave dual basis."""
-
 import functools
 import itertools
 import numpy
 
+from fermilib.circuits._parallel_bubble_sort import (
+    index_of_position_in_1d_array, parallel_bubble_sort)
 from fermilib.ops import FermionOperator
 from fermilib.transforms import jordan_wigner
 from fermilib.utils import count_qubits
-from fermilib.utils._parallel_bubble_sort import (
-    index_of_position_in_1d_array, parallel_bubble_sort)
 
 from projectq.ops import (C, S, Sdag, X, Y, Z, H, CNOT, Swap, Rx, Ry, Rz, Ph,
                           All, Measure)

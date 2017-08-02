@@ -4,16 +4,14 @@ import os
 import random
 import unittest
 
+import projectq
+
 from scipy.sparse.linalg import expm
 
+from fermilib.circuits import low_depth_trotter_simulation
 from fermilib.ops import FermionOperator, normal_ordered
 from fermilib.transforms import get_sparse_operator
 from fermilib.utils import Grid, plane_wave_hamiltonian
-import fermilib.utils._parallel_bubble_sort
-
-import projectq
-
-import low_depth_trotter_simulation
 
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
