@@ -44,7 +44,7 @@ def fswap(register, mode_a, mode_b):
         mode_a, mode_b (int): The two modes to swap.
     """
     operator = fswap_generator(mode_a, mode_b)
-    TimeEvolution(numpy.pi / 2, jordan_wigner(operator)) | register
+    TimeEvolution(numpy.pi / 2., jordan_wigner(operator)) | register
 
 
 def fswap_adjacent(register, mode):
@@ -66,7 +66,7 @@ def fswap_adjacent(register, mode):
                 QubitOperator(((mode + 1, 'Z'),)) +
                 QubitOperator(((mode, 'X'), (mode + 1, 'X'))) +
                 QubitOperator(((mode, 'Y'), (mode + 1, 'Y'))))
-    TimeEvolution(numpy.pi / 4, operator) | register
+    TimeEvolution(numpy.pi / 4., operator) | register
 
 
 def apply_phase(register, mode, phase):
@@ -120,7 +120,7 @@ def fourier_transform_0(register, mode_a, mode_b):
     operator = fourier_transform_0_generator(mode_a, mode_b)
     jw_operator = jordan_wigner(operator)
     Z | register[mode_b]
-    TimeEvolution(numpy.pi / 8, jw_operator) | register
+    TimeEvolution(numpy.pi / 8., jw_operator) | register
 
 
 def fourier_transform_0_adjacent(register, mode):
@@ -137,7 +137,7 @@ def fourier_transform_0_adjacent(register, mode):
     jw_operator = (QubitOperator(((mode, 'X'), (mode + 1, 'Y'))) -
                    QubitOperator(((mode, 'Y'), (mode + 1, 'X'))))
     Z | register[mode + 1]
-    TimeEvolution(numpy.pi / 8, jw_operator) | register
+    TimeEvolution(numpy.pi / 8., jw_operator) | register
 
 
 def ffft(engine, register, n, start=0):
@@ -165,23 +165,23 @@ def ffft(engine, register, n, start=0):
     if n == 2:
         fourier_transform_0_adjacent(register, start)
     else:
-        ffft(engine, register, n / 2, start)
-        ffft(engine, register, n / 2, start + n / 2)
+        ffft(engine, register, n // 2, start)
+        ffft(engine, register, n // 2, start + n // 2)
 
         # Apply initial swap network.
-        center = start + n / 2
-        for i in range(n / 2):
+        center = start + n // 2
+        for i in range(n // 2):
             for j in range(i):
                 # fswap is equivalent to Swap followed by C(Z)
                 fswap_adjacent(register, center + 2*j - i)
 
         # Apply phases and two-qubit Fourier transforms.
-        for i in range(n / 2):
+        for i in range(n // 2):
             apply_phase(register, start + 2 * i + 1, -i * numpy.pi / n)
             fourier_transform_0_adjacent(register, start + 2 * i)
 
         # Undo the swap network.
-        for i in range(n/2 - 1, -1, -1):
+        for i in range(n//2 - 1, -1, -1):
             for j in range(i):
                 # fswap is equivalent to Swap followed by C(Z)
                 fswap_adjacent(register, center + 2*j - i)
@@ -305,7 +305,7 @@ def ffft_swap_networks(system_size, n_dimensions):
     s = '{:0' + str(int(numpy.log2(system_size))) + 'b}'
     first_round = [int(s.format(i)[::-1], 2) for i in range(system_size)]
     second_round = (list(range(system_size // 2, system_size)) +
-                    list(range(system_size / 2)))
+                    list(range(system_size // 2)))
 
     # Generate array of size system_size.
     arr = list(itertools.product(*[range(system_size)

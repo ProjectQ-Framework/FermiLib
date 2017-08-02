@@ -57,12 +57,12 @@ def special_F_adjacent(register, qubit_index, xx_yy_angle, zz_angle):
         xx_yy_angle (float): The angle for evolution under XX+YY.
         zz_angle (float): The angle for evolution under ZZ.
     """
-    Rx(numpy.pi / 2) | register[qubit_index]
+    Rx(numpy.pi / 2.) | register[qubit_index]
     CNOT | (register[qubit_index], register[qubit_index + 1])
     Rx(xx_yy_angle) | register[qubit_index]
     Ry(xx_yy_angle) | register[qubit_index + 1]
     CNOT | (register[qubit_index + 1], register[qubit_index])
-    Rx(-numpy.pi / 2) | register[qubit_index + 1]
+    Rx(-numpy.pi / 2.) | register[qubit_index + 1]
     Rz(zz_angle) | register[qubit_index + 1]
     Sdag | register[qubit_index + 1]
     CNOT | (register[qubit_index], register[qubit_index + 1])
@@ -119,7 +119,7 @@ def dual_basis_trotter_step(register, hamiltonian, input_ordering=None,
             # to -c(I-Z_2)(I-Z_1)/4 = -c I/4 + c Z_1/4 + c Z_2/4 - c Z_1 Z_2/4.
             # Evolution is thus exp(ic/4*(I - Z_1 - Z_2 + Z_1 Z_2)).
             zz_angle = -hamiltonian.terms.get(
-                ((left, 1), (right, 1), (left, 0), (right, 0)), 0.0) / 2
+                ((left, 1), (right, 1), (left, 0), (right, 0)), 0.0) / 2.
 
             # Divide by two for second order Trotter.
             if not first_order:
@@ -130,7 +130,7 @@ def dual_basis_trotter_step(register, hamiltonian, input_ordering=None,
             # The single-Z rotation angle is the opposite of the ZZ angle.
             Rz(-zz_angle) | register[i]
             Rz(-zz_angle) | register[i + 1]
-            Ph(-zz_angle / 2) | register
+            Ph(-zz_angle / 2.) | register
 
             num_operator_left = ((input_ordering[i], 1),
                                  (input_ordering[i], 0))
@@ -143,9 +143,9 @@ def dual_basis_trotter_step(register, hamiltonian, input_ordering=None,
 
                 # Divide by two for second order Trotter.
                 if not first_order:
-                    z_angle /= 2
+                    z_angle /= 2.
                 Rz(z_angle) | register[i]
-                Ph(z_angle / 2) | register
+                Ph(z_angle / 2.) | register
 
             num_operator_right = ((input_ordering[i + 1], 1),
                                   (input_ordering[i + 1], 0))
@@ -160,7 +160,7 @@ def dual_basis_trotter_step(register, hamiltonian, input_ordering=None,
                 if not first_order:
                     z_angle /= 2
                 Rz(z_angle) | register[i + 1]
-                Ph(z_angle / 2) | register
+                Ph(z_angle / 2.) | register
 
             # Finally, swap the two modes in input_ordering.
             input_ordering[i], input_ordering[i + 1] = (input_ordering[i + 1],
@@ -204,7 +204,7 @@ def simulate_dual_basis_evolution(register, hamiltonian, trotter_steps=1,
     if not isinstance(trotter_steps, int) or trotter_steps < 1:
         raise ValueError('The number of Trotter steps must be an int >0.')
 
-    trotterized_hamiltonian = hamiltonian / trotter_steps
+    trotterized_hamiltonian = hamiltonian / float(trotter_steps)
 
     for i in range(trotter_steps):
         input_ordering = dual_basis_trotter_step(
