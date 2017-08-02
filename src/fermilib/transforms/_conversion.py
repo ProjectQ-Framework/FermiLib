@@ -103,7 +103,7 @@ def get_interaction_operator(fermion_operator, n_qubits=None):
     if n_qubits is None:
         n_qubits = count_qubits(fermion_operator)
     if n_qubits < count_qubits(fermion_operator):
-        n_qubits = count_qubits(fermion_operator)
+        raise ValueError('Invalid number of qubits specified.')
 
     # Normal order the terms and initialize.
     fermion_operator = normal_ordered(fermion_operator)

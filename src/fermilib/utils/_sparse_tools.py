@@ -22,6 +22,7 @@ import scipy.sparse
 import scipy.sparse.linalg
 
 from fermilib.config import *
+from fermilib.ops import FermionOperator
 
 from projectq.ops import QubitOperator
 
@@ -124,7 +125,7 @@ def jordan_wigner_sparse(fermion_operator, n_qubits=None):
     return sparse_operator
 
 
-def qubit_operator_sparse(qubit_operator, n_qubits):
+def qubit_operator_sparse(qubit_operator, n_qubits=None):
     """Initialize a SparseOperator from a QubitOperator.
 
     Args:
@@ -134,9 +135,11 @@ def qubit_operator_sparse(qubit_operator, n_qubits):
     Returns:
         The corresponding SparseOperator.
     """
+    from fermilib.utils import count_qubits
     if n_qubits is None:
-        from fermilib.utils import count_qubits
-        n_qubits = count_qubits(fermion_operator)
+        n_qubits = count_qubits(qubit_operator)
+    if n_qubits < count_qubits(qubit_operator):
+        raise ValueError('Invalid number of qubits specified.')
 
     # Construct the SparseOperator.
     n_hilbert = 2 ** n_qubits
@@ -269,12 +272,12 @@ def get_ground_state(sparse_operator):
         eigenvalue: The lowest eigenvalue, a float.
         eigenstate: The lowest eigenstate in scipy.sparse csc format.
     """
-    if is_hermitian(sparse_operator):
-        values, vectors = scipy.sparse.linalg.eigsh(
-            sparse_operator, 2, which='SA', maxiter=1e7)
-    else:
-        values, vectors = scipy.sparse.linalg.eigs(
-            sparse_operator, 2, which='SA', maxiter=1e7)
+    if not is_hermitian(sparse_operator):
+        raise ValueError('sparse_operator must be Hermitian.')
+
+    values, vectors = scipy.sparse.linalg.eigsh(
+        sparse_operator, 2, which='SA', maxiter=1e7)
+
     eigenstate = scipy.sparse.csc_matrix(vectors[:, 0])
     eigenvalue = values[0]
     return eigenvalue, eigenstate.getH()
@@ -298,7 +301,7 @@ def expectation(sparse_operator, state):
     """Compute expectation value of operator with a state.
 
     Args:
-        state_vector: scipy.sparse.csc vector representing a pure state,
+        state: scipy.sparse.csc vector representing a pure state,
             or, a scipy.sparse.csc matrix representing a density matrix.
 
     Returns:
@@ -325,16 +328,61 @@ def expectation(sparse_operator, state):
     return expectation
 
 
+def expectation_computational_basis_state(operator, computational_basis_state):
+    """Compute expectation value of operator with a  state.
+
+    Args:
+        operator: Qubit or FermionOperator to evaluate expectation value of.
+                  If operator is a FermionOperator, it must be normal-ordered.
+        computational_basis_state (scipy.sparse vector / list): normalized
+            computational basis state (if scipy.sparse vector), or list of
+            occupied orbitals.
+
+    Returns:
+        A real float giving expectation value.
+
+    Raises:
+        TypeError: Incorrect operator or state type.
+    """
+    if isinstance(operator, QubitOperator):
+        raise NotImplementedError('Not yet implemented for QubitOperators.')
+
+    if not isinstance(operator, FermionOperator):
+        raise TypeError('operator must be a FermionOperator.')
+
+    occupied_orbitals = computational_basis_state
+
+    if not isinstance(occupied_orbitals, list):
+        computational_basis_state_index = (
+            occupied_orbitals.nonzero()[0][0])
+
+        occupied_orbitals = [digit == '1' for digit in
+                             bin(computational_basis_state_index)[2:]][::-1]
+
+    expectation_value = operator.terms.get((), 0.0)
+
+    for i in range(len(occupied_orbitals)):
+        if occupied_orbitals[i]:
+            expectation_value += operator.terms.get(
+                ((i, 1), (i, 0)), 0.0)
+
+            for j in range(i + 1, len(occupied_orbitals)):
+                expectation_value -= operator.terms.get(
+                    ((j, 1), (i, 1), (j, 0), (i, 0)), 0.0)
+
+    return expectation_value
+
+
 def get_gap(sparse_operator):
     """Compute gap between lowest eigenvalue and first excited state.
 
     Returns: A real float giving eigenvalue gap.
     """
-    if is_hermitian(sparse_operator):
-        values, _ = scipy.sparse.linalg.eigsh(
-            sparse_operator, 2, which='SA', maxiter=1e7)
-    else:
-        values, _ = scipy.sparse.linalg.eigs(
-            sparse_operator, 2, which='SA', maxiter=1e7)
+    if not is_hermitian(sparse_operator):
+        raise ValueError('sparse_operator must be Hermitian.')
+
+    values, _ = scipy.sparse.linalg.eigsh(
+        sparse_operator, 2, which='SA', maxiter=1e7)
+
     gap = abs(values[1] - values[0])
     return gap

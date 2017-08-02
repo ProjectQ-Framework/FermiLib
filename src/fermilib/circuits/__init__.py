@@ -10,5 +10,10 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-"""Define version number here and read it from setup.py automatically"""
-__version__ = "0.1a3"
+from ._graph import Graph, Node
+
+from ._unitary_cc import (uccsd_operator,
+                          uccsd_singlet_evolution,
+                          uccsd_trotter_engine,
+                          uccsd_singlet_operator,
+                          uccsd_singlet_paramsize)

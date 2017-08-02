@@ -22,12 +22,11 @@ import fermilib
 import fermilib.ops
 from fermilib.ops import FermionOperator
 import fermilib.utils
-from fermilib.utils._graph import (Graph, Node)
-from fermilib.utils._unitary_cc import *
+from fermilib.circuits._graph import (Graph, Node)
+from fermilib.circuits._unitary_cc import *
 
 from projectq.ops import (All, Measure, TimeEvolution,
-                          QubitOperator,
-                          X)
+                          QubitOperator, X)
 
 
 class UnitaryCC(unittest.TestCase):
@@ -214,7 +213,3 @@ class UnitaryCC(unittest.TestCase):
                           (-0.23423) * FermionOperator("1^ 4 6^ 13") +
                           0.23423 * FermionOperator("13^ 6 4^ 1"))
         self.assertTrue(test_generator.isclose(generator))
-
-# Run test.
-if __name__ == '__main__':
-    unittest.main()

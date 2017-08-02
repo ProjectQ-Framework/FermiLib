@@ -18,6 +18,7 @@ import numpy
 import scipy.sparse
 import unittest
 
+from fermilib.circuits import *
 from fermilib.config import *
 from fermilib.ops import *
 from fermilib.transforms import *
@@ -232,8 +233,8 @@ class HydrogenIntegrationTest(unittest.TestCase):
 
         # Test UCCSD for accuracy against FCI using loaded t amplitudes.
         ucc_operator = uccsd_operator(
-            self.molecule.ccsd_amplitudes.one_body_tensor,
-            self.molecule.ccsd_amplitudes.two_body_tensor)
+            self.molecule.ccsd_single_amps,
+            self.molecule.ccsd_double_amps)
 
         hf_state = jw_hartree_fock_state(
             self.molecule.n_electrons, count_qubits(self.qubit_hamiltonian))
@@ -248,8 +249,8 @@ class HydrogenIntegrationTest(unittest.TestCase):
 
         # Test CCSD for precise match against FCI using loaded t amplitudes.
         ccsd_operator = uccsd_operator(
-            self.molecule.ccsd_amplitudes.one_body_tensor,
-            self.molecule.ccsd_amplitudes.two_body_tensor,
+            self.molecule.ccsd_single_amps,
+            self.molecule.ccsd_double_amps,
             anti_hermitian=False)
 
         ccsd_sparse_r = jordan_wigner_sparse(ccsd_operator)
@@ -258,8 +259,8 @@ class HydrogenIntegrationTest(unittest.TestCase):
 
         # Test CCSD for precise match against FCI using loaded t amplitudes
         ccsd_operator = uccsd_operator(
-            self.molecule.ccsd_amplitudes.one_body_tensor,
-            self.molecule.ccsd_amplitudes.two_body_tensor,
+            self.molecule.ccsd_single_amps,
+            self.molecule.ccsd_double_amps,
             anti_hermitian=False)
 
         ccsd_sparse_r = jordan_wigner_sparse(ccsd_operator)
@@ -272,7 +273,3 @@ class HydrogenIntegrationTest(unittest.TestCase):
         expected_ccsd_energy = ccsd_state_l.getH().dot(
             self.hamiltonian_matrix.dot(ccsd_state_r))[0, 0]
         self.assertAlmostEqual(expected_ccsd_energy, self.molecule.fci_energy)
-
-
-if __name__ == '__main__':
-    unittest.main()

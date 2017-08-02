@@ -21,7 +21,7 @@ from fermilib.utils import (make_atom,
                             make_atomic_lattice,
                             make_atomic_ring,
                             periodic_table)
-
+from fermilib.utils._chemical_series import MolecularLatticeError
 from fermilib.utils._molecular_data import periodic_polarization
 
 
@@ -116,6 +116,15 @@ class ChemicalSeries(unittest.TestCase):
             grid_x = atom // atom_dim ** 2
             self.assertAlmostEqual(coords[0], spacing * grid_x)
 
+    def test_make_atomic_lattice_0d_raise_error(self):
+        spacing = 1.7
+        basis = 'sto-3g'
+        atom_type = 'H'
+        atom_dim = 0
+        with self.assertRaises(MolecularLatticeError):
+            make_atomic_lattice(atom_dim, atom_dim, atom_dim,
+                                spacing, basis, atom_type)
+
     def test_make_atom(self):
         basis = 'sto-3g'
         largest_atom = 30
@@ -125,7 +134,3 @@ class ChemicalSeries(unittest.TestCase):
             expected_spin = periodic_polarization[n_electrons] / 2.
             expected_multiplicity = int(2 * expected_spin + 1)
             self.assertAlmostEqual(expected_multiplicity, atom.multiplicity)
-
-
-if __name__ == '__main__':
-    unittest.main()
