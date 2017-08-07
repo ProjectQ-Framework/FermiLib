@@ -531,7 +531,7 @@ class FFFTPlaneWaveIntegrationTest(unittest.TestCase):
         register = eng.allocate_qureg(n_qubits)
 
         state_index = 157
-        
+
         prepare_logical_state(register, state_index)
 
         ffft(eng, register, n_qubits)
@@ -791,7 +791,3 @@ class FFFTPlaneWaveIntegrationTest(unittest.TestCase):
 
         self.assertAlmostEqual(plane_wave_expectation_value,
                                dual_basis_expectation_value)
-
-
-if __name__ == '__main__':
-    unittest.main()

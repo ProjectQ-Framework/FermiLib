@@ -32,8 +32,7 @@ def ordered_wavefunction(engine, indices_to_evaluate=None):
     n_qubits = engine._qubit_idx
     if indices_to_evaluate is None:
         indices_to_evaluate = numpy.arange(2 ** n_qubits)
-    elif isinstance(indices_to_evaluate, list):
-        indices_to_evaluate = numpy.array(indices_to_evaluate)
+
     indices = numpy.zeros(len(indices_to_evaluate), dtype=int)
 
     # Get the qubit order dictionary and raw wavefunction from the engine.
@@ -123,6 +122,24 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
 
         low_depth_trotter_simulation.simulate_dual_basis_evolution(
             self.register, hamiltonian, trotter_steps=1, first_order=False)
+        self.engine.flush()
+
+        # Use 2^ 0^ 2 0 because get_sparse_operator reverses the indices.
+        evol_matrix = expm(-1j * get_sparse_operator(
+            FermionOperator('2^ 0^ 2 0'), n_qubits=self.size)).todense()
+        expected = evol_matrix * numpy.matrix([2 ** (-self.size / 2.)] *
+                                              2 ** self.size).T
+
+        self.assertTrue(numpy.allclose(ordered_wavefunction(self.engine),
+                                       expected.T))
+
+    def test_single_trotter_step_no_input_ordering_n1n3(self):
+        hamiltonian = FermionOperator('3^ 1^ 3 1')
+
+        projectq.ops.All(projectq.ops.H) | self.register
+
+        low_depth_trotter_simulation.dual_basis_trotter_step(
+            self.register, hamiltonian, first_order=False)
         self.engine.flush()
 
         # Use 2^ 0^ 2 0 because get_sparse_operator reverses the indices.
@@ -296,6 +313,21 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
         self.assertTrue(numpy.allclose(ordered_wavefunction(self.engine),
                                        expected.T,
                                        atol=1e-2))
+
+    def test_simulate_dual_basis_evolution_bad_input_ordering(self):
+        with self.assertRaises(ValueError):
+            low_depth_trotter_simulation.simulate_dual_basis_evolution(
+                self.register, FermionOperator(), input_ordering=[1, 2])
+
+    def test_simulate_dual_basis_evolution_n_trotter_steps_not_integer(self):
+        with self.assertRaises(ValueError):
+            low_depth_trotter_simulation.simulate_dual_basis_evolution(
+                self.register, FermionOperator(), trotter_steps=1.5)
+
+    def test_simulate_dual_basis_evolution_bad_n_trotter_steps(self):
+        with self.assertRaises(ValueError):
+            low_depth_trotter_simulation.simulate_dual_basis_evolution(
+                self.register, FermionOperator(), trotter_steps=0)
 
 
 class FourQubitFirstOrderEquivalenceWithSecondOrderTest(unittest.TestCase):
