@@ -5,7 +5,7 @@ import os
 import random
 import unittest
 
-from fermilib.circuits.ffft import (
+from fermilib.circuits._ffft import (
     ffft, fswap, fswap_adjacent, fswap_generator, apply_phase,
     fourier_transform_0, swap_adjacent_fermionic_modes, ffft_2d,
     operator_2d_fft_with_reordering)

@@ -33,7 +33,7 @@ def fswap_generator(mode_a, mode_b):
             FermionOperator(((mode_b, 1), (mode_b, 0))))
 
 
-def fswap(register, mode_a, mode_b):
+def fswap(register, mode_a, mode_b, fermion_to_spin_mapping=jordan_wigner):
     """Apply the fermionic swap operator to two modes.
 
     The fermionic swap is applied to the qubits corresponding to mode_a
@@ -42,9 +42,11 @@ def fswap(register, mode_a, mode_b):
     Args:
         register (projectq.Qureg): The register of qubits to act on.
         mode_a, mode_b (int): The two modes to swap.
+        fermion_to_spin_mapping (function): Transformation from fermionic
+            to spin operators to use. Defaults to jordan_wigner.
     """
     operator = fswap_generator(mode_a, mode_b)
-    TimeEvolution(numpy.pi / 2., jordan_wigner(operator)) | register
+    TimeEvolution(numpy.pi / 2., fermion_to_spin_mapping(operator)) | register
 
 
 def fswap_adjacent(register, mode):
@@ -302,29 +304,45 @@ def ffft_swap_networks(system_size, n_dimensions):
         dimensions, and because the operator is fermionic all swaps must
         also be.
     """
-    s = '{:0' + str(int(numpy.log2(system_size))) + 'b}'
-    first_round = [int(s.format(i)[::-1], 2) for i in range(system_size)]
-    second_round = (list(range(system_size // 2, system_size)) +
-                    list(range(system_size // 2)))
+    # Create a string formatting rule for converting a number into binary
+    # using log2(system_size) digits.
+    binary_format_rule = '{:0' + str(int(numpy.log2(system_size))) + 'b}'
 
-    # Generate array of size system_size.
-    arr = list(itertools.product(*[range(system_size)
-                                   for i in range(n_dimensions)]))
+    # Use the formatting rule to generate the bit-reversed output of the FFFT.
+    bit_reversed_order = [int(binary_format_rule.format(i)[::-1], 2)
+                          for i in range(system_size)]
 
-    # Create arrays whose swap networks to resort are the same as should
-    # be applied to the fermionic modes.
-    arr_first = [None] * system_size ** n_dimensions
-    arr_second = [None] * system_size ** n_dimensions
+    # Generate the split-halves order of fourier_transform.
+    split_halves_order = (list(range(system_size // 2, system_size)) +
+                          list(range(system_size // 2)))
+
+    # Enumerate system coordinates.
+    coordinates = list(itertools.product(*[range(system_size)
+                                           for i in range(n_dimensions)]))
+
+    # Create arrays of the grid coordinates corresponding to the two orders.
+    # Within each dimension, the grid coordinates are in either bit-reversed
+    # or split-halves ordering.
+    bit_reversed_order_coordinates = [None] * system_size ** n_dimensions
+    split_halves_order_coordinates = [None] * system_size ** n_dimensions
     for i in range(system_size ** n_dimensions):
-        arr_first[i] = tuple(map(first_round.__getitem__, arr[i]))
-        arr_second[i] = tuple(map(second_round.__getitem__, arr[i]))
+        # e.g. for 4x4, this will be [(0, 0), (0, 2), (0, 1), (0, 3), (2, 0),
+        # (2, 2), (2, 1), (2, 3), (1, 0), ...]; it is ordered along both dims
+        # by the bit-reversed order 0, 2, 1, 3. The split-halves coordinates
+        # are constructed similarly.
+        bit_reversed_order_coordinates[i] = tuple(map(
+            bit_reversed_order.__getitem__, coordinates[i]))
+        split_halves_order_coordinates[i] = tuple(map(
+            split_halves_order.__getitem__, coordinates[i]))
 
     # Find the two rounds of swaps for parallel bubble sort into
     # row-major order.
     key = (index_of_position_in_1d_array, range(n_dimensions - 1, -1, -1))
-    first_round_swaps = parallel_bubble_sort(arr_first, key, system_size)
+    first_round_swaps = parallel_bubble_sort(bit_reversed_order_coordinates,
+                                             key, system_size)
     second_round_swaps = (
-        parallel_bubble_sort(arr_second, key, system_size)[::-1])
+        parallel_bubble_sort(split_halves_order_coordinates,
+                             key, system_size)[::-1])
 
     return [first_round_swaps, second_round_swaps]
 

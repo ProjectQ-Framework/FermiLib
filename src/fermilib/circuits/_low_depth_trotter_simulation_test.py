@@ -1,4 +1,4 @@
-"""Tests for low_depth_trotter_simulation.py."""
+"""Tests for _low_depth_trotter_simulation.py."""
 import numpy
 import os
 import random
@@ -8,7 +8,7 @@ import projectq
 
 from scipy.sparse.linalg import expm
 
-from fermilib.circuits import low_depth_trotter_simulation
+from fermilib.circuits import _low_depth_trotter_simulation
 from fermilib.ops import FermionOperator, normal_ordered
 from fermilib.transforms import get_sparse_operator
 from fermilib.utils import Grid, plane_wave_hamiltonian
@@ -71,6 +71,7 @@ def dual_basis_hamiltonian(n_dimensions, system_size,
 
 
 class FourQubitSecondOrderTrotterTest(unittest.TestCase):
+
     def setUp(self):
         self.size = 4
         self.engine = projectq.MainEngine()
@@ -84,7 +85,7 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
 
         projectq.ops.All(projectq.ops.H) | self.register
 
-        low_depth_trotter_simulation.simulate_dual_basis_evolution(
+        _low_depth_trotter_simulation.simulate_dual_basis_evolution(
             self.register, hamiltonian, trotter_steps=1, first_order=False)
         self.engine.flush()
 
@@ -102,7 +103,7 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
 
         projectq.ops.All(projectq.ops.H) | self.register
 
-        low_depth_trotter_simulation.simulate_dual_basis_evolution(
+        _low_depth_trotter_simulation.simulate_dual_basis_evolution(
             self.register, hamiltonian, trotter_steps=1, first_order=False)
         self.engine.flush()
 
@@ -120,7 +121,7 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
 
         projectq.ops.All(projectq.ops.H) | self.register
 
-        low_depth_trotter_simulation.simulate_dual_basis_evolution(
+        _low_depth_trotter_simulation.simulate_dual_basis_evolution(
             self.register, hamiltonian, trotter_steps=1, first_order=False)
         self.engine.flush()
 
@@ -138,7 +139,7 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
 
         projectq.ops.All(projectq.ops.H) | self.register
 
-        low_depth_trotter_simulation.dual_basis_trotter_step(
+        _low_depth_trotter_simulation.simulation_gate_trotter_step(
             self.register, hamiltonian, first_order=False)
         self.engine.flush()
 
@@ -156,7 +157,7 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
 
         projectq.ops.All(projectq.ops.H) | self.register
 
-        low_depth_trotter_simulation.simulate_dual_basis_evolution(
+        _low_depth_trotter_simulation.simulate_dual_basis_evolution(
             self.register, hamiltonian, trotter_steps=1, first_order=False)
         self.engine.flush()
 
@@ -175,7 +176,7 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
 
         projectq.ops.All(projectq.ops.H) | self.register
 
-        low_depth_trotter_simulation.simulate_dual_basis_evolution(
+        _low_depth_trotter_simulation.simulate_dual_basis_evolution(
             self.register, hamiltonian, trotter_steps=1, first_order=False)
         self.engine.flush()
 
@@ -194,7 +195,7 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
 
         projectq.ops.All(projectq.ops.H) | self.register
 
-        low_depth_trotter_simulation.simulate_dual_basis_evolution(
+        _low_depth_trotter_simulation.simulate_dual_basis_evolution(
             self.register, hamiltonian, trotter_steps=1, first_order=False)
         self.engine.flush()
 
@@ -216,7 +217,7 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
 
         projectq.ops.All(projectq.ops.H) | self.register
 
-        low_depth_trotter_simulation.simulate_dual_basis_evolution(
+        _low_depth_trotter_simulation.simulate_dual_basis_evolution(
             self.register, hamiltonian, trotter_steps=4, first_order=False)
 
         self.engine.flush()
@@ -242,7 +243,7 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
 
         projectq.ops.All(projectq.ops.H) | self.register
 
-        low_depth_trotter_simulation.simulate_dual_basis_evolution(
+        _low_depth_trotter_simulation.simulate_dual_basis_evolution(
             self.register, hamiltonian, trotter_steps=1, first_order=False)
 
         self.engine.flush()
@@ -266,7 +267,7 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
 
         projectq.ops.All(projectq.ops.H) | self.register
 
-        low_depth_trotter_simulation.simulate_dual_basis_evolution(
+        _low_depth_trotter_simulation.simulate_dual_basis_evolution(
             self.register, hamiltonian, trotter_steps=2, first_order=False)
 
         self.engine.flush()
@@ -298,7 +299,7 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
         # Put randomly chosen state in the registers.
         self.engine.backend.set_wavefunction(initial_state, self.register)
 
-        low_depth_trotter_simulation.simulate_dual_basis_evolution(
+        _low_depth_trotter_simulation.simulate_dual_basis_evolution(
             self.register, hamiltonian, trotter_steps=7, first_order=False)
 
         self.engine.flush()
@@ -316,21 +317,22 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
 
     def test_simulate_dual_basis_evolution_bad_input_ordering(self):
         with self.assertRaises(ValueError):
-            low_depth_trotter_simulation.simulate_dual_basis_evolution(
+            _low_depth_trotter_simulation.simulate_dual_basis_evolution(
                 self.register, FermionOperator(), input_ordering=[1, 2])
 
     def test_simulate_dual_basis_evolution_n_trotter_steps_not_integer(self):
         with self.assertRaises(ValueError):
-            low_depth_trotter_simulation.simulate_dual_basis_evolution(
+            _low_depth_trotter_simulation.simulate_dual_basis_evolution(
                 self.register, FermionOperator(), trotter_steps=1.5)
 
     def test_simulate_dual_basis_evolution_bad_n_trotter_steps(self):
         with self.assertRaises(ValueError):
-            low_depth_trotter_simulation.simulate_dual_basis_evolution(
+            _low_depth_trotter_simulation.simulate_dual_basis_evolution(
                 self.register, FermionOperator(), trotter_steps=0)
 
 
 class FourQubitFirstOrderEquivalenceWithSecondOrderTest(unittest.TestCase):
+
     def setUp(self):
         self.size = 4
         self.engine = projectq.MainEngine()
@@ -344,10 +346,10 @@ class FourQubitFirstOrderEquivalenceWithSecondOrderTest(unittest.TestCase):
 
         projectq.ops.All(projectq.ops.H) | self.register
 
-        low_depth_trotter_simulation.simulate_dual_basis_evolution(
+        _low_depth_trotter_simulation.simulate_dual_basis_evolution(
             self.register, hamiltonian, trotter_steps=3, first_order=True)
 
-        low_depth_trotter_simulation.fermionic_reorder(
+        _low_depth_trotter_simulation.fermionic_reorder(
             self.register, range(self.size - 1, -1, -1))
         self.engine.flush()
 
@@ -366,7 +368,7 @@ class FourQubitFirstOrderEquivalenceWithSecondOrderTest(unittest.TestCase):
 
         projectq.ops.All(projectq.ops.H) | self.register
 
-        low_depth_trotter_simulation.simulate_dual_basis_evolution(
+        _low_depth_trotter_simulation.simulate_dual_basis_evolution(
             self.register, hamiltonian, trotter_steps=2, first_order=True)
 
         self.engine.flush()
@@ -383,6 +385,7 @@ class FourQubitFirstOrderEquivalenceWithSecondOrderTest(unittest.TestCase):
 
 
 class HighTrotterNumberIntegrationTest(unittest.TestCase):
+
     def test_trotter_order_does_not_matter_for_high_trotter_number(self):
         size = 4
         hamiltonian = dual_basis_hamiltonian(n_dimensions=1, system_size=size)
@@ -411,10 +414,10 @@ class HighTrotterNumberIntegrationTest(unittest.TestCase):
         projectq.ops.Swap | (reg1[1], reg1[2])
         projectq.ops.C(projectq.ops.Z) | (reg1[1], reg1[2])
 
-        low_depth_trotter_simulation.simulate_dual_basis_evolution(
+        _low_depth_trotter_simulation.simulate_dual_basis_evolution(
             reg1, hamiltonian=hamiltonian, trotter_steps=7,
             input_ordering=[0, 2, 1, 3], first_order=False)
-        low_depth_trotter_simulation.simulate_dual_basis_evolution(
+        _low_depth_trotter_simulation.simulate_dual_basis_evolution(
             reg2, hamiltonian=hamiltonian, trotter_steps=7, first_order=False)
 
         # Undo the inital swaps on reg1.

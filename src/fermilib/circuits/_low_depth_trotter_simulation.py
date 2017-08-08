@@ -70,10 +70,10 @@ def special_F_adjacent(register, qubit_index, xx_yy_angle, zz_angle):
     S | register[qubit_index + 1]
 
 
-def dual_basis_trotter_step(register, hamiltonian, input_ordering=None,
-                            first_order=True):
+def simulation_gate_trotter_step(register, hamiltonian, input_ordering=None,
+                                 first_order=True):
     """Simulate a unit time Trotter step under the plane wave dual basis
-    Hamiltonian.
+    Hamiltonian using the fermionic simulation gate.
 
     Args:
         register (projectq.QuReg): The register to apply the unitary to.
@@ -207,7 +207,7 @@ def simulate_dual_basis_evolution(register, hamiltonian, trotter_steps=1,
     trotterized_hamiltonian = hamiltonian / float(trotter_steps)
 
     for i in range(trotter_steps):
-        input_ordering = dual_basis_trotter_step(
+        input_ordering = simulation_gate_trotter_step(
             register, trotterized_hamiltonian, input_ordering, first_order)
 
     return input_ordering
