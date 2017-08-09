@@ -13,7 +13,6 @@
 from ._chemical_series import (make_atomic_ring,
                                make_atomic_lattice,
                                make_atom)
-from ._graph import Graph, Node
 
 from ._grid import Grid
 
@@ -56,9 +55,3 @@ from ._sparse_tools import (expectation,
                             sparse_eigenspectrum)
 
 from ._trotter_error import error_bound, error_operator
-
-from ._unitary_cc import (uccsd_operator,
-                          uccsd_singlet_evolution,
-                          uccsd_trotter_engine,
-                          uccsd_singlet_operator,
-                          uccsd_singlet_paramsize)
