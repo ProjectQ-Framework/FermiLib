@@ -16,7 +16,6 @@ Within the context of FermiLib, parallel bubble sort can be used to
 quickly reorder fermionic modes or qubits.
 """
 from functools import partial
-from itertools import product
 
 
 def index_of_position_in_1d_array(coordinate_ordering, system_side_length,
