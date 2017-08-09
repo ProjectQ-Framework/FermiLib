@@ -183,15 +183,112 @@ class bravyi_kitaev_fastTransformTest(unittest.TestCase):
         bksf_vacuum_state = numpy.dot(bksf_vacuum_state_matrix, vacuum_state)
         two_fermion_state = numpy.dot(fermion_generation_matrix,
                                       bksf_vacuum_state)
-        # using number operator to check the number of fermions generated
+        # using total number operator to check the number of fermions generated
         tot_number_operator = _bksf.number_operator(self.molecular_hamiltonian)
         number_operator_sp_matrix = get_sparse_operator(tot_number_operator)
         number_operator_matrix = number_operator_sp_matrix.toarray()
         tot_fermions = numpy.dot(two_fermion_state.conjugate().T,
                                  numpy.dot(number_operator_matrix,
                                  two_fermion_state))
+        # checking the occupation number of site 2 and 3
+        number_operator_2 = _bksf.number_operator(self.molecular_hamiltonian,
+                                                  2)
+        number_operator_3 = _bksf.number_operator(self.molecular_hamiltonian,
+                                                  3)
+        number_operator_23 = number_operator_2 + number_operator_3
+        number_operator_23_sp_matrix = get_sparse_operator(number_operator_23)
+        number_operator_23_matrix = number_operator_23_sp_matrix.toarray()
+        tot_23_fermions = numpy.dot(two_fermion_state.conjugate().T,
+                                    numpy.dot(number_operator_23_matrix,
+                                              two_fermion_state))
         self.assertTrue(2.0 - float(tot_fermions.real) < 1e-13)
+        self.assertTrue(2.0 - float(tot_23_fermions.real) < 1e-13)
 
+    def test_bravyi_kitaev_fast_excitation_terms(self):
+        # Testing on-site and excitation terms in Hamiltonian
+        constant = 0
+        one_body = numpy.array([[1, 2, 0, 3],[2, 1, 2, 0],[0, 2, 1, 2.5],
+                                [3, 0, 2.5, 1]])
+        # No Coloumb interaction
+        two_body = numpy.zeros((4, 4, 4, 4))
+        molecular_hamiltonian = InteractionOperator(constant,
+                                                    one_body, two_body)
+        n_qubits = count_qubits(molecular_hamiltonian)
+        # comparing the eigenspectrum of Hamiltonian
+        bravyi_kitaev_fast_H = _bksf.bravyi_kitaev_fast(molecular_hamiltonian)
+        jw_H = jordan_wigner(molecular_hamiltonian)
+        bravyi_kitaev_fast_H_eig = eigenspectrum(bravyi_kitaev_fast_H)
+        jw_H_eig = eigenspectrum(jw_H)
+        bravyi_kitaev_fast_H_eig = bravyi_kitaev_fast_H_eig.round(5)
+        jw_H_eig = jw_H_eig.round(5)
+        evensector_H = 0
+        for i in range(numpy.size(jw_H_eig)):
+            if bool(numpy.size(numpy.where(jw_H_eig[i] ==
+                                           bravyi_kitaev_fast_H_eig))):
+                evensector_H += 1
+
+        # comparing eigenspectrum of number operator
+        bravyi_kitaev_fast_n = _bksf.number_operator(molecular_hamiltonian)
+        jw_n = QubitOperator()
+        n_qubits = count_qubits(molecular_hamiltonian)
+        for i in range(n_qubits):
+            jw_n += jordan_wigner_one_body(i, i)
+        jw_eig_spec = eigenspectrum(jw_n)
+        bravyi_kitaev_fast_eig_spec = eigenspectrum(bravyi_kitaev_fast_n)
+        evensector_n = 0
+        for i in range(numpy.size(jw_eig_spec)):
+            if bool(numpy.size(numpy.where(jw_eig_spec[i] ==
+                                           bravyi_kitaev_fast_eig_spec))):
+                evensector_n += 1
+        self.assertEqual(evensector_H, 2**(n_qubits - 1))
+        self.assertEqual(evensector_n, 2**(n_qubits - 1))
+
+    def test_bravyi_kitaev_fast_number_excitation_operator(self):
+        # using hydrogen Hamiltonian and introducing some number operator terms
+        constant = 0
+        one_body = numpy.array([[1, 2, 0, 3], [2, 1, 2, 0], [0, 2, 1, 2.5],
+                                [3, 0, 2.5, 1]])
+        two_body = self.molecular_hamiltonian.two_body_tensor
+        # initiating number operator terms for all the possible cases
+        two_body[(1, 2, 3, 1)] = 0.1
+        two_body[(1, 3, 2, 1)] = 0.1
+        two_body[(1, 2, 1, 3)] = 0.15
+        two_body[(3, 1, 2, 1)] = 0.15
+        two_body[(0, 2, 2, 1)] = 0.09
+        two_body[(1, 2, 2, 0)] = 0.09
+        two_body[(1, 2, 3, 2)] = 0.11
+        two_body[(2, 3, 2, 1)] = 0.11
+        molecular_hamiltonian = InteractionOperator(constant,
+                                                    one_body, two_body)
+        # comparing the eigenspectrum of Hamiltonian
+        n_qubits = count_qubits(molecular_hamiltonian)
+        bravyi_kitaev_fast_H = _bksf.bravyi_kitaev_fast(molecular_hamiltonian)
+        jw_H = jordan_wigner(molecular_hamiltonian)
+        bravyi_kitaev_fast_H_eig = eigenspectrum(bravyi_kitaev_fast_H)
+        jw_H_eig = eigenspectrum(jw_H)
+        bravyi_kitaev_fast_H_eig = bravyi_kitaev_fast_H_eig.round(5)
+        jw_H_eig = jw_H_eig.round(5)
+        evensector_H = 0
+        for i in range(numpy.size(jw_H_eig)):
+            if bool(numpy.size(numpy.where(jw_H_eig[i] ==
+                                           bravyi_kitaev_fast_H_eig))):
+                evensector_H += 1
+
+        # comparing eigenspectrum of number operator
+        bravyi_kitaev_fast_n = _bksf.number_operator(molecular_hamiltonian)
+        jw_n = QubitOperator()
+        n_qubits = count_qubits(molecular_hamiltonian)
+        for i in range(n_qubits):
+            jw_n += jordan_wigner_one_body(i, i)
+        jw_eig_spec = eigenspectrum(jw_n)
+        bravyi_kitaev_fast_eig_spec = eigenspectrum(bravyi_kitaev_fast_n)
+        evensector_n = 0
+        for i in range(numpy.size(jw_eig_spec)):
+            if bool(numpy.size(numpy.where(jw_eig_spec[i] ==
+                                           bravyi_kitaev_fast_eig_spec))):
+                evensector_n += 1
+        self.assertEqual(evensector_H, 2**(n_qubits - 1))
+        self.assertEqual(evensector_n, 2**(n_qubits - 1))
 
 if __name__ == '__main__':
     unittest.main()
