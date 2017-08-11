@@ -15,18 +15,18 @@ from __future__ import absolute_import
 import os
 import unittest
 
-from fermilib.config import *
-from fermilib.ops import *
-from fermilib.transforms import *
+from fermilib.config import (THIS_DIRECTORY)
+from fermilib.ops import (FermionOperator, InteractionOperator, normal_ordered)
+from fermilib.transforms._conversion import (get_fermion_operator,
+                                             get_sparse_operator)
 from fermilib.transforms._jordan_wigner import (jordan_wigner,
                                                 jordan_wigner_one_body)
-from fermilib.utils import *
-from fermilib.utils import count_qubits
+from fermilib.utils import (count_qubits, MolecularData, eigenspectrum)
 
 import numpy
 from projectq.ops import QubitOperator
 
-from . import _bksf
+import _bksf
 
 
 class bravyi_kitaev_fastTransformTest(unittest.TestCase):
@@ -61,9 +61,9 @@ class bravyi_kitaev_fastTransformTest(unittest.TestCase):
         self.hamiltonian_matrix = get_sparse_operator(
                                                     self.molecular_hamiltonian)
 
-    def test_bad_inumpyut(self):
+    def test_bad_input(self):
         with self.assertRaises(TypeError):
-            _bksf.bravyi_kitaev_fast(FermionOperator((2, 1), 1))
+            _bksf.bravyi_kitaev_fast(FermionOperator())
 
     def test_bravyi_kitaev_fast_edgeoperator_Bi(self):
         # checking the edge operators
@@ -258,6 +258,7 @@ class bravyi_kitaev_fastTransformTest(unittest.TestCase):
         two_body[(1, 2, 2, 0)] = 0.09
         two_body[(1, 2, 3, 2)] = 0.11
         two_body[(2, 3, 2, 1)] = 0.11
+        two_body[(2, 2, 2, 2)] = 0.1
         molecular_hamiltonian = InteractionOperator(constant,
                                                     one_body, two_body)
         # comparing the eigenspectrum of Hamiltonian
