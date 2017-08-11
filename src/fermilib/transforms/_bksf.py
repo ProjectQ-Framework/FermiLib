@@ -166,7 +166,7 @@ def bravyi_kitaev_fast_edge_matrix(iop, n_qubits=None):
                                 continue
 
                     # Handle case of four unique indices.
-                    elif len(set([p, q, r, s])) == 4:
+                    if len(set([p, q, r, s])) == 4:
 
                         if coefficient2 and p >= q:
                             edge_matrix[p, q] = bool(complex(iop[p, q, r, s]))

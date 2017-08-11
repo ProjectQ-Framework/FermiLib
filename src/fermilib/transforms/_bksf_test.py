@@ -26,7 +26,7 @@ from fermilib.utils import (count_qubits, MolecularData, eigenspectrum)
 import numpy
 from projectq.ops import QubitOperator
 
-import _bksf
+from . import _bksf
 
 
 class bravyi_kitaev_fastTransformTest(unittest.TestCase):
@@ -207,7 +207,7 @@ class bravyi_kitaev_fastTransformTest(unittest.TestCase):
     def test_bravyi_kitaev_fast_excitation_terms(self):
         # Testing on-site and excitation terms in Hamiltonian
         constant = 0
-        one_body = numpy.array([[1, 2, 0, 3],[2, 1, 2, 0],[0, 2, 1, 2.5],
+        one_body = numpy.array([[1, 2, 0, 3], [2, 1, 2, 0], [0, 2, 1, 2.5],
                                 [3, 0, 2.5, 1]])
         # No Coloumb interaction
         two_body = numpy.zeros((4, 4, 4, 4))
@@ -246,8 +246,11 @@ class bravyi_kitaev_fastTransformTest(unittest.TestCase):
     def test_bravyi_kitaev_fast_number_excitation_operator(self):
         # using hydrogen Hamiltonian and introducing some number operator terms
         constant = 0
-        one_body = numpy.array([[1, 2, 0, 3], [2, 1, 2, 0], [0, 2, 1, 2.5],
-                                [3, 0, 2.5, 1]])
+        one_body = numpy.zeros((4,4))
+        one_body[(0, 0)] = .4
+        one_body[(1, 1)] = .5
+        one_body[(2, 2)] = .6
+        one_body[(3, 3)] = .7
         two_body = self.molecular_hamiltonian.two_body_tensor
         # initiating number operator terms for all the possible cases
         two_body[(1, 2, 3, 1)] = 0.1
