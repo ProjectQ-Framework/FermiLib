@@ -89,8 +89,6 @@ class MolecularDataTest(unittest.TestCase):
         n_atoms = self.molecule.n_atoms
         orbitals = self.molecule.canonical_orbitals
         self.assertFalse(orbitals is None)
-        overlaps = self.molecule.orbital_overlaps
-        self.assertFalse(overlaps is None)
         self.molecule.n_atoms += 1
         self.assertEqual(self.molecule.n_atoms, n_atoms + 1)
         self.molecule.load()
