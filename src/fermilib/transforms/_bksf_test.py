@@ -26,7 +26,7 @@ from fermilib.utils import (count_qubits, MolecularData, eigenspectrum)
 import numpy
 from projectq.ops import QubitOperator
 
-import _bksf
+from . import _bksf
 
 
 class bravyi_kitaev_fastTransformTest(unittest.TestCase):
