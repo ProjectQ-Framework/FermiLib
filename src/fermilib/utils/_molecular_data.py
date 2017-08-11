@@ -328,6 +328,7 @@ class MolecularData(object):
 
         # Molecular orbitals
         self._canonical_orbitals = None
+        self._orbital_overlaps = None
 
         # Electronic Integrals
         self._one_body_integrals = None
@@ -356,18 +357,6 @@ class MolecularData(object):
     @canonical_orbitals.setter
     def canonical_orbitals(self, value):
         self._canonical_orbitals = value
-
-    @property
-    def orbital_overlaps(self):
-        if self._orbital_overlaps is None:
-            data = self.get_from_file("one_body_integrals")
-            self._orbital_overlaps = (data if data is not None and
-                                      data.dtype.num != 0 else None)
-        return self._orbital_overlaps
-
-    @orbital_overlaps.setter
-    def orbital_overlaps(self, value):
-        self._orbital_overlaps = value
 
     @property
     def one_body_integrals(self):
