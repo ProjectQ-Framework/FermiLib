@@ -657,8 +657,6 @@ class MolecularData(object):
                 data = f[property_name][...]
         except KeyError:
             data = None
-        except IOError:
-            data = None
         return data
 
     def get_n_alpha_electrons(self):
