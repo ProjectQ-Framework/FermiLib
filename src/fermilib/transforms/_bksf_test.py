@@ -246,7 +246,7 @@ class bravyi_kitaev_fastTransformTest(unittest.TestCase):
     def test_bravyi_kitaev_fast_number_excitation_operator(self):
         # using hydrogen Hamiltonian and introducing some number operator terms
         constant = 0
-        one_body = numpy.zeros((4,4))
+        one_body = numpy.zeros((4, 4))
         one_body[(0, 0)] = .4
         one_body[(1, 1)] = .5
         one_body[(2, 2)] = .6
