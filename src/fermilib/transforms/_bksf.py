@@ -206,9 +206,6 @@ def one_body(edge_matrix_indices, p, q):
 
     The definitions for various operators will be presented in a paper soon.
 
-    Author: Kanav Setia, Whitfield Group, Dartmouth College.
-    Email: kanav.setia.gr@dartmouth.edu
-
     Args:
         edge_matrix_indices(numpy array): Specifying the edges
         p and q (int): specifying the one body term.
@@ -238,8 +235,6 @@ def two_body(edge_matrix_indices, p, q, r, s):
     Map the term a^\dagger_p a^\dagger_q a_r a_s + h.c. to QubitOperator.
 
     The definitions for various operators will be covered in a paper soon.
-    Author: Kanav Setia, Whitfield Group, Dartmouth College.
-    Email: kanav.setia.gr@dartmouth.edu
 
     Args:
         edge_matrix_indices (numpy array): specifying the edges
