@@ -71,9 +71,6 @@ def bravyi_kitaev_fast_interaction_op(iop):
     operators are chosen according to the nomenclature defined above
     (B_i and A_ij).
 
-    Author: Kanav Setia, Whitfield Group, Dartmouth College.
-    Email: kanav.setia.gr@dartmouth.edu
-
     Args:
         iop (Interaction Operator):
         n_qubit (int): Number of qubits
