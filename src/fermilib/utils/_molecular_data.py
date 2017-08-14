@@ -211,7 +211,6 @@ class MolecularData(object):
         n_qubits: Integer giving total number of qubits that would be needed.
         orbital_energies: Numpy array giving the canonical orbital energies.
         fock_matrix: Numpy array giving the Fock matrix.
-        orbital_overlaps: Numpy array giving the orbital overlap coefficients.
         one_body_integrals: Numpy array of one-electron integrals
         two_body_integrals: Numpy array of two-electron integrals
         mp2_energy: Energy from MP2 perturbation theory.
@@ -305,9 +304,6 @@ class MolecularData(object):
         self.hf_energy = None
         self.orbital_energies = None
 
-        # Attributes generated from integrals.
-        self._orbital_overlaps = None
-
         # Attributes generated from MP2 calculation.
         self.mp2_energy = None
 
@@ -328,7 +324,6 @@ class MolecularData(object):
 
         # Molecular orbitals
         self._canonical_orbitals = None
-        self._orbital_overlaps = None
 
         # Electronic Integrals
         self._one_body_integrals = None
@@ -511,12 +506,6 @@ class MolecularData(object):
                                    self.orbital_energies is not None else
                                    False))
             # Save attributes generated from integrals.
-            f.create_dataset("orbital_overlaps",
-                             data=(self.orbital_overlaps if
-                                   self.orbital_overlaps is
-                                   not None else False),
-                             compression=("gzip" if self.orbital_overlaps
-                                          is not None else None))
             f.create_dataset("one_body_integrals",
                              data=(self.one_body_integrals if
                                    self.one_body_integrals is
