@@ -115,7 +115,6 @@ class MolecularDataTest(unittest.TestCase):
         molecule.hf_energy = 99.
         molecule.canonical_orbitals = [1, 2, 3, 4]
         molecule.orbital_energies = [5, 6, 7, 8]
-        molecule.orbital_overlaps = [1, 2, 3, 4]
         molecule.one_body_integrals = [5, 6, 7, 8]
         molecule.two_body_integrals = [5, 6, 7, 8]
         molecule.mp2_energy = -12.
