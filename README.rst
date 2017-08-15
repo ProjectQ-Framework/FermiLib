@@ -20,7 +20,7 @@ Getting started
 ---------------
 
 To start using FermiLib, follow the installation instructions in the `intro <http://fermilib.readthedocs.io/en/latest/intro.html>`__. There, you will also find `code examples <http://fermilib.readthedocs.io/en/latest/examples.html>`__. Also, make sure to check out the `ProjectQ
-website <http://www.projectq.ch>`__ and the detailed `code documentation <http://fermilib.readthedocs.io/en/latest/fermilib.html>`__. Moreover, take a look at the available plugins for FermiLib.
+website <http://www.projectq.ch>`__ and the detailed `code documentation <http://fermilib.readthedocs.io/en/latest/fermilib.html>`__. Alternatively, consider creating a Docker container defined by the Dockerfile found inside the `docker` directory. Moreover, take a look at the available plugins for FermiLib.
 
 Plugins
 -------
