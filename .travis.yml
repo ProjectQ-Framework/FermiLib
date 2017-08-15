@@ -43,7 +43,7 @@ install:
   - pip$PY install coveralls
 
 # command to run tests
-script: pytest src/fermilib --cov src/fermilib
+script: export OMP_NUM_THREADS=1 && pytest src/fermilib --cov src/fermilib
 
 after_success:
   - coveralls

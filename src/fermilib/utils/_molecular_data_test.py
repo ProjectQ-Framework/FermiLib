@@ -64,6 +64,16 @@ class MolecularDataTest(unittest.TestCase):
                                       description="0.7414")
         self.assertEqual(correct_name, computed_name)
 
+        # Check errors in naming
+        with self.assertRaises(TypeError):
+            test_molecule = MolecularData(self.geometry, self.basis,
+                                          self.multiplicity, description=5)
+        correct_name = str('H2_sto-3g_singlet')
+        test_molecule = self.molecule = MolecularData(
+            self.geometry, self.basis, self.multiplicity,
+            data_directory=DATA_DIRECTORY)
+        self.assertSequenceEqual(correct_name, test_molecule.name)
+
     def test_invalid_multiplicity(self):
         geometry = [('H', (0., 0., 0.)), ('H', (0., 0., 0.7414))]
         basis = 'sto-3g'
@@ -89,8 +99,6 @@ class MolecularDataTest(unittest.TestCase):
         n_atoms = self.molecule.n_atoms
         orbitals = self.molecule.canonical_orbitals
         self.assertFalse(orbitals is None)
-        overlaps = self.molecule.orbital_overlaps
-        self.assertFalse(overlaps is None)
         self.molecule.n_atoms += 1
         self.assertEqual(self.molecule.n_atoms, n_atoms + 1)
         self.molecule.load()
@@ -117,7 +125,6 @@ class MolecularDataTest(unittest.TestCase):
         molecule.hf_energy = 99.
         molecule.canonical_orbitals = [1, 2, 3, 4]
         molecule.orbital_energies = [5, 6, 7, 8]
-        molecule.orbital_overlaps = [1, 2, 3, 4]
         molecule.one_body_integrals = [5, 6, 7, 8]
         molecule.two_body_integrals = [5, 6, 7, 8]
         molecule.mp2_energy = -12.
