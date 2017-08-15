@@ -33,6 +33,12 @@ from fermilib.ops import InteractionOperator, InteractionRDM
     + 0.5 * \sum_{p,q,r,s} h[p,q,r,s] a_p^\dagger a_q^\dagger a_r a_s
 """
 
+# Define a compatible basestring for checking between Python 2 and 3
+try:
+    basestring
+except:
+    basestring = str
+
 
 # Define error objects which inherit from Exception.
 class MoleculeNameError(Exception):
@@ -270,8 +276,7 @@ class MolecularData(object):
 
         # Metadata fields with default values.
         self.charge = charge
-        if (not isinstance(description, str) and
-                not isinstance(description, unicode)):
+        if (not isinstance(description, basestring)):
             raise TypeError("description must be a string.")
         self.description = description
 
