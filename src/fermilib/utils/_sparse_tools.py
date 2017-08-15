@@ -14,6 +14,8 @@
 from __future__ import absolute_import
 
 from functools import reduce
+from future.utils import iteritems
+
 import itertools
 import numpy
 import numpy.linalg
@@ -22,7 +24,10 @@ import scipy.sparse
 import scipy.sparse.linalg
 
 from fermilib.config import *
-from fermilib.ops import FermionOperator
+from fermilib.ops import FermionOperator, hermitian_conjugated, normal_ordered
+from fermilib.utils import fourier_transform, Grid
+from fermilib.utils._jellium import (momentum_vector, position_vector,
+                                     grid_indices)
 
 from projectq.ops import QubitOperator
 
@@ -373,6 +378,281 @@ def expectation_computational_basis_state(operator, computational_basis_state):
     return expectation_value
 
 
+def expectation_db_operator_with_pw_basis_state(
+        operator, plane_wave_occ_orbitals, n_spatial_orbitals, grid,
+        spinless):
+    """Compute expectation value of a dual basis operator with a plane
+    wave computational basis state.
+
+    Args:
+        operator: Dual-basis representation of FermionOperator to evaluate
+                  expectation value of. Can have at most 3-body terms.
+        plane_wave_occ_orbitals (list): list of occupied plane-wave orbitals.
+        n_spatial_orbitals (int): Number of spatial orbitals.
+        grid (fermilib.utils.Grid): The grid used for discretization.
+        spinless (bool): Whether the system is spinless.
+
+    Returns:
+        A real float giving the expectation value.
+    """
+    expectation_value = operator.terms.get((), 0.0)
+
+    for single_action, coefficient in iteritems(operator.terms):
+        if len(single_action) == 2:
+            expectation_value += coefficient * (
+                expectation_one_body_db_operator_computational_basis_state(
+                    single_action, plane_wave_occ_orbitals, grid, spinless) /
+                n_spatial_orbitals)
+
+        elif len(single_action) == 4:
+            expectation_value += coefficient * (
+                expectation_two_body_db_operator_computational_basis_state(
+                    single_action, plane_wave_occ_orbitals, grid, spinless) /
+                n_spatial_orbitals ** 2)
+
+        elif len(single_action) == 6:
+            expectation_value += coefficient * (
+                expectation_three_body_db_operator_computational_basis_state(
+                    single_action, plane_wave_occ_orbitals, grid, spinless) /
+                n_spatial_orbitals ** 3)
+
+    return expectation_value
+
+
+def expectation_one_body_db_operator_computational_basis_state(
+    dual_basis_action, plane_wave_occ_orbitals, grid, spinless):
+    """Compute expectation value of a 1-body dual-basis operator with a
+    plane wave computational basis state.
+
+    Args:
+        dual_basis_action: Dual-basis action of FermionOperator to
+                           evaluate expectation value of.
+        plane_wave_occ_orbitals (list): list of occupied plane-wave orbitals.
+        grid (fermilib.utils.Grid): The grid used for discretization.
+        spinless (bool): Whether the system is spinless.
+
+    Returns:
+        A real float giving the expectation value.
+    """
+    expectation_value = 0.0
+
+    r_p = position_vector(grid_indices(dual_basis_action[0][0],
+                                       grid, spinless), grid)
+    r_q = position_vector(grid_indices(dual_basis_action[1][0],
+                                       grid, spinless), grid)
+
+    for orbital in plane_wave_occ_orbitals:
+        k_orbital = momentum_vector(grid_indices(orbital,
+                                                 grid, spinless), grid)
+        # The Fourier transform is spin-conserving. This means that
+        # the parity of the orbitals involved in the transition must
+        # be the same. Here, this means p - q must be even.
+        if spinless or (dual_basis_action[0][0] // grid.num_points() ==
+                        dual_basis_action[1][0] // grid.num_points()):
+            #(dual_basis_action[0][0] -
+            #     dual_basis_action[1][0]) % 2):        
+            expectation_value += numpy.exp(-1j * k_orbital.dot(r_p - r_q))
+
+    return expectation_value
+
+
+def expectation_two_body_db_operator_computational_basis_state(
+    dual_basis_action, plane_wave_occ_orbitals, grid, spinless):
+    """Compute expectation value of a 2-body dual-basis operator with a
+    plane wave computational basis state.
+
+    Args:
+        dual_basis_action: Dual-basis action of FermionOperator to
+                           evaluate expectation value of.
+        plane_wave_occ_orbitals (list): list of occupied plane-wave orbitals.
+        grid (fermilib.utils.Grid): The grid used for discretization.
+        spinless (bool): Whether the system is spinless.
+
+    Returns:
+        A float giving the expectation value.
+    """
+    expectation_value = 0.0
+
+    r_a = position_vector(grid_indices(dual_basis_action[0][0],
+                                       grid, spinless), grid)
+    r_b = position_vector(grid_indices(dual_basis_action[1][0],
+                                       grid, spinless), grid)
+    r_c = position_vector(grid_indices(dual_basis_action[2][0],
+                                       grid, spinless), grid)
+    r_d = position_vector(grid_indices(dual_basis_action[3][0],
+                                       grid, spinless), grid)
+
+    for orbital1 in plane_wave_occ_orbitals:
+        k_1 = momentum_vector(grid_indices(orbital1,
+                                           grid, spinless), grid)
+
+        for orbital2 in plane_wave_occ_orbitals:
+            if orbital1 != orbital2:
+                k_2 = momentum_vector(grid_indices(orbital2,
+                                                   grid, spinless), grid)
+
+                # The Fourier transform is spin-conserving. This means that
+                # the parity of the orbitals involved in the transition must
+                # be the same.
+                if spinless or not (
+                        (dual_basis_action[0][0] // grid.num_points() !=
+                         dual_basis_action[3][0] // grid.num_points()) or
+                        (dual_basis_action[1][0] // grid.num_points() !=
+                         dual_basis_action[2][0] // grid.num_points())):                   
+                    #(dual_basis_action[0][0] -
+                    #     dual_basis_action[3][0]) % 2 or
+                    #    (dual_basis_action[1][0] -
+                    #     dual_basis_action[2][0]) % 2):
+                    value = numpy.exp(-1j * (
+                        k_1.dot(r_a - r_d) + k_2.dot(r_b - r_c)))
+                    # Add because it came from two anti-commutations.
+                    expectation_value += value
+
+                # The Fourier transform is spin-conserving. This means that
+                # the parity of the orbitals involved in the transition must
+                # be the same.
+                if spinless or not (
+                    #(dual_basis_action[0][0] -
+                    #     dual_basis_action[2][0]) % 2 or
+                    #    (dual_basis_action[1][0] -
+                    #     dual_basis_action[3][0]) % 2):
+                        (dual_basis_action[0][0] // grid.num_points() !=
+                         dual_basis_action[2][0] // grid.num_points()) or
+                        (dual_basis_action[1][0] // grid.num_points() !=
+                         dual_basis_action[3][0] // grid.num_points())):
+                    value = numpy.exp(-1j * (
+                        k_1.dot(r_a - r_c) + k_2.dot(r_b - r_d)))
+                    # Subtract because it came from a single anti-commutation.
+                    expectation_value -= value
+
+    return expectation_value
+
+
+def expectation_three_body_db_operator_computational_basis_state(
+    dual_basis_action, plane_wave_occ_orbitals, grid, spinless):
+    """Compute expectation value of a 3-body dual-basis operator with a
+    plane wave computational basis state.
+
+    Args:
+        dual_basis_action: Dual-basis action of FermionOperator to
+                           evaluate expectation value of.
+        plane_wave_occ_orbitals (list): list of occupied plane-wave orbitals.
+        grid (fermilib.utils.Grid): The grid used for discretization.
+        spinless (bool): Whether the system is spinless.
+
+    Returns:
+        A float giving the expectation value.
+    """
+    expectation_value = 0.0
+
+    r_a = position_vector(grid_indices(dual_basis_action[0][0],
+                                       grid, spinless), grid)
+    r_b = position_vector(grid_indices(dual_basis_action[1][0],
+                                       grid, spinless), grid)
+    r_c = position_vector(grid_indices(dual_basis_action[2][0],
+                                       grid, spinless), grid)
+    r_d = position_vector(grid_indices(dual_basis_action[3][0],
+                                       grid, spinless), grid)
+    r_e = position_vector(grid_indices(dual_basis_action[4][0],
+                                       grid, spinless), grid)
+    r_f = position_vector(grid_indices(dual_basis_action[5][0],
+                                       grid, spinless), grid)
+
+    for orbital1 in plane_wave_occ_orbitals:
+        k_1 = momentum_vector(grid_indices(orbital1,
+                                           grid, spinless), grid)
+
+        for orbital2 in plane_wave_occ_orbitals:
+            if orbital1 != orbital2:
+                k_2 = momentum_vector(grid_indices(orbital2,
+                                                   grid, spinless), grid)
+
+                for orbital3 in plane_wave_occ_orbitals:
+                    if orbital1 != orbital3 and orbital2 != orbital3:
+                        k_3 = momentum_vector(
+                            grid_indices(orbital3, grid, spinless), grid)
+
+                        # Handle \delta_{ad} \delta_{bf} \delta_{ce} after FT.
+                        # The Fourier transform is spin-conserving.
+                        if spinless or not (
+                            (dual_basis_action[0][0] -
+                                 dual_basis_action[3][0]) % 2 or
+                                (dual_basis_action[1][0] -
+                                 dual_basis_action[5][0]) % 2 or
+                                (dual_basis_action[2][0] -
+                                 dual_basis_action[4][0])):
+                            expectation_value += numpy.exp(-1j * (
+                                k_1.dot(r_a - r_d) + k_2.dot(r_b - r_f) +
+                                k_3.dot(r_c - r_e)))
+
+                        # Handle -\delta_{ad} \delta_{be} \delta_{cf} after FT.
+                        # The Fourier transform is spin-conserving.
+                        if spinless or not (
+                            (dual_basis_action[0][0] -
+                                 dual_basis_action[3][0]) % 2 or
+                                (dual_basis_action[1][0] -
+                                 dual_basis_action[4][0]) % 2 or
+                                (dual_basis_action[2][0] -
+                                 dual_basis_action[5][0])):
+                            expectation_value -= numpy.exp(-1j * (
+                                k_1.dot(r_a - r_d) + k_2.dot(r_b - r_e) +
+                                k_3.dot(r_c - r_f)))
+
+                        # Handle -\delta_{ae} \delta_{bf} \delta_{cd} after FT.
+                        # The Fourier transform is spin-conserving.
+                        if spinless or not (
+                            (dual_basis_action[0][0] -
+                                 dual_basis_action[4][0]) % 2 or
+                                (dual_basis_action[1][0] -
+                                 dual_basis_action[5][0]) % 2 or
+                                (dual_basis_action[2][0] -
+                                 dual_basis_action[3][0])):
+                            expectation_value -= numpy.exp(-1j * (
+                                k_1.dot(r_a - r_e) + k_2.dot(r_b - r_f) +
+                                k_3.dot(r_c - r_d)))
+
+                        # Handle \delta_{ae} \delta_{bd} \delta_{cf} after FT.
+                        # The Fourier transform is spin-conserving.
+                        if spinless or not (
+                            (dual_basis_action[0][0] -
+                                 dual_basis_action[4][0]) % 2 or
+                                (dual_basis_action[1][0] -
+                                 dual_basis_action[3][0]) % 2 or
+                                (dual_basis_action[2][0] -
+                                 dual_basis_action[5][0])):
+                            expectation_value += numpy.exp(-1j * (
+                                k_1.dot(r_a - r_e) + k_2.dot(r_b - r_d) +
+                                k_3.dot(r_c - r_f)))
+
+                        # Handle \delta_{af} \delta_{be} \delta_{cd} after FT.
+                        # The Fourier transform is spin-conserving.
+                        if spinless or not (
+                            (dual_basis_action[0][0] -
+                                 dual_basis_action[5][0]) % 2 or
+                                (dual_basis_action[1][0] -
+                                 dual_basis_action[4][0]) % 2 or
+                                (dual_basis_action[2][0] -
+                                 dual_basis_action[3][0])):
+                            expectation_value += numpy.exp(-1j * (
+                                k_1.dot(r_a - r_f) + k_2.dot(r_b - r_e) +
+                                k_3.dot(r_c - r_d)))
+
+                        # Handle -\delta_{af} \delta_{bd} \delta_{ce} after FT.
+                        # The Fourier transform is spin-conserving.
+                        if spinless or not (
+                            (dual_basis_action[0][0] -
+                                 dual_basis_action[5][0]) % 2 or
+                                (dual_basis_action[1][0] -
+                                 dual_basis_action[3][0]) % 2 or
+                                (dual_basis_action[2][0] -
+                                 dual_basis_action[4][0])):
+                            expectation_value -= numpy.exp(-1j * (
+                                k_1.dot(r_a - r_f) + k_2.dot(r_b - r_d) +
+                                k_3.dot(r_c - r_e)))
+
+    return expectation_value
+
+
 def get_gap(sparse_operator):
     """Compute gap between lowest eigenvalue and first excited state.
 
@@ -386,3 +666,69 @@ def get_gap(sparse_operator):
 
     gap = abs(values[1] - values[0])
     return gap
+
+
+if __name__ == '__main__':
+    from fermilib.transforms import get_sparse_operator
+    from fermilib.utils import wigner_seitz_length_scale, jellium_model
+    from fermilib.utils._jellium_hf_state import (
+        lowest_single_particle_energy_states)
+    from scipy.sparse import csc_matrix
+
+    def test_1d5_with_spin_7particles():
+        dimension = 1
+        grid_length = 5
+        n_spatial_orbitals = grid_length ** dimension
+        wigner_seitz_radius = 9.3
+
+        spinless = False
+        n_qubits = n_spatial_orbitals
+        if not spinless:
+            n_qubits *= 2
+        n_particles_big = 7
+
+        length_scale = wigner_seitz_length_scale(
+            wigner_seitz_radius, n_particles_big, dimension)
+
+        grid3 = Grid(dimension, grid_length, length_scale)
+        # Get the occupied orbitals of the plane-wave basis Hartree-Fock state.
+        hamiltonian = jellium_model(grid3, spinless, plane_wave=True)
+        hamiltonian = normal_ordered(hamiltonian)
+        hamiltonian.compress()
+
+        occupied_states = numpy.array(lowest_single_particle_energy_states(
+            hamiltonian, n_particles_big))
+        hf_state_index3 = numpy.sum(2 ** occupied_states)
+
+        hf_state3 = csc_matrix(
+            ([1.0], ([hf_state_index3], [0])), shape=(2 ** n_qubits, 1))
+
+        orbital_occupations3 = [digit == '1' for digit in
+                                     bin(hf_state_index3)[2:]][::-1]
+        occupied_orbitals3 = [index for index, occupied in
+                                   enumerate(orbital_occupations3)
+                                   if occupied]
+
+        reversed_occupied_orbitals3 = list(occupied_orbitals3)
+        for i in range(len(reversed_occupied_orbitals3)):
+            reversed_occupied_orbitals3[i] = -1 + int(numpy.log2(
+                hf_state3.shape[0])) - reversed_occupied_orbitals3[i]
+
+        reversed_hf_state_index3 = sum(
+            2 ** index for index in reversed_occupied_orbitals3)
+
+        operator = (#2 * FermionOperator('26^ 20^ 11^ 23 15 4'))# +
+                    FermionOperator('7^ 2^ 4 1'))# +
+                    #FermionOperator('3^ 3', 2.1))
+        operator = normal_ordered(operator)
+        transformed_operator = normal_ordered(fourier_transform(
+            operator, grid3, spinless))
+
+        expected = expectation(get_sparse_operator(
+            transformed_operator), hf_state3)
+        actual = expectation_db_operator_with_pw_basis_state(
+            operator, reversed_occupied_orbitals3,
+            n_spatial_orbitals, grid3, spinless)
+        print(expected, actual)
+
+    test_1d5_with_spin_7particles()
