@@ -64,6 +64,16 @@ class MolecularDataTest(unittest.TestCase):
                                       description="0.7414")
         self.assertEqual(correct_name, computed_name)
 
+        # Check errors in naming
+        with self.assertRaises(TypeError):
+            test_molecule = MolecularData(self.geometry, self.basis,
+                                          self.multiplicity, description=5)
+        correct_name = str('H2_sto-3g_singlet')
+        test_molecule = self.molecule = MolecularData(
+            self.geometry, self.basis, self.multiplicity,
+            data_directory=DATA_DIRECTORY)
+        self.assertSequenceEqual(correct_name, test_molecule.name)
+
     def test_invalid_multiplicity(self):
         geometry = [('H', (0., 0., 0.)), ('H', (0., 0., 0.7414))]
         basis = 'sto-3g'
