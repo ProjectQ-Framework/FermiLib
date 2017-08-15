@@ -144,22 +144,26 @@ def simulation_gate_trotter_step(register, hamiltonian, input_ordering=None,
                 # Divide by two for second order Trotter.
                 if not first_order:
                     z_angle /= 2.
-                Rz(z_angle) | register[i]
+                # After special_F_adjacent, qubits i and i+1 have swapped;
+                # the ith rotation must thus be applied to qubit i+1.
+                Rz(z_angle) | register[i + 1]
                 Ph(z_angle / 2.) | register
 
-            num_operator_right = ((input_ordering[i + 1], 1),
-                                  (input_ordering[i + 1], 0))
+            num_operator_right = ((input_ordering[i+1], 1),
+                                  (input_ordering[i+1], 0))
             if num_operator_right in hamiltonian.terms:
                 # Jordan-Wigner maps a number term c*n_i to c*(I-Z_i)/2.
                 # Time evolution is then exp(-i c*(I-Z_i)/2), which is equal to
                 # a phase exp(-ic/2) and a rotation Rz(-c).
-                z_angle = (-hamiltonian.terms[num_operator_left] /
+                z_angle = (-hamiltonian.terms[num_operator_right] /
                            (n_qubits - 1))
 
                 # Divide by two for second order Trotter.
                 if not first_order:
                     z_angle /= 2
-                Rz(z_angle) | register[i + 1]
+                # After special_F_adjacent, qubits i and i+1 have swapped;
+                # the (i+1)th rotation must thus be applied to qubit i.
+                Rz(z_angle) | register[i]
                 Ph(z_angle / 2.) | register
 
             # Finally, swap the two modes in input_ordering.

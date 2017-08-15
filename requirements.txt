@@ -4,3 +4,4 @@ pytest>=3.0
 h5py
 future
 projectq>=0.3.1
+networkx
