@@ -296,6 +296,7 @@ class ExpectationComputationalBasisStateTest(unittest.TestCase):
 
 class ExpectationDualBasisOperatorWithPlaneWaveBasisState(unittest.TestCase):
     def setUp(self):
+        print self._testMethodName
         grid_length = 4
         dimension = 1
         wigner_seitz_radius = 10.
@@ -315,10 +316,6 @@ class ExpectationDualBasisOperatorWithPlaneWaveBasisState(unittest.TestCase):
         hamiltonian = normal_ordered(hamiltonian)
         hamiltonian.compress()
 
-        #self.hf_state1 = hartree_fock_state_jellium(
-        #    self.grid1, self.n_particles, self.spinless, plane_wave=True)
-
-        #self.hf_state_index1 = self.hf_state1.nonzero()[0][0]
         occupied_states = numpy.array(lowest_single_particle_energy_states(
             hamiltonian, self.n_particles))
         self.hf_state_index1 = numpy.sum(2 ** occupied_states)
@@ -460,8 +457,8 @@ class ExpectationDualBasisOperatorWithPlaneWaveBasisState(unittest.TestCase):
         self.reversed_hf_state_index3 = sum(
             2 ** index for index in self.reversed_occupied_orbitals3)
 
-        operator = (#2 * FermionOperator('26^ 20^ 11^ 23 15 4') +
-                    #FermionOperator('17^ 16^ 15 4', -3.7j) +
+        operator = (FermionOperator('6^ 0^ 1^ 3 5 4', 2) +
+                    FermionOperator('7^ 6^ 5 4', -3.7j) +
                     FermionOperator('3^ 3', 2.1))
         operator = normal_ordered(operator)
         transformed_operator = normal_ordered(fourier_transform(
@@ -516,9 +513,9 @@ class ExpectationDualBasisOperatorWithPlaneWaveBasisState(unittest.TestCase):
         self.reversed_hf_state_index3 = sum(
             2 ** index for index in self.reversed_occupied_orbitals3)
 
-        operator = (#2 * FermionOperator('26^ 20^ 11^ 23 15 4'))# +
-                    FermionOperator('7^ 2^ 4 1'))# +
-                    #FermionOperator('3^ 3', 2.1))
+        operator = (FermionOperator('6^ 0^ 1^ 3 5 4', 2) +
+                    FermionOperator('7^ 2^ 4 1') +
+                    FermionOperator('3^ 3', 2.1))
         operator = normal_ordered(operator)
         transformed_operator = normal_ordered(fourier_transform(
             operator, self.grid3, spinless))
@@ -572,8 +569,8 @@ class ExpectationDualBasisOperatorWithPlaneWaveBasisState(unittest.TestCase):
         self.reversed_hf_state_index3 = sum(
             2 ** index for index in self.reversed_occupied_orbitals3)
 
-        operator = (#2 * FermionOperator('26^ 20^ 11^ 23 15 4') +
-                    #FermionOperator('17^ 16^ 15 4', -3.7j))# +
+        operator = (FermionOperator('16^ 10^ 11^ 13 15 4', 2) +
+                    FermionOperator('17^ 16^ 15 4', -3.7j) +
                     FermionOperator('11^ 11', 2.1))
         operator = normal_ordered(operator)
         transformed_operator = normal_ordered(fourier_transform(
@@ -628,9 +625,9 @@ class ExpectationDualBasisOperatorWithPlaneWaveBasisState(unittest.TestCase):
         self.reversed_hf_state_index3 = sum(
             2 ** index for index in self.reversed_occupied_orbitals3)
 
-        operator = (#2 * FermionOperator('26^ 20^ 11^ 23 15 4') +
-                    #FermionOperator('17^ 16^ 15 4', -3.7j) +
-                    FermionOperator('11^ 11', 2.1))
+        operator = (FermionOperator('14^ 10^ 11^ 13 5 4', 2) +
+                    FermionOperator('15^ 14^ 15 4', -3.7j) +
+                    FermionOperator('11^ 7', 2.1))
         operator = normal_ordered(operator)
         transformed_operator = normal_ordered(fourier_transform(
             operator, self.grid3, spinless))
@@ -653,3 +650,7 @@ class GetGapTest(unittest.TestCase):
                     QubitOperator('Z0 Z1', 1j) + QubitOperator((), 2 + 1j))
         with self.assertRaises(ValueError):
             get_gap(get_sparse_operator(operator))
+
+
+if __name__ == '__main__':
+    unittest.main()
