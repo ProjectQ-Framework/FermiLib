@@ -96,7 +96,9 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
                                               2 ** self.size).T
 
         self.assertTrue(numpy.allclose(ordered_wavefunction(self.engine),
-                                       expected.T))
+                                       expected.T),
+                        msg=str(ordered_wavefunction(self.engine) -
+                                expected.T))
 
     def test_simulate_n0n3(self):
         hamiltonian = FermionOperator('3^ 0^ 3 0')
@@ -114,7 +116,9 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
                                               2 ** self.size).T
 
         self.assertTrue(numpy.allclose(ordered_wavefunction(self.engine),
-                                       expected.T))
+                                       expected.T),
+                        msg=str(ordered_wavefunction(self.engine) -
+                                expected.T))
 
     def test_simulate_n1n3(self):
         hamiltonian = FermionOperator('3^ 1^ 3 1')
@@ -132,7 +136,9 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
                                               2 ** self.size).T
 
         self.assertTrue(numpy.allclose(ordered_wavefunction(self.engine),
-                                       expected.T))
+                                       expected.T),
+                        msg=str(ordered_wavefunction(self.engine) -
+                                expected.T))
 
     def test_single_trotter_step_no_input_ordering_n1n3(self):
         hamiltonian = FermionOperator('3^ 1^ 3 1')
@@ -150,7 +156,9 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
                                               2 ** self.size).T
 
         self.assertTrue(numpy.allclose(ordered_wavefunction(self.engine),
-                                       expected.T))
+                                       expected.T),
+                        msg=str(ordered_wavefunction(self.engine) -
+                                expected.T))
 
     def test_simulate_hopping_0_to_1(self):
         hamiltonian = FermionOperator('1^ 0') + FermionOperator('0^ 1')
@@ -169,7 +177,9 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
                                               2 ** self.size).T
 
         self.assertTrue(numpy.allclose(ordered_wavefunction(self.engine),
-                                       expected.T))
+                                       expected.T),
+                        msg=str(ordered_wavefunction(self.engine) -
+                                expected.T))
 
     def test_simulate_hopping_1_to_3(self):
         hamiltonian = FermionOperator('1^ 3') + FermionOperator('3^ 1')
@@ -236,7 +246,7 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
         self.assertTrue(numpy.allclose(ordered_wavefunction(self.engine),
                                        expected.T, atol=1e-2))
 
-    def test_simulate_multiple_number_terms(self):
+    def test_simulate_multiple_two_number_terms(self):
         hamiltonian = (0.37 * FermionOperator('1^ 0^ 1 0') +
                        2.4 * FermionOperator('3^ 0^ 3 0') -
                        2 * FermionOperator('3^ 1^ 3 1'))
@@ -259,7 +269,42 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
                                               2 ** self.size).T
 
         self.assertTrue(numpy.allclose(ordered_wavefunction(self.engine),
-                                       expected.T))
+                                       expected.T),
+                        msg=str(numpy.array(ordered_wavefunction(self.engine) -
+                                            expected.T)))
+
+    def test_simulate_single_and_double_number_terms(self):
+        hamiltonian = (0.37 * FermionOperator('1^ 0^ 1 0') +
+                       2.4 * FermionOperator('3^ 0^ 3 0') -
+                       2 * FermionOperator('3^ 1^ 3 1') +
+                       1.1 * FermionOperator('2^ 2') +
+                       1.7 * FermionOperator('0^ 0') -
+                       0.3 * FermionOperator('3^ 3'))
+
+        projectq.ops.All(projectq.ops.H) | self.register
+
+        _low_depth_trotter_simulation.simulate_dual_basis_evolution(
+            self.register, hamiltonian, trotter_steps=1, first_order=False)
+
+        self.engine.flush()
+
+        # get_sparse_operator reverses the indices, so reverse the sites
+        # the Hamiltonian acts on so as to compare them.
+        reversed_operator = (0.37 * FermionOperator('3^ 2^ 3 2') +
+                             2.4 * FermionOperator('3^ 0^ 3 0') -
+                             2 * FermionOperator('2^ 0^ 2 0') +
+                             1.1 * FermionOperator('1^ 1') +
+                             1.7 * FermionOperator('3^ 3') -
+                             0.3 * FermionOperator('0^ 0'))
+        evol_matrix = expm(-1j * get_sparse_operator(
+            reversed_operator, n_qubits=self.size)).todense()
+        expected = evol_matrix * numpy.matrix([2 ** (-self.size / 2.)] *
+                                              2 ** self.size).T
+
+        self.assertTrue(numpy.allclose(ordered_wavefunction(self.engine),
+                                       expected.T),
+                        msg=str(numpy.array(ordered_wavefunction(self.engine) -
+                                            expected.T)))
 
     def test_simulate_overlapping_number_and_hopping_terms(self):
         hamiltonian = (0.37 * FermionOperator('1^ 0^ 1 0') +
@@ -283,7 +328,9 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
 
         self.assertTrue(numpy.allclose(ordered_wavefunction(self.engine),
                                        expected.T,
-                                       atol=1e-2))
+                                       atol=1e-2),
+                        msg=str(numpy.array(ordered_wavefunction(self.engine) -
+                                            expected.T)))
 
     def test_simulate_dual_basis_hamiltonian(self):
         hamiltonian = dual_basis_hamiltonian(1, self.size)
@@ -313,7 +360,52 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
 
         self.assertTrue(numpy.allclose(ordered_wavefunction(self.engine),
                                        expected.T,
-                                       atol=1e-2))
+                                       atol=1e-2),
+                        msg=str(numpy.array(ordered_wavefunction(self.engine) -
+                                            expected.T)))
+
+    def test_simulate_dual_basis_hamiltonian_with_spin_and_potentials(self):
+        big_eng = projectq.MainEngine()
+        big_reg = big_eng.allocate_qureg(2 * self.size)
+        hamiltonian = dual_basis_hamiltonian(1, self.size, spinless=False)
+
+        for i in range(2 * self.size):
+            coefficient = 1. / (i + 1)
+            if i % 3:
+                coefficient = -coefficient
+            hamiltonian += FermionOperator(((i, 1), (i, 0)), coefficient)
+
+        # Choose random state.
+        initial_state = numpy.zeros(2 ** (2 * self.size), dtype=complex)
+        for i in range(len(initial_state)):
+            initial_state[i] = (random.random() *
+                                numpy.exp(1j * 2 * numpy.pi * random.random()))
+        initial_state /= numpy.linalg.norm(initial_state)
+
+        # Put randomly chosen state in the registers.
+        big_eng.flush()
+        big_eng.backend.set_wavefunction(initial_state, big_reg)
+
+        _low_depth_trotter_simulation.simulate_dual_basis_evolution(
+            big_reg, hamiltonian, trotter_steps=7, first_order=False,
+            input_ordering=list(range(7, -1, -1)))
+
+        big_eng.flush()
+
+        # get_sparse_operator reverses the indices - we've accounted for this
+        # with the reversed input_ordering.
+        evol_matrix = expm(-1j * get_sparse_operator(
+            hamiltonian, n_qubits=2*self.size)).todense()
+        initial_state = numpy.matrix(initial_state).T
+        expected = evol_matrix * initial_state
+
+        self.assertTrue(numpy.allclose(ordered_wavefunction(big_eng),
+                                       expected.T,
+                                       atol=1e-2),
+                        msg=str(numpy.array(ordered_wavefunction(big_eng) -
+                                            expected.T)))
+
+        projectq.ops.All(projectq.ops.Measure) | big_reg
 
     def test_simulate_dual_basis_evolution_bad_input_ordering(self):
         with self.assertRaises(ValueError):
