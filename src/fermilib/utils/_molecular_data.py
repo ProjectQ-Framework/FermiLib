@@ -649,8 +649,9 @@ class MolecularData(object):
         try:
             with h5py.File("{}.hdf5".format(self.filename), "r") as f:
                 data = f[property_name][...]
-        except KeyError:
+        except (KeyError, IOError):
             data = None
+
         return data
 
     def get_n_alpha_electrons(self):
