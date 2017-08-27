@@ -481,6 +481,9 @@ class SwapAdjacentFermionicModesTest(unittest.TestCase):
 
 
 class FFFTPlaneWaveIntegrationTest(unittest.TestCase):
+    def setUp(self):
+        random.seed(17)
+
     def test_4mode_ffft_with_external_swaps_all_logical_states(self):
         n_qubits = 4
 
