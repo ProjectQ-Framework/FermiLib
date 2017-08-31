@@ -532,7 +532,7 @@ class ExpectationDualBasisOperatorWithPlaneWaveBasisState(unittest.TestCase):
 
         self.assertAlmostEqual(expected, actual)
 
-    # @unittest.skip('too much ram')
+    @unittest.skip('too much ram')
     def test_2d3_with_spin(self):
         dimension = 2
         grid_length = 3
