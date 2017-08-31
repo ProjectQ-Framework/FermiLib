@@ -76,6 +76,7 @@ class FourQubitSecondOrderTrotterTest(unittest.TestCase):
         self.size = 4
         self.engine = projectq.MainEngine()
         self.register = self.engine.allocate_qureg(self.size)
+        random.seed(17)
 
     def tearDown(self):
         projectq.ops.All(projectq.ops.Measure) | self.register
@@ -477,6 +478,9 @@ class FourQubitFirstOrderEquivalenceWithSecondOrderTest(unittest.TestCase):
 
 
 class HighTrotterNumberIntegrationTest(unittest.TestCase):
+
+    def setUp(self):
+        random.seed(17)
 
     def test_trotter_order_does_not_matter_for_high_trotter_number(self):
         size = 4
