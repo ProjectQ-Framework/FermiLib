@@ -534,6 +534,7 @@ class ExpectationDualBasisOperatorWithPlaneWaveBasisState(unittest.TestCase):
 
     @unittest.skip('too much ram')
     def test_2d3_with_spin(self):
+
         dimension = 2
         grid_length = 3
         n_spatial_orbitals = grid_length ** dimension
