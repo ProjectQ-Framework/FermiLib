@@ -532,67 +532,6 @@ class ExpectationDualBasisOperatorWithPlaneWaveBasisState(unittest.TestCase):
 
         self.assertAlmostEqual(expected, actual)
 
-    @unittest.skip('too much ram')
-    def test_2d3_with_spin(self):
-
-        dimension = 2
-        grid_length = 3
-        n_spatial_orbitals = grid_length ** dimension
-        wigner_seitz_radius = 9.3
-
-        spinless = False
-        n_qubits = n_spatial_orbitals
-        if not spinless:
-            n_qubits *= 2
-        n_particles_big = 6
-
-        length_scale = wigner_seitz_length_scale(
-            wigner_seitz_radius, n_particles_big, dimension)
-
-        self.grid3 = Grid(dimension, grid_length, length_scale)
-        # Get the occupied orbitals of the plane-wave basis Hartree-Fock state.
-        hamiltonian = jellium_model(self.grid3, spinless, plane_wave=True)
-        hamiltonian = normal_ordered(hamiltonian)
-        hamiltonian.compress()
-
-        occupied_states = numpy.array(lowest_single_particle_energy_states(
-            hamiltonian, n_particles_big))
-        self.hf_state_index3 = numpy.sum(2 ** occupied_states)
-
-        self.hf_state3 = csc_matrix(
-            ([1.0], ([self.hf_state_index3], [0])), shape=(2 ** n_qubits, 1))
-
-        self.orbital_occupations3 = [digit == '1' for digit in
-                                     bin(self.hf_state_index3)[2:]][::-1]
-        self.occupied_orbitals3 = [index for index, occupied in
-                                   enumerate(self.orbital_occupations3)
-                                   if occupied]
-
-        self.reversed_occupied_orbitals3 = list(self.occupied_orbitals3)
-        for i in range(len(self.reversed_occupied_orbitals3)):
-            self.reversed_occupied_orbitals3[i] = -1 + int(numpy.log2(
-                self.hf_state3.shape[0])) - self.reversed_occupied_orbitals3[i]
-
-        self.reversed_hf_state_index3 = sum(
-            2 ** index for index in self.reversed_occupied_orbitals3)
-
-        operator = (FermionOperator('7^ 6^ 3^ 5 4 1', 2) +
-                    FermionOperator('6^ 5^ 2 1', -3.7j) +
-                    FermionOperator('0^ 6', 2.1) +
-                    FermionOperator('5^ 3^ 1 0', 7.3))
-        operator = normal_ordered(operator)
-        transformed_operator = normal_ordered(fourier_transform(
-            operator, self.grid3, spinless))
-
-        expected = expectation(get_sparse_operator(
-            transformed_operator), self.hf_state3)
-        actual = expectation_db_operator_with_pw_basis_state(
-            operator, self.reversed_occupied_orbitals3,
-            n_spatial_orbitals, self.grid3, spinless)
-        print
-        print 'In', self._testMethodName, 'got', expected
-        self.assertAlmostEqual(expected, actual)
-
     def test_3d2_spinless(self):
         dimension = 3
         grid_length = 2
@@ -720,7 +659,3 @@ class GetGapTest(unittest.TestCase):
                     QubitOperator('Z0 Z1', 1j) + QubitOperator((), 2 + 1j))
         with self.assertRaises(ValueError):
             get_gap(get_sparse_operator(operator))
-
-
-if __name__ == '__main__':
-    unittest.main()
