@@ -19,9 +19,12 @@ import unittest
 from scipy.linalg import eigh, norm
 from scipy.sparse import csc_matrix
 
-from fermilib.ops import FermionOperator, number_operator
+from fermilib.ops import FermionOperator, normal_ordered, number_operator
 from fermilib.transforms import get_sparse_operator, jordan_wigner
-from fermilib.utils import Grid, jellium_model
+from fermilib.utils import (fourier_transform, Grid, jellium_model,
+                            wigner_seitz_length_scale)
+from fermilib.utils._jellium_hf_state import (
+    lowest_single_particle_energy_states)
 from fermilib.utils._sparse_tools import *
 
 
@@ -233,6 +236,417 @@ class ExpectationTest(unittest.TestCase):
                              ([0, 1, 2], [0, 0, 0])), shape=(3, 1))
         with self.assertRaises(ValueError):
             expectation(operator, vector)
+
+
+class ExpectationComputationalBasisStateTest(unittest.TestCase):
+    def test_expectation_fermion_operator_single_number_terms(self):
+        operator = FermionOperator('3^ 3', 1.9) + FermionOperator('2^ 1')
+        state = csc_matrix(([1], ([15], [0])), shape=(16, 1))
+
+        self.assertAlmostEqual(
+            expectation_computational_basis_state(operator, state), 1.9)
+
+    def test_expectation_fermion_operator_two_number_terms(self):
+        operator = (FermionOperator('2^ 2', 1.9) + FermionOperator('2^ 1') +
+                    FermionOperator('2^ 1^ 2 1', -1.7))
+        state = csc_matrix(([1], ([6], [0])), shape=(16, 1))
+
+        self.assertAlmostEqual(
+            expectation_computational_basis_state(operator, state), 3.6)
+
+    def test_expectation_identity_fermion_operator(self):
+        operator = FermionOperator.identity() * 1.1
+        state = csc_matrix(([1], ([6], [0])), shape=(16, 1))
+
+        self.assertAlmostEqual(
+            expectation_computational_basis_state(operator, state), 1.1)
+
+    def test_expectation_state_is_list_single_number_terms(self):
+        operator = FermionOperator('3^ 3', 1.9) + FermionOperator('2^ 1')
+        state = [1, 1, 1, 1]
+
+        self.assertAlmostEqual(
+            expectation_computational_basis_state(operator, state), 1.9)
+
+    def test_expectation_state_is_list_fermion_operator_two_number_terms(self):
+        operator = (FermionOperator('2^ 2', 1.9) + FermionOperator('2^ 1') +
+                    FermionOperator('2^ 1^ 2 1', -1.7))
+        state = [0, 1, 1]
+
+        self.assertAlmostEqual(
+            expectation_computational_basis_state(operator, state), 3.6)
+
+    def test_expectation_state_is_list_identity_fermion_operator(self):
+        operator = FermionOperator.identity() * 1.1
+        state = [0, 1, 1]
+
+        self.assertAlmostEqual(
+            expectation_computational_basis_state(operator, state), 1.1)
+
+    def test_expectation_bad_operator_type(self):
+        with self.assertRaises(TypeError):
+            expectation_computational_basis_state(
+                'never', csc_matrix(([1], ([6], [0])), shape=(16, 1)))
+
+    def test_expectation_qubit_operator_not_implemented(self):
+        with self.assertRaises(NotImplementedError):
+            expectation_computational_basis_state(
+                QubitOperator(), csc_matrix(([1], ([6], [0])), shape=(16, 1)))
+
+
+class ExpectationDualBasisOperatorWithPlaneWaveBasisState(unittest.TestCase):
+    def setUp(self):
+        grid_length = 4
+        dimension = 1
+        wigner_seitz_radius = 10.
+        self.spinless = True
+        self.n_spatial_orbitals = grid_length ** dimension
+
+        n_qubits = self.n_spatial_orbitals
+        self.n_particles = 3
+
+        # Compute appropriate length scale and the corresponding grid.
+        length_scale = wigner_seitz_length_scale(
+            wigner_seitz_radius, self.n_particles, dimension)
+
+        self.grid1 = Grid(dimension, grid_length, length_scale)
+        # Get the occupied orbitals of the plane-wave basis Hartree-Fock state.
+        hamiltonian = jellium_model(self.grid1, self.spinless, plane_wave=True)
+        hamiltonian = normal_ordered(hamiltonian)
+        hamiltonian.compress()
+
+        occupied_states = numpy.array(lowest_single_particle_energy_states(
+            hamiltonian, self.n_particles))
+        self.hf_state_index1 = numpy.sum(2 ** occupied_states)
+
+        self.hf_state1 = csc_matrix(
+            ([1.0], ([self.hf_state_index1], [0])), shape=(2 ** n_qubits, 1))
+
+        self.orbital_occupations1 = [digit == '1' for digit in
+                                     bin(self.hf_state_index1)[2:]][::-1]
+        self.occupied_orbitals1 = [index for index, occupied in
+                                   enumerate(self.orbital_occupations1)
+                                   if occupied]
+
+        self.reversed_occupied_orbitals1 = list(self.occupied_orbitals1)
+        for i in range(len(self.reversed_occupied_orbitals1)):
+            self.reversed_occupied_orbitals1[i] = -1 + int(numpy.log2(
+                self.hf_state1.shape[0])) - self.reversed_occupied_orbitals1[i]
+
+        self.reversed_hf_state_index1 = sum(
+            2 ** index for index in self.reversed_occupied_orbitals1)
+
+    def test_1body_hopping_operator_1D(self):
+        operator = FermionOperator('2^ 0')
+        operator = normal_ordered(operator)
+        transformed_operator = normal_ordered(fourier_transform(
+            operator, self.grid1, self.spinless))
+
+        expected = expectation(get_sparse_operator(
+            transformed_operator), self.hf_state1)
+        actual = expectation_db_operator_with_pw_basis_state(
+            operator, self.reversed_occupied_orbitals1,
+            self.n_spatial_orbitals, self.grid1, self.spinless)
+        self.assertAlmostEqual(expected, actual)
+
+    def test_1body_number_operator_1D(self):
+        operator = FermionOperator('2^ 2')
+        operator = normal_ordered(operator)
+        transformed_operator = normal_ordered(fourier_transform(
+            operator, self.grid1, self.spinless))
+
+        expected = expectation(get_sparse_operator(
+            transformed_operator), self.hf_state1)
+        actual = expectation_db_operator_with_pw_basis_state(
+            operator, self.reversed_occupied_orbitals1,
+            self.n_spatial_orbitals, self.grid1, self.spinless)
+        self.assertAlmostEqual(expected, actual)
+
+    def test_2body_partial_number_operator_high_1D(self):
+        operator = FermionOperator('2^ 1^ 2 0')
+        operator = normal_ordered(operator)
+        transformed_operator = normal_ordered(fourier_transform(
+            operator, self.grid1, self.spinless))
+
+        expected = expectation(get_sparse_operator(
+            transformed_operator), self.hf_state1)
+        actual = expectation_db_operator_with_pw_basis_state(
+            operator, self.reversed_occupied_orbitals1,
+            self.n_spatial_orbitals, self.grid1, self.spinless)
+        self.assertAlmostEqual(expected, actual)
+
+    def test_2body_partial_number_operator_mid_1D(self):
+        operator = FermionOperator('1^ 0^ 1 2')
+        operator = normal_ordered(operator)
+        transformed_operator = normal_ordered(fourier_transform(
+            operator, self.grid1, self.spinless))
+
+        expected = expectation(get_sparse_operator(
+            transformed_operator), self.hf_state1)
+        actual = expectation_db_operator_with_pw_basis_state(
+            operator, self.reversed_occupied_orbitals1,
+            self.n_spatial_orbitals, self.grid1, self.spinless)
+        self.assertAlmostEqual(expected, actual)
+
+    def test_3body_double_number_operator_1D(self):
+        operator = FermionOperator('3^ 2^ 1^ 3 1 0')
+        operator = normal_ordered(operator)
+        transformed_operator = normal_ordered(fourier_transform(
+            operator, self.grid1, self.spinless))
+
+        expected = expectation(get_sparse_operator(
+            transformed_operator), self.hf_state1)
+        actual = expectation_db_operator_with_pw_basis_state(
+            operator, self.reversed_occupied_orbitals1,
+            self.n_spatial_orbitals, self.grid1, self.spinless)
+        self.assertAlmostEqual(expected, actual)
+
+    def test_2body_adjacent_number_operator_1D(self):
+        operator = FermionOperator('3^ 2^ 2 1')
+        operator = normal_ordered(operator)
+        transformed_operator = normal_ordered(fourier_transform(
+            operator, self.grid1, self.spinless))
+
+        expected = expectation(get_sparse_operator(
+            transformed_operator), self.hf_state1)
+        actual = expectation_db_operator_with_pw_basis_state(
+            operator, self.reversed_occupied_orbitals1,
+            self.n_spatial_orbitals, self.grid1, self.spinless)
+        self.assertAlmostEqual(expected, actual)
+
+    def test_1d5_with_spin_10particles(self):
+        dimension = 1
+        grid_length = 5
+        n_spatial_orbitals = grid_length ** dimension
+        wigner_seitz_radius = 9.3
+
+        spinless = False
+        n_qubits = n_spatial_orbitals
+        if not spinless:
+            n_qubits *= 2
+        n_particles_big = 10
+
+        length_scale = wigner_seitz_length_scale(
+            wigner_seitz_radius, n_particles_big, dimension)
+
+        self.grid3 = Grid(dimension, grid_length, length_scale)
+        # Get the occupied orbitals of the plane-wave basis Hartree-Fock state.
+        hamiltonian = jellium_model(self.grid3, spinless, plane_wave=True)
+        hamiltonian = normal_ordered(hamiltonian)
+        hamiltonian.compress()
+
+        occupied_states = numpy.array(lowest_single_particle_energy_states(
+            hamiltonian, n_particles_big))
+        self.hf_state_index3 = numpy.sum(2 ** occupied_states)
+
+        self.hf_state3 = csc_matrix(
+            ([1.0], ([self.hf_state_index3], [0])), shape=(2 ** n_qubits, 1))
+
+        self.orbital_occupations3 = [digit == '1' for digit in
+                                     bin(self.hf_state_index3)[2:]][::-1]
+        self.occupied_orbitals3 = [index for index, occupied in
+                                   enumerate(self.orbital_occupations3)
+                                   if occupied]
+
+        self.reversed_occupied_orbitals3 = list(self.occupied_orbitals3)
+        for i in range(len(self.reversed_occupied_orbitals3)):
+            self.reversed_occupied_orbitals3[i] = -1 + int(numpy.log2(
+                self.hf_state3.shape[0])) - self.reversed_occupied_orbitals3[i]
+
+        self.reversed_hf_state_index3 = sum(
+            2 ** index for index in self.reversed_occupied_orbitals3)
+
+        operator = (FermionOperator('6^ 0^ 1^ 3 5 4', 2) +
+                    FermionOperator('7^ 6^ 5 4', -3.7j) +
+                    FermionOperator('3^ 3', 2.1) +
+                    FermionOperator('3^ 2', 1.7))
+        operator = normal_ordered(operator)
+        transformed_operator = normal_ordered(fourier_transform(
+            operator, self.grid3, spinless))
+
+        expected = 2.1
+        # Calculated from expectation(get_sparse_operator(
+        #    transformed_operator), self.hf_state3)
+        actual = expectation_db_operator_with_pw_basis_state(
+            operator, self.reversed_occupied_orbitals3,
+            n_spatial_orbitals, self.grid3, spinless)
+
+        self.assertAlmostEqual(expected, actual)
+
+    def test_1d5_with_spin_7particles(self):
+        dimension = 1
+        grid_length = 5
+        n_spatial_orbitals = grid_length ** dimension
+        wigner_seitz_radius = 9.3
+
+        spinless = False
+        n_qubits = n_spatial_orbitals
+        if not spinless:
+            n_qubits *= 2
+        n_particles_big = 7
+
+        length_scale = wigner_seitz_length_scale(
+            wigner_seitz_radius, n_particles_big, dimension)
+
+        self.grid3 = Grid(dimension, grid_length, length_scale)
+        # Get the occupied orbitals of the plane-wave basis Hartree-Fock state.
+        hamiltonian = jellium_model(self.grid3, spinless, plane_wave=True)
+        hamiltonian = normal_ordered(hamiltonian)
+        hamiltonian.compress()
+
+        occupied_states = numpy.array(lowest_single_particle_energy_states(
+            hamiltonian, n_particles_big))
+        self.hf_state_index3 = numpy.sum(2 ** occupied_states)
+
+        self.hf_state3 = csc_matrix(
+            ([1.0], ([self.hf_state_index3], [0])), shape=(2 ** n_qubits, 1))
+
+        self.orbital_occupations3 = [digit == '1' for digit in
+                                     bin(self.hf_state_index3)[2:]][::-1]
+        self.occupied_orbitals3 = [index for index, occupied in
+                                   enumerate(self.orbital_occupations3)
+                                   if occupied]
+
+        self.reversed_occupied_orbitals3 = list(self.occupied_orbitals3)
+        for i in range(len(self.reversed_occupied_orbitals3)):
+            self.reversed_occupied_orbitals3[i] = -1 + int(numpy.log2(
+                self.hf_state3.shape[0])) - self.reversed_occupied_orbitals3[i]
+
+        self.reversed_hf_state_index3 = sum(
+            2 ** index for index in self.reversed_occupied_orbitals3)
+
+        operator = (FermionOperator('6^ 0^ 1^ 3 5 4', 2) +
+                    FermionOperator('7^ 2^ 4 1') +
+                    FermionOperator('3^ 3', 2.1) +
+                    FermionOperator('5^ 3^ 1 0', 7.3))
+        operator = normal_ordered(operator)
+        transformed_operator = normal_ordered(fourier_transform(
+            operator, self.grid3, spinless))
+
+        expected = 1.66 - 0.0615536707435j
+        # Calculated with expected = expectation(get_sparse_operator(
+        #    transformed_operator), self.hf_state3)
+        actual = expectation_db_operator_with_pw_basis_state(
+            operator, self.reversed_occupied_orbitals3,
+            n_spatial_orbitals, self.grid3, spinless)
+
+        self.assertAlmostEqual(expected, actual)
+
+    def test_3d2_spinless(self):
+        dimension = 3
+        grid_length = 2
+        n_spatial_orbitals = grid_length ** dimension
+        wigner_seitz_radius = 9.3
+
+        spinless = True
+        n_qubits = n_spatial_orbitals
+        if not spinless:
+            n_qubits *= 2
+        n_particles_big = 5
+
+        length_scale = wigner_seitz_length_scale(
+            wigner_seitz_radius, n_particles_big, dimension)
+
+        self.grid3 = Grid(dimension, grid_length, length_scale)
+        # Get the occupied orbitals of the plane-wave basis Hartree-Fock state.
+        hamiltonian = jellium_model(self.grid3, spinless, plane_wave=True)
+        hamiltonian = normal_ordered(hamiltonian)
+        hamiltonian.compress()
+
+        occupied_states = numpy.array(lowest_single_particle_energy_states(
+            hamiltonian, n_particles_big))
+        self.hf_state_index3 = numpy.sum(2 ** occupied_states)
+
+        self.hf_state3 = csc_matrix(
+            ([1.0], ([self.hf_state_index3], [0])), shape=(2 ** n_qubits, 1))
+
+        self.orbital_occupations3 = [digit == '1' for digit in
+                                     bin(self.hf_state_index3)[2:]][::-1]
+        self.occupied_orbitals3 = [index for index, occupied in
+                                   enumerate(self.orbital_occupations3)
+                                   if occupied]
+
+        self.reversed_occupied_orbitals3 = list(self.occupied_orbitals3)
+        for i in range(len(self.reversed_occupied_orbitals3)):
+            self.reversed_occupied_orbitals3[i] = -1 + int(numpy.log2(
+                self.hf_state3.shape[0])) - self.reversed_occupied_orbitals3[i]
+
+        self.reversed_hf_state_index3 = sum(
+            2 ** index for index in self.reversed_occupied_orbitals3)
+
+        operator = (FermionOperator('4^ 2^ 3^ 5 5 4', 2) +
+                    FermionOperator('7^ 6^ 7 4', -3.7j) +
+                    FermionOperator('3^ 7', 2.1))
+        operator = normal_ordered(operator)
+        transformed_operator = normal_ordered(fourier_transform(
+            operator, self.grid3, spinless))
+
+        expected = -0.2625 - 0.4625j
+        # Calculated with expectation(get_sparse_operator(
+        #    transformed_operator), self.hf_state3)
+        actual = expectation_db_operator_with_pw_basis_state(
+            operator, self.reversed_occupied_orbitals3,
+            n_spatial_orbitals, self.grid3, spinless)
+
+        self.assertAlmostEqual(expected, actual)
+
+    def test_3d2_with_spin(self):
+        dimension = 3
+        grid_length = 2
+        n_spatial_orbitals = grid_length ** dimension
+        wigner_seitz_radius = 9.3
+
+        spinless = False
+        n_qubits = n_spatial_orbitals
+        if not spinless:
+            n_qubits *= 2
+        n_particles_big = 9
+
+        length_scale = wigner_seitz_length_scale(
+            wigner_seitz_radius, n_particles_big, dimension)
+
+        self.grid3 = Grid(dimension, grid_length, length_scale)
+        # Get the occupied orbitals of the plane-wave basis Hartree-Fock state.
+        hamiltonian = jellium_model(self.grid3, spinless, plane_wave=True)
+        hamiltonian = normal_ordered(hamiltonian)
+        hamiltonian.compress()
+
+        occupied_states = numpy.array(lowest_single_particle_energy_states(
+            hamiltonian, n_particles_big))
+        self.hf_state_index3 = numpy.sum(2 ** occupied_states)
+
+        self.hf_state3 = csc_matrix(
+            ([1.0], ([self.hf_state_index3], [0])), shape=(2 ** n_qubits, 1))
+
+        self.orbital_occupations3 = [digit == '1' for digit in
+                                     bin(self.hf_state_index3)[2:]][::-1]
+        self.occupied_orbitals3 = [index for index, occupied in
+                                   enumerate(self.orbital_occupations3)
+                                   if occupied]
+
+        self.reversed_occupied_orbitals3 = list(self.occupied_orbitals3)
+        for i in range(len(self.reversed_occupied_orbitals3)):
+            self.reversed_occupied_orbitals3[i] = -1 + int(numpy.log2(
+                self.hf_state3.shape[0])) - self.reversed_occupied_orbitals3[i]
+
+        self.reversed_hf_state_index3 = sum(
+            2 ** index for index in self.reversed_occupied_orbitals3)
+
+        operator = (FermionOperator('4^ 2^ 3^ 5 5 4', 2) +
+                    FermionOperator('7^ 6^ 7 4', -3.7j) +
+                    FermionOperator('3^ 7', 2.1))
+        operator = normal_ordered(operator)
+        transformed_operator = normal_ordered(fourier_transform(
+            operator, self.grid3, spinless))
+
+        expected = -0.2625 - 0.578125j
+        # Calculated from expected = expectation(get_sparse_operator(
+        #    transformed_operator), self.hf_state3)
+        actual = expectation_db_operator_with_pw_basis_state(
+            operator, self.reversed_occupied_orbitals3,
+            n_spatial_orbitals, self.grid3, spinless)
+
+        self.assertAlmostEqual(expected, actual)
 
 
 class GetGapTest(unittest.TestCase):
