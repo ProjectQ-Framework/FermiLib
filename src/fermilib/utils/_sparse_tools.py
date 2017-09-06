@@ -487,19 +487,19 @@ def expectation_two_body_db_operator_computational_basis_state(
     kbd_dict = {}
     for i in plane_wave_occ_orbitals:
         k = momentum_vector(grid_indices(i, grid, spinless), grid)
-	kac_dict[i] = k.dot(r_a - r_c)
-	kad_dict[i] = k.dot(r_a - r_d)
-	kbc_dict[i] = k.dot(r_b - r_c)
-	kbd_dict[i] = k.dot(r_b - r_d)
+        kac_dict[i] = k.dot(r_a - r_c)
+        kad_dict[i] = k.dot(r_a - r_d)
+        kbc_dict[i] = k.dot(r_b - r_c)
+        kbd_dict[i] = k.dot(r_b - r_d)
 
     for orbital1 in plane_wave_occ_orbitals:
-	k1ac = kac_dict[orbital1]
-	k1ad = kad_dict[orbital1]
+        k1ac = kac_dict[orbital1]
+        k1ad = kad_dict[orbital1]
 
         for orbital2 in plane_wave_occ_orbitals:
             if orbital1 != orbital2:
-	        k2bc = kbc_dict[orbital2]
-	        k2bd = kbd_dict[orbital2]
+                k2bc = kbc_dict[orbital2]
+                k2bd = kbd_dict[orbital2]
 
                 # The Fourier transform is spin-conserving. This means that
                 # the parity of the orbitals involved in the transition must
@@ -569,15 +569,15 @@ def expectation_three_body_db_operator_computational_basis_state(
     kcf_dict = {}
     for i in plane_wave_occ_orbitals:
         k = momentum_vector(grid_indices(i, grid, spinless), grid)
-	kad_dict[i] = k.dot(r_a - r_d)
-	kae_dict[i] = k.dot(r_a - r_e)
-	kaf_dict[i] = k.dot(r_a - r_f)
-	kbd_dict[i] = k.dot(r_b - r_d)
-	kbe_dict[i] = k.dot(r_b - r_e)
-	kbf_dict[i] = k.dot(r_b - r_f)
-	kcd_dict[i] = k.dot(r_c - r_d)
-	kce_dict[i] = k.dot(r_c - r_e)
-	kcf_dict[i] = k.dot(r_c - r_f)
+        kad_dict[i] = k.dot(r_a - r_d)
+        kae_dict[i] = k.dot(r_a - r_e)
+        kaf_dict[i] = k.dot(r_a - r_f)
+        kbd_dict[i] = k.dot(r_b - r_d)
+        kbe_dict[i] = k.dot(r_b - r_e)
+        kbf_dict[i] = k.dot(r_b - r_f)
+        kcd_dict[i] = k.dot(r_c - r_d)
+        kce_dict[i] = k.dot(r_c - r_e)
+        kcf_dict[i] = k.dot(r_c - r_f)
 
     for orbital1 in plane_wave_occ_orbitals:
         k1ad = kad_dict[orbital1]
