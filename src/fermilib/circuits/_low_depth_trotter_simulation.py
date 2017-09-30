@@ -1,3 +1,17 @@
+#   Copyright 2017 ProjectQ-Framework (www.projectq.ch)
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
 """Module for low-depth Trotterized simulation in the plane wave dual basis."""
 import functools
 import itertools
@@ -130,7 +144,7 @@ def simulation_gate_trotter_step(register, hamiltonian, input_ordering=None,
             # The single-Z rotation angle is the opposite of the ZZ angle.
             Rz(-zz_angle) | register[i]
             Rz(-zz_angle) | register[i + 1]
-            Ph(-zz_angle / 2.) | register
+            Ph(-zz_angle / 2.) | register[0]
 
             num_operator_left = ((input_ordering[i], 1),
                                  (input_ordering[i], 0))
@@ -147,7 +161,7 @@ def simulation_gate_trotter_step(register, hamiltonian, input_ordering=None,
                 # After special_F_adjacent, qubits i and i+1 have swapped;
                 # the ith rotation must thus be applied to qubit i+1.
                 Rz(z_angle) | register[i + 1]
-                Ph(z_angle / 2.) | register
+                Ph(z_angle / 2.) | register[0]
 
             num_operator_right = ((input_ordering[i+1], 1),
                                   (input_ordering[i+1], 0))
@@ -164,7 +178,7 @@ def simulation_gate_trotter_step(register, hamiltonian, input_ordering=None,
                 # After special_F_adjacent, qubits i and i+1 have swapped;
                 # the (i+1)th rotation must thus be applied to qubit i.
                 Rz(z_angle) | register[i]
-                Ph(z_angle / 2.) | register
+                Ph(z_angle / 2.) | register[0]
 
             # Finally, swap the two modes in input_ordering.
             input_ordering[i], input_ordering[i + 1] = (input_ordering[i + 1],
