@@ -1,3 +1,17 @@
+#   Copyright 2017 ProjectQ-Framework (www.projectq.ch)
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
 """Tests for ffft.py."""
 import numpy
 import numpy.linalg
@@ -495,7 +509,7 @@ class FFFTPlaneWaveIntegrationTest(unittest.TestCase):
             prepare_logical_state(register, i)
 
             ffft(eng, register, n_qubits)
-            Ph(3 * numpy.pi / 4) | register
+            Ph(3 * numpy.pi / 4) | register[0]
             eng.flush()
             wvfn = ordered_wavefunction(eng)
             All(Measure) | register
@@ -538,7 +552,7 @@ class FFFTPlaneWaveIntegrationTest(unittest.TestCase):
         prepare_logical_state(register, state_index)
 
         ffft(eng, register, n_qubits)
-        Ph(3 * numpy.pi / 4) | register
+        Ph(3 * numpy.pi / 4) | register[0]
         eng.flush()
         wvfn = ordered_wavefunction(eng)
         All(Measure) | register
@@ -624,7 +638,7 @@ class FFFTPlaneWaveIntegrationTest(unittest.TestCase):
         All(H) | [db_wavefunction[1], db_wavefunction[3]]
 
         ffft(db_engine, db_wavefunction, n_qubits)
-        Ph(3 * numpy.pi / 4) | db_wavefunction
+        Ph(3 * numpy.pi / 4) | db_wavefunction[0]
 
         # Flush the engine and compute expectation values and eigenvalues.
         pw_engine.flush()
@@ -699,7 +713,7 @@ class FFFTPlaneWaveIntegrationTest(unittest.TestCase):
         All(H) | [db_wavefunction[1], db_wavefunction[3]]
 
         ffft(db_engine, db_wavefunction, n_qubits)
-        Ph(3 * numpy.pi / 4) | db_wavefunction
+        Ph(3 * numpy.pi / 4) | db_wavefunction[0]
 
         # Flush the engine and compute expectation values and eigenvalues.
         pw_engine.flush()

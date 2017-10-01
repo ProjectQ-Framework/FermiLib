@@ -1,3 +1,17 @@
+#   Copyright 2017 ProjectQ-Framework (www.projectq.ch)
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
 """Functions to perform the fermionic fast Fourier transform."""
 import itertools
 import numpy
@@ -209,8 +223,7 @@ def ffft_2d(engine, register, system_size):
     for i in range(system_size):
         ffft(engine, register[system_size*i: system_size*i + system_size],
              system_size)
-        Ph(3 * numpy.pi / 4) | register[system_size*i:
-                                        system_size*i + system_size]
+        Ph(3 * numpy.pi / 4) | register[0]
 
     # To apply the FFFT along the second axis, we must fermionically
     # swap qubits into the correct positions. In 2D this is equivalent
@@ -230,8 +243,7 @@ def ffft_2d(engine, register, system_size):
     for i in range(system_size):
         ffft(engine, register[system_size*i: system_size*i + system_size],
              system_size)
-        Ph(3 * numpy.pi / 4) | register[system_size*i:
-                                        system_size*i + system_size]
+        Ph(3 * numpy.pi / 4) | register[0]
 
     # Undo the fermionic swap network to restore the original ordering.
     for swap in all_swaps[::-1]:
