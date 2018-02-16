@@ -7,6 +7,8 @@ FermiLib - An open source software for analyzing quantum simulation algorithms
 .. image:: https://coveralls.io/repos/github/ProjectQ-Framework/FermiLib/badge.svg
     :target: https://coveralls.io/github/ProjectQ-Framework/FermiLib
 
+.. image:: https://www.codetriage.com/projectq-framework/fermilib/badges/users.svg
+    :target: https://www.codetriage.com/projectq-framework/fermilib
 .. image:: https://readthedocs.org/projects/fermilib/badge/?version=latest
 	:target: http://fermilib.readthedocs.io/en/latest/?badge=latest
 	:alt: Documentation Status
