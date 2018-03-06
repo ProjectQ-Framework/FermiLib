@@ -1,5 +1,5 @@
 FermiLib - Open source software for analyzing quantum simulation algorithms
-==============================================================================
+===========================================================================
 
 .. image:: https://travis-ci.org/ProjectQ-Framework/FermiLib.svg?branch=master
     :target: https://travis-ci.org/ProjectQ-Framework/FermiLib
